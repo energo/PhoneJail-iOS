@@ -20,6 +20,32 @@ let enabledAppsKey = "EnabledApps"
 let disabledAppsKey = "DisabledApps"
 let isAuthorizedKey = "IsAuthorized"
 
+extension SharedData.Keys {
+  static let disabledApps = "DisabledApps"
+  static let allSelectedApps = "AllSelectedApps"
+}
+
+// Расширяем SharedData дополнительным свойством для хранения выключенных приложений
+extension SharedData {
+  static var disabledFamilyActivity: FamilyActivitySelection? {
+    get {
+      guard let data = defaultsGroup?.data(forKey: Keys.disabledApps) else { return nil }
+      return try? JSONDecoder().decode(FamilyActivitySelection.self, from: data)
+    } set {
+      defaultsGroup?.set(try? JSONEncoder().encode(newValue), forKey: Keys.disabledApps)
+    }
+  }
+  
+  static var allSelectedFamilyActivity: FamilyActivitySelection? {
+    get {
+      guard let data = defaultsGroup?.data(forKey: Keys.allSelectedApps) else { return nil }
+      return try? JSONDecoder().decode(FamilyActivitySelection.self, from: data)
+    } set {
+      defaultsGroup?.set(try? JSONEncoder().encode(newValue), forKey: Keys.allSelectedApps)
+    }
+  }
+}
+
 struct ContentView: View {
   @State private var pickerIsPresented = false
   @State private var showSocialMediaHint = false
@@ -69,49 +95,37 @@ struct ContentView: View {
           }
         }
         
-        // Загружаем сохраненные приложения независимо от статуса авторизации
-        let enabledApps = loadEnabledApps()
-        let disabledApps = loadDisabledApps()
+        // Восстанавливаем все сохраненные приложения
+        let allSelectedApps = SharedData.allSelectedFamilyActivity?.applicationTokens ?? Set<ApplicationToken>()
+        let disabledApps = SharedData.disabledFamilyActivity?.applicationTokens ?? Set<ApplicationToken>()
         
-        // Восстанавливаем сохраненный выбор приложений
-        if let savedSelection = SharedData.selectedFamilyActivity {
-          // Обновляем модель сохраненным выбором
-          model.activitySelection = savedSelection
-        }
-        
-        // Собираем все уникальные токены из всех источников
-        var allTokens = Set<ApplicationToken>()
-        
-        // Добавляем токены из текущей модели
-        allTokens.formUnion(model.activitySelection.applicationTokens)
-        
-        // Добавляем сохраненные включенные и выключенные токены
-        if !enabledApps.isEmpty || !disabledApps.isEmpty {
-          allTokens.formUnion(enabledApps)
-          allTokens.formUnion(disabledApps)
+        if !allSelectedApps.isEmpty {
+          print("Найдено ранее выбранных приложений: \(allSelectedApps.count)")
           
-          print("Загружено включенных приложений: \(enabledApps.count)")
-          print("Загружено выключенных приложений: \(disabledApps.count)")
-        }
-        
-        // Если есть хоть какие-то токены, создаем список приложений
-        if !allTokens.isEmpty {
-          // Создаем список всех приложений
-          monitoredApps = allTokens.map { token in
-            // Приложение включено, если оно в списке enabledApps или не в списке disabledApps
-            let isEnabled = enabledApps.contains(token) || (!disabledApps.contains(token) && !enabledApps.isEmpty)
+          // Создаем список из всех сохраненных приложений
+          monitoredApps = allSelectedApps.map { token in
+            // Приложение включено, если оно не в списке выключенных
+            let isEnabled = !disabledApps.contains(token)
             return MonitoredApp(token: token, isMonitored: isEnabled)
           }
           
-          // Обновляем модель и SharedData со всеми токенами
-          updateSelectionWithAllTokens(allTokens: allTokens)
+          // Обновляем модель только включенными приложениями
+          if let enabledSelection = SharedData.selectedFamilyActivity {
+            model.activitySelection = enabledSelection
+          } else {
+            var enabledSelection = FamilyActivitySelection()
+            enabledSelection.applicationTokens = allSelectedApps.subtracting(disabledApps)
+            model.activitySelection = enabledSelection
+          }
           
           print("Создано приложений: \(monitoredApps.count)")
-          for app in monitoredApps {
-            print("Приложение: \(app.token), Состояние: \(app.isMonitored)")
-          }
+          print("Включено: \(monitoredApps.filter { $0.isMonitored }.count)")
+          print("Выключено: \(monitoredApps.filter { !$0.isMonitored }.count)")
+        } else if !model.activitySelection.applicationTokens.isEmpty {
+          // Если нет сохраненных, но есть в текущей модели
+          updateMonitoredAppsList()
         } else {
-          // Если нет ни сохраненных, ни текущих - показываем подсказку
+          // Если нет приложений, показываем пикер
           print("Нет приложений, показываем подсказку")
           showPickerWithInstructions()
         }
@@ -311,22 +325,14 @@ struct ContentView: View {
 
     print("startMonitoring timeLimitMinutes: \(timeLimitMinutes)")
 
-    // Собираем только активные токены
+    // Обновляем состояние всех приложений
+    updateMonitoringState()
+    
+    // Получаем только включенные токены для мониторинга
     let enabledTokens = Set(monitoredApps.filter { $0.isMonitored }.map { $0.token })
     
-    // Если нет активных токенов, используем все выбранные в модели
-    let activeTokens = enabledTokens.isEmpty ? model.activitySelection.applicationTokens : enabledTokens
-    
-    // Создаем новый FamilyActivitySelection
-    var selection = FamilyActivitySelection()
-    // Устанавливаем наши токены приложений
-    selection.applicationTokens = activeTokens
-    
-    // Сохраняем выбор
-    SharedData.selectedFamilyActivity = selection
-    
     let event = DeviceActivityEvent(
-      applications: activeTokens,
+      applications: enabledTokens,
       categories: model.activitySelection.categoryTokens,
       webDomains: model.activitySelection.webDomainTokens,
       threshold: DateComponents(minute: timeLimitMinutes))
@@ -391,118 +397,142 @@ struct ContentView: View {
   }
   
   func updateMonitoredAppsList() {
-    // Сохраняем текущее состояние приложений
-    let enabledTokens = Set(monitoredApps.filter { $0.isMonitored }.map { $0.token })
-    let disabledTokens = Set(monitoredApps.filter { !$0.isMonitored }.map { $0.token })
+    // Получаем токены всех сохраненных приложений
+    let allSelectedApps = SharedData.allSelectedFamilyActivity?.applicationTokens ?? Set<ApplicationToken>()
+    let disabledApps = SharedData.disabledFamilyActivity?.applicationTokens ?? Set<ApplicationToken>()
     
-    // Получаем все токены из модели
-    var allTokens = Set(model.activitySelection.applicationTokens)
+    // Получаем новые приложения из выбора
+    let newAppsFromSelection = model.activitySelection.applicationTokens
     
-    // Добавляем токены, которые были в нашем списке
-    let previousTokens = monitoredApps.map { $0.token }
-    allTokens.formUnion(previousTokens)
+    // Объединяем все приложения
+    var allApps = allSelectedApps
+    allApps.formUnion(newAppsFromSelection)
     
-    // Создаем новый список всех приложений
-    monitoredApps = allTokens.map { token in
-      // Сохраняем прежнее состояние или устанавливаем включенным по умолчанию
-      let isEnabled = enabledTokens.contains(token) || (!disabledTokens.contains(token) && !enabledTokens.isEmpty)
+    // Объединяем с текущими приложениями
+    let currentTokens = Set(monitoredApps.map { $0.token })
+    allApps.formUnion(currentTokens)
+    
+    // Сохраняем все приложения
+    var allSelection = FamilyActivitySelection()
+    allSelection.applicationTokens = allApps
+    SharedData.allSelectedFamilyActivity = allSelection
+    
+    // Создаем новый список приложений для отображения
+    monitoredApps = allApps.map { token in
+      // Приложение включено, если оно не в списке выключенных
+      let isEnabled = !disabledApps.contains(token)
       return MonitoredApp(token: token, isMonitored: isEnabled)
     }
     
-    // Обновляем selection с учетом всех токенов
-    updateSelectionWithAllTokens(allTokens: allTokens)
-    
-    // Сохраняем состояние приложений
-    saveAppStates()
+    print("Обновлено приложений: \(monitoredApps.count)")
+    print("Включено: \(monitoredApps.filter { $0.isMonitored }.count)")
+    print("Выключено: \(monitoredApps.filter { !$0.isMonitored }.count)")
   }
   
   func updateMonitoringState() {
-    // Обновляем списки включенных и выключенных приложений
-//    let enabledTokens = Set(monitoredApps.filter { $0.isMonitored }.map { $0.token })
-//    let disabledTokens = Set(monitoredApps.filter { !$0.isMonitored }.map { $0.token })
+    // Получаем список всех приложений
+    let allApps = Set(monitoredApps.map { $0.token })
     
-    // Все токены (и включенные, и выключенные)
-    let allTokens = Set(monitoredApps.map { $0.token })
+    // Получаем список выключенных приложений
+    let disabledApps = Set(monitoredApps.filter { !$0.isMonitored }.map { $0.token })
     
-    // Обновляем модель и SharedData
-    updateSelectionWithAllTokens(allTokens: allTokens)
+    // Получаем список включенных приложений
+    let enabledApps = Set(monitoredApps.filter { $0.isMonitored }.map { $0.token })
     
-    // Сохраняем состояние приложений
-    saveAppStates()
+    // Сохраняем все приложения
+    var allSelection = FamilyActivitySelection()
+    allSelection.applicationTokens = allApps
+    SharedData.allSelectedFamilyActivity = allSelection
+    
+    // Сохраняем выключенные приложения
+    var disabledSelection = FamilyActivitySelection()
+    disabledSelection.applicationTokens = disabledApps
+    SharedData.disabledFamilyActivity = disabledSelection
+    
+    // Сохраняем включенные приложения для мониторинга
+    var enabledSelection = FamilyActivitySelection()
+    enabledSelection.applicationTokens = enabledApps
+    SharedData.selectedFamilyActivity = enabledSelection
   }
   
-  // Обновляет selection в модели и сохраняет его
-  func updateSelectionWithAllTokens(allTokens: Set<ApplicationToken>) {
-    var selection = FamilyActivitySelection()
-    selection.applicationTokens = allTokens
-    model.activitySelection = selection
+  // Сохраняет все выбранные приложения
+  func saveAllSelectedApps(allTokens: Set<ApplicationToken>) {
+    // Сохраняем хеши всех токенов
+    let allHashes = allTokens.map { $0.hashValue }
+    SharedData.defaultsGroup?.set(allHashes, forKey: SharedData.Keys.allSelectedApps)
     
-    // Сохраняем выбор в SharedData
-    SharedData.selectedFamilyActivity = selection
+    print("Сохранено всех приложений: \(allHashes.count)")
   }
   
-  // Сохраняет списки включенных и выключенных приложений
-  func saveAppStates() {
-    let enabledTokens = monitoredApps.filter { $0.isMonitored }.map { $0.token.hashValue }
-    let disabledTokens = monitoredApps.filter { !$0.isMonitored }.map { $0.token.hashValue }
-    
-    print("Сохраняем включенных приложений: \(enabledTokens.count)")
-    print("Сохраняем выключенных приложений: \(disabledTokens.count)")
-    
-    SharedData.defaultsGroup?.set(enabledTokens, forKey: enabledAppsKey)
-    SharedData.defaultsGroup?.set(disabledTokens, forKey: disabledAppsKey)
-  }
-  
-  // Загружает список включенных приложений
-  func loadEnabledApps() -> [ApplicationToken] {
-    guard let hashes = SharedData.defaultsGroup?.array(forKey: enabledAppsKey) as? [Int] else {
+  // Загружает все ранее выбранные приложения
+  func loadAllSelectedApps() -> Set<ApplicationToken> {
+    // Загружаем хеши всех токенов
+    guard let allHashes = SharedData.defaultsGroup?.array(forKey: SharedData.Keys.allSelectedApps) as? [Int] else {
       return []
     }
     
-    // Получаем токены из актуального набора приложений
-    var tokens = [ApplicationToken]()
+    print("Загружено хешей всех приложений: \(allHashes.count)")
     
-    // Добавляем токены из модели
-    for token in model.activitySelection.applicationTokens {
-      if hashes.contains(token.hashValue) {
-        tokens.append(token)
+    // Собираем все доступные токены
+    var allTokensSet = Set<ApplicationToken>()
+    
+    // Добавляем токены из текущей модели
+    allTokensSet.formUnion(model.activitySelection.applicationTokens)
+    
+    // Добавляем токены из текущего списка
+    let currentTokens = monitoredApps.map { $0.token }
+    allTokensSet.formUnion(currentTokens)
+    
+    // Фильтруем токены по хешам
+    var matchedTokens = Set<ApplicationToken>()
+    for token in allTokensSet {
+      if allHashes.contains(token.hashValue) {
+        matchedTokens.insert(token)
       }
     }
     
-    // Добавляем токены из текущего списка приложений
-    for app in monitoredApps {
-      if hashes.contains(app.token.hashValue) && !tokens.contains(app.token) {
-        tokens.append(app.token)
-      }
-    }
-    
-    return tokens
+    print("Найдено сохраненных приложений: \(matchedTokens.count)")
+    return matchedTokens
   }
   
-  // Загружает список выключенных приложений
-  func loadDisabledApps() -> [ApplicationToken] {
-    guard let hashes = SharedData.defaultsGroup?.array(forKey: disabledAppsKey) as? [Int] else {
+  // Сохраняет выключенные приложения
+  func saveDisabledApps(disabledTokens: Set<ApplicationToken>) {
+    // Сохраняем хеши выключенных токенов
+    let disabledHashes = disabledTokens.map { $0.hashValue }
+    SharedData.defaultsGroup?.set(disabledHashes, forKey: SharedData.Keys.disabledApps)
+    
+    print("Сохранено выключенных приложений: \(disabledHashes.count)")
+  }
+  
+  // Загружает выключенные приложения
+  func loadDisabledApps() -> Set<ApplicationToken> {
+    // Загружаем хеши выключенных токенов
+    guard let disabledHashes = SharedData.defaultsGroup?.array(forKey: SharedData.Keys.disabledApps) as? [Int] else {
       return []
     }
     
-    // Получаем токены из актуального набора приложений
-    var tokens = [ApplicationToken]()
+    print("Загружено хешей выключенных приложений: \(disabledHashes.count)")
     
-    // Добавляем токены из модели
-    for token in model.activitySelection.applicationTokens {
-      if hashes.contains(token.hashValue) {
-        tokens.append(token)
+    // Собираем все доступные токены
+    var allTokensSet = Set<ApplicationToken>()
+    
+    // Добавляем токены из текущей модели
+    allTokensSet.formUnion(model.activitySelection.applicationTokens)
+    
+    // Добавляем токены из текущего списка
+    let currentTokens = monitoredApps.map { $0.token }
+    allTokensSet.formUnion(currentTokens)
+    
+    // Фильтруем токены по хешам
+    var disabledTokens = Set<ApplicationToken>()
+    for token in allTokensSet {
+      if disabledHashes.contains(token.hashValue) {
+        disabledTokens.insert(token)
       }
     }
     
-    // Добавляем токены из текущего списка приложений
-    for app in monitoredApps {
-      if hashes.contains(app.token.hashValue) && !tokens.contains(app.token) {
-        tokens.append(app.token)
-      }
-    }
-    
-    return tokens
+    print("Найдено выключенных приложений: \(disabledTokens.count)")
+    return disabledTokens
   }
 }
 
