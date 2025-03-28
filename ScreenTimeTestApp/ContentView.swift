@@ -18,7 +18,6 @@ import DeviceActivity
 // Константы для ключей UserDefaults
 let userDefaultsKey = "FamilyActivitySelection"
 let monitoredAppsEnabledStateKey = "MonitoredAppsEnabledState"
-let monitoredAppsTokensKey = "MonitoredAppsTokens"
 
 struct ContentView: View {
   @State private var pickerIsPresented = false
@@ -54,20 +53,21 @@ struct ContentView: View {
         do {
           try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
           
-          // Проверяем, есть ли уже сохраненные приложения
-          if let savedTokens = loadSavedTokens(), !savedTokens.isEmpty {
-            // Создаем список из сохраненных токенов
-            monitoredApps = Array(savedTokens).map { token in
-              return MonitoredApp(token: token, isMonitored: false)
-            }
+          // Восстанавливаем сохраненный выбор приложений
+          if let savedSelection = SharedData.selectedFamilyActivity {
+            // Обновляем модель сохраненным выбором
+            model.activitySelection = savedSelection
             
-            // Теперь загружаем состояние для этих приложений
+            // Обновляем наш список приложений, включая их состояние
+            updateMonitoredAppsList()
+            
+            // Загружаем сохраненное состояние (включено/выключено)
             loadMonitoredAppsState()
           } else if !model.activitySelection.applicationTokens.isEmpty {
-            // Если есть выбранные приложения, загружаем их
+            // Если нет сохраненных, но есть в текущей модели
             updateMonitoredAppsList()
           } else {
-            // Если нет ни сохраненных, ни выбранных - показываем подсказку
+            // Если нет ни сохраненных, ни текущих - показываем подсказку
             showPickerWithInstructions()
           }
         } catch {
@@ -352,18 +352,12 @@ struct ContentView: View {
     let existingAppsState = Dictionary(uniqueKeysWithValues: 
       monitoredApps.map { ($0.token.hashValue, $0.isMonitored) })
     
-    // Получаем все токены из селекции
+    // Получаем все токены из модели
     var allTokens = Set(model.activitySelection.applicationTokens)
     
-    // Восстанавливаем сохраненные токены из UserDefaults
-    if let savedTokens = loadSavedTokens() {
-      // Добавляем ранее сохраненные токены
-      allTokens.formUnion(savedTokens)
-    } else {
-      // Если сохраненных токенов нет, добавляем те, которые были в списке
-      let previousTokens = monitoredApps.map { $0.token }
-      allTokens.formUnion(previousTokens)
-    }
+    // Добавляем токены, которые были в нашем списке, но отсутствуют в новом выборе
+    let previousTokens = monitoredApps.map { $0.token }
+    allTokens.formUnion(previousTokens)
     
     // Создаем новый список из всех собранных приложений
     monitoredApps = Array(allTokens).map { token in
@@ -372,31 +366,44 @@ struct ContentView: View {
       return MonitoredApp(token: token, isMonitored: isEnabled)
     }
     
-    // Сохраняем все токены и их состояния
+    // Обновляем selection с учетом всех токенов
+    updateSelectionWithAllTokens(allTokens: allTokens)
+    
+    // Сохраняем состояние (включено/выключено)
     saveMonitoredAppsState()
-    saveAllTokens(tokens: allTokens)
   }
   
   func updateMonitoringState() {
     // Собираем только активные токены для мониторинга
     let enabledTokens = Set(monitoredApps.filter { $0.isMonitored }.map { $0.token })
     
+    // Получаем все токены (и активные, и неактивные)
+    let allTokens = Set(monitoredApps.map { $0.token })
+    
     // Создаем селекцию из всех токенов
     var selection = FamilyActivitySelection()
     
-    // Устанавливаем все токены - для обоих типов приложений сохраняем в модели
-    selection.applicationTokens = Set(monitoredApps.map { $0.token })
+    // Устанавливаем все токены (и активные, и неактивные)
+    selection.applicationTokens = allTokens
     
     // Обновляем сохраненное состояние
     model.activitySelection = selection
     
-    // А в SharedData для мониторинга сохраняем только включенные токены
-    var monitoringSelection = FamilyActivitySelection()
-    monitoringSelection.applicationTokens = enabledTokens
-    SharedData.selectedFamilyActivity = monitoringSelection
+    // Сохраняем в SharedData для мониторинга ВСЕ токены
+    SharedData.selectedFamilyActivity = selection
     
-    // Сохраняем состояние переключателей в UserDefaults
+    // Сохраняем состояние переключателей (включено/выключено)
     saveMonitoredAppsState()
+  }
+  
+  // Обновляет selection в модели и сохраняет его
+  func updateSelectionWithAllTokens(allTokens: Set<ApplicationToken>) {
+    var selection = FamilyActivitySelection()
+    selection.applicationTokens = allTokens
+    model.activitySelection = selection
+    
+    // Сохраняем выбор в SharedData
+    SharedData.selectedFamilyActivity = selection
   }
   
   // Функция для сохранения состояния приложений в UserDefaults
@@ -409,13 +416,13 @@ struct ContentView: View {
       appsState[String(app.token.hashValue)] = app.isMonitored
     }
     
-    // Сохраняем в UserDefaults
-    UserDefaults.standard.set(appsState, forKey: monitoredAppsEnabledStateKey)
+    // Сохраняем в UserDefaults группы приложений
+    SharedData.defaultsGroup?.set(appsState, forKey: monitoredAppsEnabledStateKey)
   }
   
   // Функция для загрузки состояния приложений из UserDefaults
   func loadMonitoredAppsState() {
-    guard let savedState = UserDefaults.standard.dictionary(forKey: monitoredAppsEnabledStateKey) as? [String: Bool] else {
+    guard let savedState = SharedData.defaultsGroup?.dictionary(forKey: monitoredAppsEnabledStateKey) as? [String: Bool] else {
       return
     }
     
@@ -426,43 +433,11 @@ struct ContentView: View {
         monitoredApps[i].isMonitored = isEnabled
       }
     }
-  }
-  
-  // Функция для сохранения всех токенов (включая отключенные)
-  func saveAllTokens(tokens: Set<ApplicationToken>) {
-    // Преобразуем токены в их хеш-значения и сохраняем
-    let tokenHashes = tokens.map { $0.hashValue }
-    UserDefaults.standard.set(tokenHashes, forKey: monitoredAppsTokensKey)
-  }
-  
-  // Функция для загрузки сохраненных токенов
-  func loadSavedTokens() -> Set<ApplicationToken>? {
-    // Загружаем сохраненные хеш-значения токенов
-    guard let tokenHashes = UserDefaults.standard.array(forKey: monitoredAppsTokensKey) as? [Int] else {
-      return nil
-    }
     
-    // Ищем токены с такими же хеш-значениями в текущем списке приложений
-    var savedTokens = Set<ApplicationToken>()
-    
-    // Добавляем токены из актуального выбора
-    let currentTokens = Array(model.activitySelection.applicationTokens)
-    
-    // Фильтруем токены по сохраненным хешам
-    for token in currentTokens {
-      if tokenHashes.contains(token.hashValue) {
-        savedTokens.insert(token)
-      }
-    }
-    
-    // Добавляем токены из предыдущего состояния
+    // Проверка: выводим состояние каждого приложения
     for app in monitoredApps {
-      if tokenHashes.contains(app.token.hashValue) {
-        savedTokens.insert(app.token)
-      }
+      print("Приложение: \(app.token), Включено: \(app.isMonitored)")
     }
-    
-    return savedTokens
   }
 }
 
