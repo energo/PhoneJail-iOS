@@ -11,7 +11,7 @@ import SwiftUI
 struct AntiSocialApp: App {
     var body: some Scene {
         WindowGroup {
-          ContentView(model: ScreenTimeSelectAppsModel())
+          ContentView(model: SelectAppsModel())
         }
     }
 }

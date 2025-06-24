@@ -51,7 +51,7 @@ struct ContentView: View {
   @State private var showSocialMediaHint = false
   @State private var monitoredApps: [MonitoredApp] = []
   @State private var isAuthorized = false
-  @ObservedObject var model: ScreenTimeSelectAppsModel
+  @ObservedObject var model: SelectAppsModel
   
   let columns = [
           GridItem(.flexible()),

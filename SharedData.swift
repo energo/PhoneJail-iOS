@@ -34,6 +34,7 @@ class SharedData {
     }
   }
 }
+
 //  static var isUserPremium: Bool {
 //      get {
 //          defaultsGroup?.bool(forKey: Keys.selectedFamilyActivity.key) ?? false

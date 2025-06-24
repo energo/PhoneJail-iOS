@@ -8,7 +8,7 @@
 import SwiftUI
 import FamilyControls
 
-class ScreenTimeSelectAppsModel: ObservableObject {
+class SelectAppsModel: ObservableObject {
   @Published var activitySelection = FamilyActivitySelection.init(includeEntireCategory: true) {
     didSet {
       print("activitySelection \(activitySelection)")

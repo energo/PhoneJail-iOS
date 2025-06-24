@@ -76,14 +76,14 @@
 			path = AntiSocialApp;
 			sourceTree = "<group>";
 		};
-		478055262D5BD68C003988E7 /* ScreenTimeTestAppTests */ = {
+		478055262D5BD68C003988E7 /* AntiSocialAppTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = ScreenTimeTestAppTests;
+			path = AntiSocialAppTests;
 			sourceTree = "<group>";
 		};
-		478055302D5BD68C003988E7 /* ScreenTimeTestAppUITests */ = {
+		478055302D5BD68C003988E7 /* AntiSocialAppUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = ScreenTimeTestAppUITests;
+			path = AntiSocialAppUITests;
 			sourceTree = "<group>";
 		};
 		478055DA2D5BE259003988E7 /* DeviceActivityMonitorExtension */ = {
@@ -134,8 +134,8 @@
 			children = (
 				478055ED2D5CB429003988E7 /* SharedData.swift */,
 				478055152D5BD68B003988E7 /* AntiSocialApp */,
-				478055262D5BD68C003988E7 /* ScreenTimeTestAppTests */,
-				478055302D5BD68C003988E7 /* ScreenTimeTestAppUITests */,
+				478055262D5BD68C003988E7 /* AntiSocialAppTests */,
+				478055302D5BD68C003988E7 /* AntiSocialAppUITests */,
 				478055DA2D5BE259003988E7 /* DeviceActivityMonitorExtension */,
 				478055D72D5BE259003988E7 /* Frameworks */,
 				478055142D5BD68B003988E7 /* Products */,
@@ -202,7 +202,7 @@
 				478055252D5BD68C003988E7 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				478055262D5BD68C003988E7 /* ScreenTimeTestAppTests */,
+				478055262D5BD68C003988E7 /* AntiSocialAppTests */,
 			);
 			name = AntiSocialTests;
 			packageProductDependencies = (
@@ -225,7 +225,7 @@
 				4780552F2D5BD68C003988E7 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				478055302D5BD68C003988E7 /* ScreenTimeTestAppUITests */,
+				478055302D5BD68C003988E7 /* AntiSocialAppUITests */,
 			);
 			name = AntiSocialUITests;
 			packageProductDependencies = (
