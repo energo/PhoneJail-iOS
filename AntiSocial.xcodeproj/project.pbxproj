@@ -9,8 +9,6 @@
 /* Begin PBXBuildFile section */
 		478055D92D5BE259003988E7 /* DeviceActivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 478055D82D5BE259003988E7 /* DeviceActivity.framework */; };
 		478055E12D5BE259003988E7 /* DeviceActivityMonitorExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 478055D62D5BE259003988E7 /* DeviceActivityMonitorExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		478055EE2D5CB429003988E7 /* SharedData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 478055ED2D5CB429003988E7 /* SharedData.swift */; };
-		478055EF2D5CB435003988E7 /* SharedData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 478055ED2D5CB429003988E7 /* SharedData.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -57,10 +55,16 @@
 		4780552D2D5BD68C003988E7 /* AntiSocialUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AntiSocialUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		478055D62D5BE259003988E7 /* DeviceActivityMonitorExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = DeviceActivityMonitorExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		478055D82D5BE259003988E7 /* DeviceActivity.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = DeviceActivity.framework; path = System/Library/Frameworks/DeviceActivity.framework; sourceTree = SDKROOT; };
-		478055ED2D5CB429003988E7 /* SharedData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedData.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		471FD1672E0AC22D00DE59AA /* Exceptions for "AntiSocial" folder in "DeviceActivityMonitorExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				App/SharedData.swift,
+			);
+			target = 478055D52D5BE259003988E7 /* DeviceActivityMonitorExtension */;
+		};
 		478055E22D5BE259003988E7 /* Exceptions for "DeviceActivityMonitorExtension" folder in "DeviceActivityMonitorExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -71,9 +75,12 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		478055152D5BD68B003988E7 /* AntiSocialApp */ = {
+		478055152D5BD68B003988E7 /* AntiSocial */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = AntiSocialApp;
+			exceptions = (
+				471FD1672E0AC22D00DE59AA /* Exceptions for "AntiSocial" folder in "DeviceActivityMonitorExtension" target */,
+			);
+			path = AntiSocial;
 			sourceTree = "<group>";
 		};
 		478055262D5BD68C003988E7 /* AntiSocialAppTests */ = {
@@ -132,8 +139,7 @@
 		4780550A2D5BD68B003988E7 = {
 			isa = PBXGroup;
 			children = (
-				478055ED2D5CB429003988E7 /* SharedData.swift */,
-				478055152D5BD68B003988E7 /* AntiSocialApp */,
+				478055152D5BD68B003988E7 /* AntiSocial */,
 				478055262D5BD68C003988E7 /* AntiSocialAppTests */,
 				478055302D5BD68C003988E7 /* AntiSocialAppUITests */,
 				478055DA2D5BE259003988E7 /* DeviceActivityMonitorExtension */,
@@ -179,7 +185,7 @@
 				478055E02D5BE259003988E7 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				478055152D5BD68B003988E7 /* AntiSocialApp */,
+				478055152D5BD68B003988E7 /* AntiSocial */,
 			);
 			name = AntiSocialApp;
 			packageProductDependencies = (
@@ -340,7 +346,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				478055EF2D5CB435003988E7 /* SharedData.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -362,7 +367,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				478055EE2D5CB429003988E7 /* SharedData.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -511,11 +515,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = AntiSocialApp/AntiSocialApp.entitlements;
+				CODE_SIGN_ENTITLEMENTS = AntiSocial/App/AntiSocialApp.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"AntiSocialApp/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"AntiSocial/App/Preview Content\"";
 				DEVELOPMENT_TEAM = U8A27296FS;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -543,11 +547,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = AntiSocialApp/AntiSocialApp.entitlements;
+				CODE_SIGN_ENTITLEMENTS = AntiSocial/App/AntiSocialApp.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"AntiSocialApp/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"AntiSocial/App/Preview Content\"";
 				DEVELOPMENT_TEAM = U8A27296FS;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
