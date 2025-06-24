@@ -7,6 +7,19 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		471FD4962E0AC56700DE59AA /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 471FD4952E0AC56700DE59AA /* FirebaseAnalytics */; };
+		471FD4982E0AC56700DE59AA /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 471FD4972E0AC56700DE59AA /* FirebaseAuth */; };
+		471FD49A2E0AC56700DE59AA /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 471FD4992E0AC56700DE59AA /* FirebaseCore */; };
+		471FD49C2E0AC56700DE59AA /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = 471FD49B2E0AC56700DE59AA /* FirebaseCrashlytics */; };
+		471FD49E2E0AC56700DE59AA /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 471FD49D2E0AC56700DE59AA /* FirebaseFirestore */; };
+		471FD4A02E0AC56700DE59AA /* FirebasePerformance in Frameworks */ = {isa = PBXBuildFile; productRef = 471FD49F2E0AC56700DE59AA /* FirebasePerformance */; };
+		471FD4A22E0AC56700DE59AA /* FirebaseRemoteConfig in Frameworks */ = {isa = PBXBuildFile; productRef = 471FD4A12E0AC56700DE59AA /* FirebaseRemoteConfig */; };
+		471FD4A52E0AC5A700DE59AA /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 471FD4A42E0AC5A700DE59AA /* GoogleSignIn */; };
+		471FD4A82E0AC5E500DE59AA /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 471FD4A72E0AC5E500DE59AA /* GRDB */; };
+		471FD4B22E0AC66C00DE59AA /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 471FD4B12E0AC66C00DE59AA /* GoogleSignInSwift */; };
+		471FD4B52E0AC69B00DE59AA /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = 471FD4B42E0AC69B00DE59AA /* RevenueCat */; };
+		471FD4B72E0AC69B00DE59AA /* RevenueCatUI in Frameworks */ = {isa = PBXBuildFile; productRef = 471FD4B62E0AC69B00DE59AA /* RevenueCatUI */; };
+		471FE2B02E0ADE5C00DE59AA /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 471FE2AF2E0ADE5C00DE59AA /* StoreKit.framework */; };
 		478055D92D5BE259003988E7 /* DeviceActivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 478055D82D5BE259003988E7 /* DeviceActivity.framework */; };
 		478055E12D5BE259003988E7 /* DeviceActivityMonitorExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 478055D62D5BE259003988E7 /* DeviceActivityMonitorExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
@@ -50,6 +63,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		471FE2AE2E0ADDFF00DE59AA /* AntiSocialApp-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "AntiSocialApp-Info.plist"; sourceTree = "<group>"; };
+		471FE2AF2E0ADE5C00DE59AA /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		478055132D5BD68B003988E7 /* AntiSocialApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AntiSocialApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		478055232D5BD68C003988E7 /* AntiSocialTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AntiSocialTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		4780552D2D5BD68C003988E7 /* AntiSocialUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AntiSocialUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -108,6 +123,19 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				471FD4A82E0AC5E500DE59AA /* GRDB in Frameworks */,
+				471FD4962E0AC56700DE59AA /* FirebaseAnalytics in Frameworks */,
+				471FD4A52E0AC5A700DE59AA /* GoogleSignIn in Frameworks */,
+				471FD49C2E0AC56700DE59AA /* FirebaseCrashlytics in Frameworks */,
+				471FD4B52E0AC69B00DE59AA /* RevenueCat in Frameworks */,
+				471FD4A02E0AC56700DE59AA /* FirebasePerformance in Frameworks */,
+				471FD4B22E0AC66C00DE59AA /* GoogleSignInSwift in Frameworks */,
+				471FD4A22E0AC56700DE59AA /* FirebaseRemoteConfig in Frameworks */,
+				471FD4B72E0AC69B00DE59AA /* RevenueCatUI in Frameworks */,
+				471FD49A2E0AC56700DE59AA /* FirebaseCore in Frameworks */,
+				471FD49E2E0AC56700DE59AA /* FirebaseFirestore in Frameworks */,
+				471FE2B02E0ADE5C00DE59AA /* StoreKit.framework in Frameworks */,
+				471FD4982E0AC56700DE59AA /* FirebaseAuth in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -139,6 +167,7 @@
 		4780550A2D5BD68B003988E7 = {
 			isa = PBXGroup;
 			children = (
+				471FE2AE2E0ADDFF00DE59AA /* AntiSocialApp-Info.plist */,
 				478055152D5BD68B003988E7 /* AntiSocial */,
 				478055262D5BD68C003988E7 /* AntiSocialAppTests */,
 				478055302D5BD68C003988E7 /* AntiSocialAppUITests */,
@@ -162,6 +191,7 @@
 		478055D72D5BE259003988E7 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				471FE2AF2E0ADE5C00DE59AA /* StoreKit.framework */,
 				478055D82D5BE259003988E7 /* DeviceActivity.framework */,
 			);
 			name = Frameworks;
@@ -189,6 +219,18 @@
 			);
 			name = AntiSocialApp;
 			packageProductDependencies = (
+				471FD4952E0AC56700DE59AA /* FirebaseAnalytics */,
+				471FD4972E0AC56700DE59AA /* FirebaseAuth */,
+				471FD4992E0AC56700DE59AA /* FirebaseCore */,
+				471FD49B2E0AC56700DE59AA /* FirebaseCrashlytics */,
+				471FD49D2E0AC56700DE59AA /* FirebaseFirestore */,
+				471FD49F2E0AC56700DE59AA /* FirebasePerformance */,
+				471FD4A12E0AC56700DE59AA /* FirebaseRemoteConfig */,
+				471FD4A42E0AC5A700DE59AA /* GoogleSignIn */,
+				471FD4A72E0AC5E500DE59AA /* GRDB */,
+				471FD4B12E0AC66C00DE59AA /* GoogleSignInSwift */,
+				471FD4B42E0AC69B00DE59AA /* RevenueCat */,
+				471FD4B62E0AC69B00DE59AA /* RevenueCatUI */,
 			);
 			productName = ScreenTimeTestApp;
 			productReference = 478055132D5BD68B003988E7 /* AntiSocialApp.app */;
@@ -297,6 +339,12 @@
 			);
 			mainGroup = 4780550A2D5BD68B003988E7;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				471FD4942E0AC56700DE59AA /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				471FD4A32E0AC5A700DE59AA /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+				471FD4A62E0AC5E500DE59AA /* XCRemoteSwiftPackageReference "GRDB.swift" */,
+				471FD4B32E0AC69B00DE59AA /* XCRemoteSwiftPackageReference "purchases-ios-spm" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 478055142D5BD68B003988E7 /* Products */;
 			projectDirPath = "";
@@ -523,11 +571,14 @@
 				DEVELOPMENT_TEAM = U8A27296FS;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "AntiSocialApp-Info.plist";
+				INFOPLIST_KEY_NSUserTrackingUsageDescription = "We will use this identifier to show personalized content and improve ads to support the app's development.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UILaunchStoryboardName = "Launch Screen";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -536,9 +587,12 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.app.antisocial;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -555,11 +609,14 @@
 				DEVELOPMENT_TEAM = U8A27296FS;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "AntiSocialApp-Info.plist";
+				INFOPLIST_KEY_NSUserTrackingUsageDescription = "We will use this identifier to show personalized content and improve ads to support the app's development.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UILaunchStoryboardName = "Launch Screen";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -568,9 +625,12 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.app.antisocial;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
@@ -747,6 +807,104 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		471FD4942E0AC56700DE59AA /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 11.15.0;
+			};
+		};
+		471FD4A32E0AC5A700DE59AA /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 8.0.0;
+			};
+		};
+		471FD4A62E0AC5E500DE59AA /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/groue/GRDB.swift.git";
+			requirement = {
+				branch = master;
+				kind = branch;
+			};
+		};
+		471FD4B32E0AC69B00DE59AA /* XCRemoteSwiftPackageReference "purchases-ios-spm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/RevenueCat/purchases-ios-spm.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.29.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		471FD4952E0AC56700DE59AA /* FirebaseAnalytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 471FD4942E0AC56700DE59AA /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalytics;
+		};
+		471FD4972E0AC56700DE59AA /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 471FD4942E0AC56700DE59AA /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		471FD4992E0AC56700DE59AA /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 471FD4942E0AC56700DE59AA /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		471FD49B2E0AC56700DE59AA /* FirebaseCrashlytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 471FD4942E0AC56700DE59AA /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCrashlytics;
+		};
+		471FD49D2E0AC56700DE59AA /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 471FD4942E0AC56700DE59AA /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		471FD49F2E0AC56700DE59AA /* FirebasePerformance */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 471FD4942E0AC56700DE59AA /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebasePerformance;
+		};
+		471FD4A12E0AC56700DE59AA /* FirebaseRemoteConfig */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 471FD4942E0AC56700DE59AA /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseRemoteConfig;
+		};
+		471FD4A42E0AC5A700DE59AA /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 471FD4A32E0AC5A700DE59AA /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
+		};
+		471FD4A72E0AC5E500DE59AA /* GRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 471FD4A62E0AC5E500DE59AA /* XCRemoteSwiftPackageReference "GRDB.swift" */;
+			productName = GRDB;
+		};
+		471FD4B12E0AC66C00DE59AA /* GoogleSignInSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 471FD4A32E0AC5A700DE59AA /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignInSwift;
+		};
+		471FD4B42E0AC69B00DE59AA /* RevenueCat */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 471FD4B32E0AC69B00DE59AA /* XCRemoteSwiftPackageReference "purchases-ios-spm" */;
+			productName = RevenueCat;
+		};
+		471FD4B62E0AC69B00DE59AA /* RevenueCatUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 471FD4B32E0AC69B00DE59AA /* XCRemoteSwiftPackageReference "purchases-ios-spm" */;
+			productName = RevenueCatUI;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 4780550B2D5BD68B003988E7 /* Project object */;
 }

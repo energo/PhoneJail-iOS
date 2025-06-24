@@ -12,7 +12,7 @@ class SelectAppsModel: ObservableObject {
   @Published var activitySelection = FamilyActivitySelection.init(includeEntireCategory: true) {
     didSet {
       print("activitySelection \(activitySelection)")
-      print("activitySelection applications \(activitySelection.applications.first?.localizedDisplayName)")
+      print("activitySelection applications \(activitySelection.applications.first?.localizedDisplayName ?? "activitySelection applications !!! empty")")
 
       SharedData.selectedFamilyActivity = activitySelection
     }
