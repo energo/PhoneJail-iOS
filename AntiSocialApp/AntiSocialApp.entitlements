@@ -6,7 +6,7 @@
 	<true/>
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>group.ScreenTimeTestApp.sharedData</string>
+		<string>group.com.app.antisocial.sharedData</string>
 	</array>
 </dict>
 </plist>

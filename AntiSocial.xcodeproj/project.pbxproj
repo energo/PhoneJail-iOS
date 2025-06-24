@@ -52,9 +52,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		478055132D5BD68B003988E7 /* ScreenTimeTestApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ScreenTimeTestApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		478055232D5BD68C003988E7 /* ScreenTimeTestAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ScreenTimeTestAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		4780552D2D5BD68C003988E7 /* ScreenTimeTestAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ScreenTimeTestAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		478055132D5BD68B003988E7 /* AntiSocialApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AntiSocialApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		478055232D5BD68C003988E7 /* AntiSocialTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AntiSocialTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		4780552D2D5BD68C003988E7 /* AntiSocialUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AntiSocialUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		478055D62D5BE259003988E7 /* DeviceActivityMonitorExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = DeviceActivityMonitorExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		478055D82D5BE259003988E7 /* DeviceActivity.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = DeviceActivity.framework; path = System/Library/Frameworks/DeviceActivity.framework; sourceTree = SDKROOT; };
 		478055ED2D5CB429003988E7 /* SharedData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedData.swift; sourceTree = "<group>"; };
@@ -71,9 +71,9 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		478055152D5BD68B003988E7 /* ScreenTimeTestApp */ = {
+		478055152D5BD68B003988E7 /* AntiSocialApp */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = ScreenTimeTestApp;
+			path = AntiSocialApp;
 			sourceTree = "<group>";
 		};
 		478055262D5BD68C003988E7 /* ScreenTimeTestAppTests */ = {
@@ -133,7 +133,7 @@
 			isa = PBXGroup;
 			children = (
 				478055ED2D5CB429003988E7 /* SharedData.swift */,
-				478055152D5BD68B003988E7 /* ScreenTimeTestApp */,
+				478055152D5BD68B003988E7 /* AntiSocialApp */,
 				478055262D5BD68C003988E7 /* ScreenTimeTestAppTests */,
 				478055302D5BD68C003988E7 /* ScreenTimeTestAppUITests */,
 				478055DA2D5BE259003988E7 /* DeviceActivityMonitorExtension */,
@@ -145,9 +145,9 @@
 		478055142D5BD68B003988E7 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				478055132D5BD68B003988E7 /* ScreenTimeTestApp.app */,
-				478055232D5BD68C003988E7 /* ScreenTimeTestAppTests.xctest */,
-				4780552D2D5BD68C003988E7 /* ScreenTimeTestAppUITests.xctest */,
+				478055132D5BD68B003988E7 /* AntiSocialApp.app */,
+				478055232D5BD68C003988E7 /* AntiSocialTests.xctest */,
+				4780552D2D5BD68C003988E7 /* AntiSocialUITests.xctest */,
 				478055D62D5BE259003988E7 /* DeviceActivityMonitorExtension.appex */,
 			);
 			name = Products;
@@ -164,9 +164,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		478055122D5BD68B003988E7 /* ScreenTimeTestApp */ = {
+		478055122D5BD68B003988E7 /* AntiSocialApp */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 478055372D5BD68C003988E7 /* Build configuration list for PBXNativeTarget "ScreenTimeTestApp" */;
+			buildConfigurationList = 478055372D5BD68C003988E7 /* Build configuration list for PBXNativeTarget "AntiSocialApp" */;
 			buildPhases = (
 				4780550F2D5BD68B003988E7 /* Sources */,
 				478055102D5BD68B003988E7 /* Frameworks */,
@@ -179,18 +179,18 @@
 				478055E02D5BE259003988E7 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				478055152D5BD68B003988E7 /* ScreenTimeTestApp */,
+				478055152D5BD68B003988E7 /* AntiSocialApp */,
 			);
-			name = ScreenTimeTestApp;
+			name = AntiSocialApp;
 			packageProductDependencies = (
 			);
 			productName = ScreenTimeTestApp;
-			productReference = 478055132D5BD68B003988E7 /* ScreenTimeTestApp.app */;
+			productReference = 478055132D5BD68B003988E7 /* AntiSocialApp.app */;
 			productType = "com.apple.product-type.application";
 		};
-		478055222D5BD68C003988E7 /* ScreenTimeTestAppTests */ = {
+		478055222D5BD68C003988E7 /* AntiSocialTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 4780553A2D5BD68C003988E7 /* Build configuration list for PBXNativeTarget "ScreenTimeTestAppTests" */;
+			buildConfigurationList = 4780553A2D5BD68C003988E7 /* Build configuration list for PBXNativeTarget "AntiSocialTests" */;
 			buildPhases = (
 				4780551F2D5BD68C003988E7 /* Sources */,
 				478055202D5BD68C003988E7 /* Frameworks */,
@@ -204,16 +204,16 @@
 			fileSystemSynchronizedGroups = (
 				478055262D5BD68C003988E7 /* ScreenTimeTestAppTests */,
 			);
-			name = ScreenTimeTestAppTests;
+			name = AntiSocialTests;
 			packageProductDependencies = (
 			);
 			productName = ScreenTimeTestAppTests;
-			productReference = 478055232D5BD68C003988E7 /* ScreenTimeTestAppTests.xctest */;
+			productReference = 478055232D5BD68C003988E7 /* AntiSocialTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		4780552C2D5BD68C003988E7 /* ScreenTimeTestAppUITests */ = {
+		4780552C2D5BD68C003988E7 /* AntiSocialUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 4780553D2D5BD68C003988E7 /* Build configuration list for PBXNativeTarget "ScreenTimeTestAppUITests" */;
+			buildConfigurationList = 4780553D2D5BD68C003988E7 /* Build configuration list for PBXNativeTarget "AntiSocialUITests" */;
 			buildPhases = (
 				478055292D5BD68C003988E7 /* Sources */,
 				4780552A2D5BD68C003988E7 /* Frameworks */,
@@ -227,11 +227,11 @@
 			fileSystemSynchronizedGroups = (
 				478055302D5BD68C003988E7 /* ScreenTimeTestAppUITests */,
 			);
-			name = ScreenTimeTestAppUITests;
+			name = AntiSocialUITests;
 			packageProductDependencies = (
 			);
 			productName = ScreenTimeTestAppUITests;
-			productReference = 4780552D2D5BD68C003988E7 /* ScreenTimeTestAppUITests.xctest */;
+			productReference = 4780552D2D5BD68C003988E7 /* AntiSocialUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 		478055D52D5BE259003988E7 /* DeviceActivityMonitorExtension */ = {
@@ -282,7 +282,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 4780550E2D5BD68B003988E7 /* Build configuration list for PBXProject "ScreenTimeTestApp" */;
+			buildConfigurationList = 4780550E2D5BD68B003988E7 /* Build configuration list for PBXProject "AntiSocial" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -296,9 +296,9 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				478055122D5BD68B003988E7 /* ScreenTimeTestApp */,
-				478055222D5BD68C003988E7 /* ScreenTimeTestAppTests */,
-				4780552C2D5BD68C003988E7 /* ScreenTimeTestAppUITests */,
+				478055122D5BD68B003988E7 /* AntiSocialApp */,
+				478055222D5BD68C003988E7 /* AntiSocialTests */,
+				4780552C2D5BD68C003988E7 /* AntiSocialUITests */,
 				478055D52D5BE259003988E7 /* DeviceActivityMonitorExtension */,
 			);
 		};
@@ -371,12 +371,12 @@
 /* Begin PBXTargetDependency section */
 		478055252D5BD68C003988E7 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 478055122D5BD68B003988E7 /* ScreenTimeTestApp */;
+			target = 478055122D5BD68B003988E7 /* AntiSocialApp */;
 			targetProxy = 478055242D5BD68C003988E7 /* PBXContainerItemProxy */;
 		};
 		4780552F2D5BD68C003988E7 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 478055122D5BD68B003988E7 /* ScreenTimeTestApp */;
+			target = 478055122D5BD68B003988E7 /* AntiSocialApp */;
 			targetProxy = 4780552E2D5BD68C003988E7 /* PBXContainerItemProxy */;
 		};
 		478055E02D5BE259003988E7 /* PBXTargetDependency */ = {
@@ -511,11 +511,12 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = ScreenTimeTestApp/ScreenTimeTestApp.entitlements;
+				CODE_SIGN_ENTITLEMENTS = AntiSocialApp/AntiSocialApp.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"ScreenTimeTestApp/Preview Content\"";
-				DEVELOPMENT_TEAM = J8P2E3B8U2;
+				DEVELOPMENT_ASSET_PATHS = "\"AntiSocialApp/Preview Content\"";
+				DEVELOPMENT_TEAM = U8A27296FS;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -528,8 +529,9 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.app.ScreenTimeTestApp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.app.antisocial;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -541,11 +543,12 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = ScreenTimeTestApp/ScreenTimeTestApp.entitlements;
+				CODE_SIGN_ENTITLEMENTS = AntiSocialApp/AntiSocialApp.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"ScreenTimeTestApp/Preview Content\"";
-				DEVELOPMENT_TEAM = J8P2E3B8U2;
+				DEVELOPMENT_ASSET_PATHS = "\"AntiSocialApp/Preview Content\"";
+				DEVELOPMENT_TEAM = U8A27296FS;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -558,8 +561,9 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.app.ScreenTimeTestApp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.app.antisocial;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -572,16 +576,16 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = J8P2E3B8U2;
+				DEVELOPMENT_TEAM = U8A27296FS;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.app.ScreenTimeTestAppTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.app.antisocialAppTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ScreenTimeTestApp.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ScreenTimeTestApp";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AntiSocial.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/AntiSocial";
 			};
 			name = Debug;
 		};
@@ -591,16 +595,16 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = J8P2E3B8U2;
+				DEVELOPMENT_TEAM = U8A27296FS;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.app.ScreenTimeTestAppTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.app.antisocialAppTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ScreenTimeTestApp.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ScreenTimeTestApp";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AntiSocial.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/AntiSocial";
 			};
 			name = Release;
 		};
@@ -609,10 +613,10 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = J8P2E3B8U2;
+				DEVELOPMENT_TEAM = U8A27296FS;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.app.ScreenTimeTestAppUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.app.antisocialAppUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
@@ -626,10 +630,10 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = J8P2E3B8U2;
+				DEVELOPMENT_TEAM = U8A27296FS;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.app.ScreenTimeTestAppUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.app.antisocialAppUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
@@ -644,7 +648,7 @@
 				CODE_SIGN_ENTITLEMENTS = DeviceActivityMonitorExtension/DeviceActivityMonitorExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = J8P2E3B8U2;
+				DEVELOPMENT_TEAM = U8A27296FS;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = DeviceActivityMonitorExtension/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = DeviceActivityMonitorExtension;
@@ -655,7 +659,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.app.ScreenTimeTestApp.DeviceActivityMonitorExtension;
+				PRODUCT_BUNDLE_IDENTIFIER = com.app.antisocial.ActivityMonitorExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -670,7 +674,7 @@
 				CODE_SIGN_ENTITLEMENTS = DeviceActivityMonitorExtension/DeviceActivityMonitorExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = J8P2E3B8U2;
+				DEVELOPMENT_TEAM = U8A27296FS;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = DeviceActivityMonitorExtension/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = DeviceActivityMonitorExtension;
@@ -681,7 +685,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.app.ScreenTimeTestApp.DeviceActivityMonitorExtension;
+				PRODUCT_BUNDLE_IDENTIFIER = com.app.antisocial.ActivityMonitorExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -693,7 +697,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		4780550E2D5BD68B003988E7 /* Build configuration list for PBXProject "ScreenTimeTestApp" */ = {
+		4780550E2D5BD68B003988E7 /* Build configuration list for PBXProject "AntiSocial" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				478055352D5BD68C003988E7 /* Debug */,
@@ -702,7 +706,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		478055372D5BD68C003988E7 /* Build configuration list for PBXNativeTarget "ScreenTimeTestApp" */ = {
+		478055372D5BD68C003988E7 /* Build configuration list for PBXNativeTarget "AntiSocialApp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				478055382D5BD68C003988E7 /* Debug */,
@@ -711,7 +715,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		4780553A2D5BD68C003988E7 /* Build configuration list for PBXNativeTarget "ScreenTimeTestAppTests" */ = {
+		4780553A2D5BD68C003988E7 /* Build configuration list for PBXNativeTarget "AntiSocialTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				4780553B2D5BD68C003988E7 /* Debug */,
@@ -720,7 +724,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		4780553D2D5BD68C003988E7 /* Build configuration list for PBXNativeTarget "ScreenTimeTestAppUITests" */ = {
+		4780553D2D5BD68C003988E7 /* Build configuration list for PBXNativeTarget "AntiSocialUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				4780553E2D5BD68C003988E7 /* Debug */,

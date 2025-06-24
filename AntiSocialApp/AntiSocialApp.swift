@@ -8,7 +8,7 @@
 import SwiftUI
 
 @main
-struct ScreenTimeTestAppApp: App {
+struct AntiSocialApp: App {
     var body: some Scene {
         WindowGroup {
           ContentView(model: ScreenTimeSelectAppsModel())
