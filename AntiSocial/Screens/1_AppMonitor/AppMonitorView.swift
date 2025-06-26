@@ -24,6 +24,9 @@ struct AppMonitorView: View {
     GridItem(.flexible()),
   ]
   
+  @State private var hours = 0
+  @State private var minutes = 20
+
   init(model: SelectAppsModel) {
     self._viewModel = StateObject(wrappedValue: AppMonitorViewModel(model: model))
   }
@@ -31,7 +34,7 @@ struct AppMonitorView: View {
   var body: some View {
     BGView(imageRsc: .bgMain) {
       ZStack(alignment: .top) {
-        VStack(spacing: 24) {
+        VStack(spacing: 8) {
           headerView
           screenTimeSection
           Spacer()
@@ -46,6 +49,7 @@ struct AppMonitorView: View {
             statsSection
           }
         }
+        .padding(.horizontal, 20)
       }
     }
     .task {
@@ -62,7 +66,7 @@ struct AppMonitorView: View {
       Image(systemName: "person.fill")
         .font(.system(size: 24))
         .foregroundStyle(Color.white)
-//      Button(action: { }, label: Image(systemName: "person.fill").font(.system(size: 24)))
+      //      Button(action: { }, label: Image(systemName: "person.fill").font(.system(size: 24)))
     }
     .padding(.horizontal)
   }
@@ -70,14 +74,14 @@ struct AppMonitorView: View {
   private var screenTimeSection: some View {
     VStack {
       ScreenTimeSectionView(
-          totalTime: 7 * 3600 + 49 * 60,
-          focusTime: 1 * 3600 + 2 * 60,
-          pickups: 72,
-          mostUsedApps: [
-            AppIcon(name: "Apple TV", icon: Image(systemName: "appletv")),
-            AppIcon(name: "YouTube", icon: Image(systemName: "play.display")),
-              AppIcon(name: "CNN", icon: Image(systemName: "play.display"))
-          ]
+        totalTime: 7 * 3600 + 49 * 60,
+        focusTime: 1 * 3600 + 2 * 60,
+        pickups: 72,
+        mostUsedApps: [
+          AppIcon(name: "Apple TV", icon: Image(systemName: "appletv")),
+          AppIcon(name: "YouTube", icon: Image(systemName: "play.display")),
+          AppIcon(name: "CNN", icon: Image(systemName: "play.display"))
+        ]
       )
     }
   }
@@ -85,10 +89,11 @@ struct AppMonitorView: View {
   private var appBlockingSection: some View {
     VStack {
       AppBlockingSectionView(
-          duration: .constant(20 * 60),
-          categories: .constant([.allInternet, .socialMedia, .news]),
-          isStrictBlock: .constant(false),
-          onBlock: { /* action */ }
+        hours: $hours,
+        minutes: $minutes,
+        categories: .constant([.allInternet, .socialMedia, .news]),
+        isStrictBlock: .constant(false),
+        onBlock: { /* action */ }
       )
     }
   }
@@ -96,9 +101,9 @@ struct AppMonitorView: View {
   private var screentimeAlertsSection: some View {
     VStack {
       ScreenTimeAlertsSectionView(
-          selectedAlertCategories: .constant([.allInternet, .socialMedia, .news]),
-          notifyInterval: .constant(30 * 60),
-          isAlertEnabled: .constant(true)
+        selectedAlertCategories: .constant([.allInternet, .socialMedia, .news]),
+        notifyInterval: .constant(30 * 60),
+        isAlertEnabled: .constant(true)
       )
     }
   }
@@ -106,23 +111,23 @@ struct AppMonitorView: View {
   private var statsSection: some View {
     VStack {
       StatsSectionView(
-          stats: StatsData(
-              focusedLifetime: 23 * 3600 + 45 * 60,
-              chartData: [
-                  ChartBar(hour: 0, focusedMinutes: 0, distractedMinutes: 5),
-                  ChartBar(hour: 6, focusedMinutes: 10, distractedMinutes: 0),
-                  ChartBar(hour: 12, focusedMinutes: 60, distractedMinutes: 20),
-                  // ...добавь остальные часы
-              ],
-              focusedPercent: 28,
-              distractedPercent: 31,
-              offlinePercent: 51,
-              appUsages: [
-//                  AppUsage(name: "Instagram", icon: UIImage(named: "instagram")!, usage: 3 * 3600 + 47 * 60),
-//                  AppUsage(name: "SnapChat", icon: UIImage(named: "snapchat")!, usage: 1 * 3600 + 29 * 60),
-//                  AppUsage(name: "Facebook", icon: UIImage(named: "facebook")!, usage: 54 * 60)
-              ]
-          )
+        stats: StatsData(
+          focusedLifetime: 23 * 3600 + 45 * 60,
+          chartData: [
+            ChartBar(hour: 0, focusedMinutes: 0, distractedMinutes: 5),
+            ChartBar(hour: 6, focusedMinutes: 10, distractedMinutes: 0),
+            ChartBar(hour: 12, focusedMinutes: 60, distractedMinutes: 20),
+            // ...добавь остальные часы
+          ],
+          focusedPercent: 28,
+          distractedPercent: 31,
+          offlinePercent: 51,
+          appUsages: [
+            //                  AppUsage(name: "Instagram", icon: UIImage(named: "instagram")!, usage: 3 * 3600 + 47 * 60),
+            //                  AppUsage(name: "SnapChat", icon: UIImage(named: "snapchat")!, usage: 1 * 3600 + 29 * 60),
+            //                  AppUsage(name: "Facebook", icon: UIImage(named: "facebook")!, usage: 54 * 60)
+          ]
+        )
       )
     }
   }
@@ -141,7 +146,7 @@ struct AppMonitorView: View {
       startMonitorButton
       
       selectedAppsView
-
+      
     }
     .padding()
   }
@@ -309,7 +314,7 @@ struct AppMonitorView: View {
  //let disabledAppsKey = "DisabledApps"
  //let isAuthorizedKey = "IsAuthorized"
  //
-
+ 
  private var selectedAppsView: some View {
  Group {
  if (viewModel.model.activitySelection.applicationTokens.count > 0) {

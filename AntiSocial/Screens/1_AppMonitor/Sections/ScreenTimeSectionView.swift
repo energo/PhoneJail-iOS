@@ -14,7 +14,7 @@ struct ScreenTimeSectionView: View {
   let mostUsedApps: [AppIcon] // AppIcon: структура с названием и иконкой
   
   var body: some View {
-    VStack(spacing: 16) {
+    VStack(spacing: 0) {
       Text("Screen Time Today")
         .font(.system(size: 18, weight: .medium))
         .foregroundColor(.white)
