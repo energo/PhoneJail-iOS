@@ -35,24 +35,26 @@ struct AppMonitorView: View {
   }
   
   var body: some View {
-    VStack(spacing: 16) {
-      screenTimeSelectButton
-      
-      if !viewModel.monitoredApps.isEmpty {
-        monitoredAppsListView
-      } else {
-        quickSelectSocialMediaButton
+    BGView(imageRsc: .bgMain) {
+      VStack(spacing: 16) {
+        screenTimeSelectButton
+        
+        if !viewModel.monitoredApps.isEmpty {
+          monitoredAppsListView
+        } else {
+          quickSelectSocialMediaButton
+        }
+        
+        startMonitorButton
+        
+        // selectedAppsView - можно раскомментировать если нужен
       }
-      
-      startMonitorButton
-      
-      // selectedAppsView - можно раскомментировать если нужен
+      .padding()
     }
-    .padding()
     .task {
       await viewModel.onAppear()
     }
-    .onChange(of: viewModel.model.activitySelection) { _ in 
+    .onChange(of: viewModel.model.activitySelection) { _ in
       viewModel.onActivitySelectionChange()
     }
   }
@@ -80,7 +82,7 @@ struct AppMonitorView: View {
       HStack {
         Image(systemName: "person.2.fill")
           .font(.title2)
-        Text("Выбрать Facebook и Instagram")
+        Text("Choose Apps to block")
           .padding()
           .background(Color.blue.opacity(0.2))
           .cornerRadius(10)
@@ -92,8 +94,8 @@ struct AppMonitorView: View {
     }
     .alert(isPresented: $viewModel.showSocialMediaHint) {
       Alert(
-        title: Text("Подсказка"),
-        message: Text("Пожалуйста, выберите Facebook и Instagram из списка приложений"),
+        title: Text("Hint"),
+        message: Text("Please, chose apps to block"),
         dismissButton: .default(Text("OK"))
       )
     }
@@ -148,159 +150,70 @@ struct AppMonitorView: View {
     }
     .padding(.vertical, 4)
   }
-  
-  // Оригинальный selectedAppsView из ContentView (закомментирован, но можно включить)
-  /*
-  private var selectedAppsView: some View {
-    Group {
-      if (viewModel.model.activitySelection.applicationTokens.count > 0) {
-        ScrollView(.vertical) {
-          LazyVGrid(columns: columns, spacing: 10) {
-            appTokensView
-            categoryTokensView
-          }
-          .padding()
-        }
-        .frame(width: UIScreen.main.bounds.width * 0.9, height: 200)
-      }
-    }
-  }
-  
-  private var appTokensView: some View {
-    ForEach(Array(viewModel.model.activitySelection.applicationTokens), id: \.self) { app in
-      ZStack {
-        RoundedRectangle(cornerRadius: 25, style: .continuous)
-          .fill(.clear)
-          .shadow(radius: 10)
-          .shadow(radius: 10)
-        VStack {
-          Label(app)
-            .shadow(radius: 2)
-            .frame(width: 50, height: 50)
-        }
-        .padding()
-        .multilineTextAlignment(.center)
-      }
-      .frame(width: 100, height: 100)
-      .padding()
-    }
-  }
-  
-  private var categoryTokensView: some View {
-    ForEach(Array(viewModel.model.activitySelection.categoryTokens), id: \.self) { app in
-      ZStack {
-        RoundedRectangle(cornerRadius: 25, style: .continuous)
-          .fill(.clear)
-          .shadow(radius: 10)
-          .shadow(radius: 10)
-        VStack {
-          Label(app)
-            .labelStyle(.iconOnly)
-            .shadow(radius: 2)
-            .scaleEffect(3)
-            .frame(width: 50, height: 50)
-        }
-        .padding()
-        .multilineTextAlignment(.center)
-      }
-      .frame(width: 100, height: 100)
-      .padding()
-    }
-  }
-  */
 }
 
-// Структура для отображения приложения с переключателем
-struct AppRowView: View {
-  let app: MonitoredApp
-  let onToggle: (MonitoredApp) -> Void
-  
-  var body: some View {
-    HStack {
-      // Иконка приложения
-      appIcon
-      
-      VStack(alignment: .leading, spacing: 2) {
-        Text(app.displayName)
-          .font(.subheadline)
-          .fontWeight(.medium)
-        
-        if let bundleId = app.bundleIdentifier {
-          Text(bundleId)
-            .font(.caption2)
-            .foregroundColor(.secondary)
-            .lineLimit(1)
-        }
-      }
-      
-      Spacer()
-      
-      Toggle("", isOn: Binding(
-        get: { app.isMonitored },
-        set: { newValue in
-          var updatedApp = app
-          updatedApp.isMonitored = newValue
-          onToggle(updatedApp)
-        }
-      ))
-      .toggleStyle(SwitchToggleStyle(tint: .blue))
-    }
-    .padding(.horizontal, 12)
-    .padding(.vertical, 8)
-    .background(Color.white)
-    .cornerRadius(8)
-    .shadow(color: .black.opacity(0.05), radius: 1, x: 0, y: 1)
-  }
-  
-  @ViewBuilder
-  private var appIcon: some View {
-    ZStack {
-      // Fallback background
-      RoundedRectangle(cornerRadius: 8)
-        .fill(LinearGradient(
-          colors: [Color.blue.opacity(0.8), Color.purple.opacity(0.8)],
-          startPoint: .topLeading,
-          endPoint: .bottomTrailing
-        ))
-        .frame(width: 36, height: 36)
-      
-      // First letter of app name
-      Text(String(app.displayName.prefix(1)).uppercased())
-        .font(.system(size: 16, weight: .semibold, design: .rounded))
-        .foregroundColor(.white)
-    }
-  }
-}
 
-// Структура для хранения приложения и его состояния мониторинга
-struct MonitoredApp: Identifiable, Hashable {
-    let id: String
-    let token: ApplicationToken
-    var isMonitored: Bool = true
-    
-    init(token: ApplicationToken, isMonitored: Bool = true) {
-        self.token = token
-        self.isMonitored = isMonitored
-        // Используем описание токена для создания стабильного ID
-        self.id = String(describing: token)
-    }
-    
-    var displayName: String {
-        return "App" // ApplicationToken не имеет displayName
-    }
-    
-    var bundleIdentifier: String? {
-        return nil // ApplicationToken не имеет bundleIdentifier
-    }
-    
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-    
-    static func == (lhs: MonitoredApp, rhs: MonitoredApp) -> Bool {
-        return lhs.id == rhs.id
-    }
-}
+// Оригинальный selectedAppsView из ContentView (закомментирован, но можно включить)
+/*
+ private var selectedAppsView: some View {
+ Group {
+ if (viewModel.model.activitySelection.applicationTokens.count > 0) {
+ ScrollView(.vertical) {
+ LazyVGrid(columns: columns, spacing: 10) {
+ appTokensView
+ categoryTokensView
+ }
+ .padding()
+ }
+ .frame(width: UIScreen.main.bounds.width * 0.9, height: 200)
+ }
+ }
+ }
+ 
+ private var appTokensView: some View {
+ ForEach(Array(viewModel.model.activitySelection.applicationTokens), id: \.self) { app in
+ ZStack {
+ RoundedRectangle(cornerRadius: 25, style: .continuous)
+ .fill(.clear)
+ .shadow(radius: 10)
+ .shadow(radius: 10)
+ VStack {
+ Label(app)
+ .shadow(radius: 2)
+ .frame(width: 50, height: 50)
+ }
+ .padding()
+ .multilineTextAlignment(.center)
+ }
+ .frame(width: 100, height: 100)
+ .padding()
+ }
+ }
+ 
+ private var categoryTokensView: some View {
+ ForEach(Array(viewModel.model.activitySelection.categoryTokens), id: \.self) { app in
+ ZStack {
+ RoundedRectangle(cornerRadius: 25, style: .continuous)
+ .fill(.clear)
+ .shadow(radius: 10)
+ .shadow(radius: 10)
+ VStack {
+ Label(app)
+ .labelStyle(.iconOnly)
+ .shadow(radius: 2)
+ .scaleEffect(3)
+ .frame(width: 50, height: 50)
+ }
+ .padding()
+ .multilineTextAlignment(.center)
+ }
+ .frame(width: 100, height: 100)
+ .padding()
+ }
+ }
+ */
+
+
 
 //  let userDefaultsKey = "FamilyActivitySelection"
 //
