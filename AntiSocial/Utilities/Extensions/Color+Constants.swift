@@ -80,7 +80,7 @@ extension Color {
 }
 
 extension Color {
-  static let gradietn_time_text_bg = LinearGradient(
+  static let as_gradietn_time_text = LinearGradient(
     stops: [
       .init(color: Color(hex: "#CF4633"), location: 0.0),
       .init(color: Color(hex: "#DDB7E9"), location: 0.34),

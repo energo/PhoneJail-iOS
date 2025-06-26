@@ -30,20 +30,23 @@ struct AppMonitorView: View {
   
   var body: some View {
     BGView(imageRsc: .bgMain) {
-      VStack(spacing: 16) {
-        screenTimeSelectButton
-        
-        if !viewModel.monitoredApps.isEmpty {
-          monitoredAppsListView
-        } else {
-          quickSelectSocialMediaButton
+      ZStack(alignment: .top) {
+        VStack(spacing: 24) {
+          headerView
+          screenTimeSection
+          Spacer()
         }
         
-        startMonitorButton
-        
-        // selectedAppsView - можно раскомментировать если нужен
+        ScrollView{
+          VStack {
+            Spacer()
+              .frame(height: UIScreen.main.bounds.height * 0.4)
+            appBlockingSection
+            screentimeAlertsSection
+            statsSection
+          }
+        }
       }
-      .padding()
     }
     .task {
       await viewModel.onAppear()
@@ -53,6 +56,154 @@ struct AppMonitorView: View {
     }
   }
   
+  private var headerView: some View {
+    HStack {
+      Spacer()
+      Image(systemName: "person.fill")
+        .font(.system(size: 24))
+        .foregroundStyle(Color.white)
+//      Button(action: { }, label: Image(systemName: "person.fill").font(.system(size: 24)))
+    }
+    .padding(.horizontal)
+  }
+  
+  private var screenTimeSection: some View {
+    VStack {
+      ScreenTimeSectionView(
+          totalTime: 7 * 3600 + 49 * 60,
+          focusTime: 1 * 3600 + 2 * 60,
+          pickups: 72,
+          mostUsedApps: [
+            AppIcon(name: "Apple TV", icon: Image(systemName: "appletv")),
+            AppIcon(name: "YouTube", icon: Image(systemName: "play.display")),
+              AppIcon(name: "CNN", icon: Image(systemName: "play.display"))
+          ]
+      )
+    }
+  }
+  
+  private var appBlockingSection: some View {
+    VStack {
+      AppBlockingSectionView(
+          duration: .constant(20 * 60),
+          categories: .constant([.allInternet, .socialMedia, .news]),
+          isStrictBlock: .constant(false),
+          onBlock: { /* action */ }
+      )
+    }
+  }
+  
+  private var screentimeAlertsSection: some View {
+    VStack {
+      ScreenTimeAlertsSectionView(
+          selectedAlertCategories: .constant([.allInternet, .socialMedia, .news]),
+          notifyInterval: .constant(30 * 60),
+          isAlertEnabled: .constant(true)
+      )
+    }
+  }
+  
+  private var statsSection: some View {
+    VStack {
+      StatsSectionView(
+          stats: StatsData(
+              focusedLifetime: 23 * 3600 + 45 * 60,
+              chartData: [
+                  ChartBar(hour: 0, focusedMinutes: 0, distractedMinutes: 5),
+                  ChartBar(hour: 6, focusedMinutes: 10, distractedMinutes: 0),
+                  ChartBar(hour: 12, focusedMinutes: 60, distractedMinutes: 20),
+                  // ...добавь остальные часы
+              ],
+              focusedPercent: 28,
+              distractedPercent: 31,
+              offlinePercent: 51,
+              appUsages: [
+//                  AppUsage(name: "Instagram", icon: UIImage(named: "instagram")!, usage: 3 * 3600 + 47 * 60),
+//                  AppUsage(name: "SnapChat", icon: UIImage(named: "snapchat")!, usage: 1 * 3600 + 29 * 60),
+//                  AppUsage(name: "Facebook", icon: UIImage(named: "facebook")!, usage: 54 * 60)
+              ]
+          )
+      )
+    }
+  }
+  
+  //MARK: - OLD Implementation (base functional for tracking use of app
+  private var oldContentView: some View {
+    VStack(spacing: 16) {
+      screenTimeSelectButton
+      
+      if !viewModel.monitoredApps.isEmpty {
+        monitoredAppsListView
+      } else {
+        quickSelectSocialMediaButton
+      }
+      
+      startMonitorButton
+      
+      selectedAppsView
+
+    }
+    .padding()
+  }
+  
+  private var selectedAppsView: some View {
+    Group {
+      if (viewModel.model.activitySelection.applicationTokens.count > 0) {
+        ScrollView(.vertical) {
+          LazyVGrid(columns: columns, spacing: 10) {
+            appTokensView
+            categoryTokensView
+          }
+          .padding()
+        }
+        .frame(width: UIScreen.main.bounds.width * 0.9, height: 200)
+      }
+    }
+  }
+  
+  private var appTokensView: some View {
+    ForEach(Array(viewModel.model.activitySelection.applicationTokens), id: \.self) { app in
+      ZStack {
+        RoundedRectangle(cornerRadius: 25, style: .continuous)
+          .fill(.clear)
+          .shadow(radius: 10)
+          .shadow(radius: 10)
+        VStack {
+          Label(app)
+            .shadow(radius: 2)
+            .frame(width: 50, height: 50)
+        }
+        .padding()
+        .multilineTextAlignment(.center)
+      }
+      .frame(width: 100, height: 100)
+      .padding()
+    }
+  }
+  
+  private var categoryTokensView: some View {
+    ForEach(Array(viewModel.model.activitySelection.categoryTokens), id: \.self) { app in
+      ZStack {
+        RoundedRectangle(cornerRadius: 25, style: .continuous)
+          .fill(.clear)
+          .shadow(radius: 10)
+          .shadow(radius: 10)
+        VStack {
+          Label(app)
+            .labelStyle(.iconOnly)
+            .shadow(radius: 2)
+            .scaleEffect(3)
+            .frame(width: 50, height: 50)
+        }
+        .padding()
+        .multilineTextAlignment(.center)
+      }
+      .frame(width: 100, height: 100)
+      .padding()
+    }
+  }
+  
+  //MARK: - Views
   private var screenTimeSelectButton: some View {
     Button {
       viewModel.showSelectApps()
@@ -146,6 +297,10 @@ struct AppMonitorView: View {
   }
 }
 
+
+#Preview {
+  AppMonitorView(model: SelectAppsModel())
+}
 
 // Оригинальный selectedAppsView из ContentView (закомментирован, но можно включить)
 /*
