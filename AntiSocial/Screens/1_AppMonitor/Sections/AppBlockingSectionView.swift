@@ -29,6 +29,7 @@ struct AppBlockingSectionView: View {
       stricktBlockView
       separatorView
       swipeBlockView
+        .padding(.bottom, 8)
     }
     .padding()
     .background(bgBlur)
@@ -103,7 +104,7 @@ struct AppBlockingSectionView: View {
   private var bgBlur: some View {
     ZStack {
       BackdropBlurView(isBlack: false, radius: 10)
-      RoundedRectangle(cornerRadius: 20)
+      RoundedRectangle(cornerRadius: 32)
         .fill(
           Color.white.opacity(0.07)
         )

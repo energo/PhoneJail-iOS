@@ -35,18 +35,27 @@ struct ScreenTimeAlertsSectionView: View {
       HStack {
         Text("Notify Me Every")
           .foregroundStyle(Color.white)
-        Spacer()
+          .lineLimit(1)
+          .layoutPriority(999)
         Picker("", selection: $notifyInterval) {
           ForEach([10, 20, 30, 60], id: \.self) { value in
-            Text("\(value) Mins").tag(TimeInterval(value * 60))
+            Text("\(value) Mins")
+              .tag(TimeInterval(value * 60))
+              .lineLimit(1)
+//              .layoutPriority(999)
+            
           }
         }
         .pickerStyle(.menu)
+        
+//        Spacer()
+
+        Toggle(isOn: $isAlertEnabled) {
+          EmptyView()
+        }
+        .toggleStyle(SwitchToggleStyle(tint: .purple))
+
       }
-      Toggle(isOn: $isAlertEnabled) {
-        EmptyView()
-      }
-      .toggleStyle(SwitchToggleStyle(tint: .purple))
     }
     .padding()
     .background(bgBlur)
@@ -55,7 +64,7 @@ struct ScreenTimeAlertsSectionView: View {
   private var bgBlur: some View {
     ZStack {
       BackdropBlurView(isBlack: false, radius: 10)
-      RoundedRectangle(cornerRadius: 20)
+      RoundedRectangle(cornerRadius: 32)
         .fill(
           Color.white.opacity(0.07)
         )

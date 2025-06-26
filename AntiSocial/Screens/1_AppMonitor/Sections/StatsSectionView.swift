@@ -52,7 +52,7 @@ struct StatsSectionView: View {
   private var bgBlur: some View {
     ZStack {
       BackdropBlurView(isBlack: false, radius: 10)
-      RoundedRectangle(cornerRadius: 20)
+      RoundedRectangle(cornerRadius: 32)
         .fill(
           Color.white.opacity(0.07)
         )

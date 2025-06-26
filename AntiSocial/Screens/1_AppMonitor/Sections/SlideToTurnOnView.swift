@@ -10,7 +10,7 @@ import SwiftUI
 
 struct SlideToTurnOnView: View {
   @Binding var isUnlocked: Bool
-
+  
   @State var offset: CGFloat = .zero
   @State var widthOfSlide: CGFloat = .zero
   @State var userDragging: Bool = false
@@ -59,8 +59,8 @@ struct SlideToTurnOnView: View {
               .fill(Color.clear)
               .stroke(
                 isUnlocked
-                  ? AnyShapeStyle(Color.as_green)
-                  : AnyShapeStyle(Color.as_gradietn_main_button),
+                ? AnyShapeStyle(Color.as_green)
+                : AnyShapeStyle(Color.as_gradietn_main_button),
                 lineWidth: 2
               )
           )
@@ -91,23 +91,25 @@ struct SlideToTurnOnView: View {
         }
       }
     }
+    .frame(height: 84)
   }
   
   private var slideText: some View {
     HStack {
       Spacer()
         .frame(maxWidth: 100)
-
+      
       Text("Slide to Block")
         .opacity(userDragging ? 0.5 : 1.0)
         .foregroundStyle(.white)
         .font(.system(size: 13,
                       weight: .light))
       Spacer()
-        .frame(maxWidth: 100)
+        .frame(maxWidth: 60)
       Image(.icLockButton)
         .resizable()
         .frame(width: 18, height: 20)
+        .padding(.trailing, 16)
     }
   }
   
@@ -116,15 +118,15 @@ struct SlideToTurnOnView: View {
       Image(.icBook)
         .resizable()
         .frame(width: 18, height: 20)
-
+        .padding(.leading, 16)
+      
       Spacer()
-        .frame(maxWidth: 100)
+        .frame(maxWidth: 60)
       Text("News blocked")
         .opacity(userDragging ? 0.5 : 1.0)
         .foregroundStyle(.white)
         .font(.system(size: 13,
                       weight: .light))
-      
       Spacer()
         .frame(maxWidth: 100)
     }
@@ -134,7 +136,7 @@ struct SlideToTurnOnView: View {
 //MARK: - Preview
 #Preview {
   @Previewable @State var isLocked: Bool = false
-
+  
   VStack {
     SlideToTurnOnView(isUnlocked: $isLocked)
   }.background(

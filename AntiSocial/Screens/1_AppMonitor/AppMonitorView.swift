@@ -40,9 +40,9 @@ struct AppMonitorView: View {
           Spacer()
         }
         
-        ScrollView{
+        ScrollView(showsIndicators: false) {
           VStack {
-            Spacer().frame(height: UIScreen.main.bounds.height * 0.4)
+            Spacer().frame(height: UIScreen.main.bounds.height * 0.38)
             appBlockingSection
             screentimeAlertsSection
             statsSection
@@ -153,7 +153,7 @@ struct AppMonitorView: View {
   private var selectedAppsView: some View {
     Group {
       if (viewModel.model.activitySelection.applicationTokens.count > 0) {
-        ScrollView(.vertical) {
+        ScrollView(.vertical, showsIndicators: false) {
           LazyVGrid(columns: columns, spacing: 10) {
             appTokensView
             categoryTokensView
