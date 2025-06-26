@@ -13,26 +13,52 @@ struct AppBlockingSectionView: View {
   
   @Binding var categories: [AppCategory]
   @Binding var isStrictBlock: Bool
+  
+  @State var isUnlocked: Bool = false
+  
   var onBlock: () -> Void
   
   var body: some View {
     VStack(alignment: .leading, spacing: 16) {
-      Text("App Blocking")
-        .font(.headline)
+      headerVeiw
+      separatorView
+      durationSection
+      separatorView
+      whatToBlockView
+      separatorView
+      stricktBlockView
+      separatorView
+      swipeBlockView
+    }
+    .padding()
+    .background(bgBlur)
+  }
+  
+  private var swipeBlockView: some View {
+    SlideToTurnOnView(isUnlocked: $isUnlocked)
+//    Button(action: onBlock) {
+//      HStack {
+//        Image(systemName: "lock.fill")
+//        Text("Swipe to Block")
+//      }
+//      .padding()
+//      .background(Color.as_gradietn_time_text)
+//      .cornerRadius(16)
+//    }
+  }
+  
+  private var stricktBlockView: some View {
+    VStack(alignment: .leading, spacing: 16) {
+      Toggle("Strict Block", isOn: $isStrictBlock)
         .foregroundStyle(Color.white)
-      separatorView
-
-      VStack {
-        HStack {
-          Text("Duration")
-            .foregroundStyle(Color.white)
-          Spacer()
-        }
-        
-        TimePickerView()
-      }
+    }
+  }
+  
+  private var whatToBlockView: some View {
+    VStack(alignment: .leading, spacing: 16) {
       
-      separatorView
+      Text("What to Block")
+        .foregroundStyle(Color.white)
       
       HStack(spacing: 8) {
         ForEach(AppCategory.allCases, id: \.self) { category in
@@ -40,25 +66,32 @@ struct AppBlockingSectionView: View {
             Text(category.title)
               .padding(.horizontal, 12)
               .padding(.vertical, 6)
-              .background(categories.contains(category) ? Color.accentColor : Color.gray.opacity(0.2))
-              .cornerRadius(12)
-              .foregroundColor(.white)
+              .background(categories.contains(category) ? Color.white.opacity(0.85) : Color.gray.opacity(0.2))
+              .cornerRadius(30)
+              .foregroundColor(.black)
+              .font(.system(size: 15, weight: .light))
           }
         }
       }
-      Toggle("Strict Block", isOn: $isStrictBlock)
-      Button(action: onBlock) {
-        HStack {
-          Image(systemName: "lock.fill")
-          Text("Swipe to Block")
-        }
-        .padding()
-        .background(Color.as_gradietn_time_text)
-        .cornerRadius(16)
-      }
     }
-    .padding()
-    .background(bgBlur)
+  }
+  
+  private var headerVeiw: some View {
+    Text("App Blocking")
+      .font(.headline)
+      .foregroundStyle(Color.white)
+  }
+  
+  private var durationSection: some View {
+    VStack {
+      HStack {
+        Text("Duration")
+          .foregroundStyle(Color.white)
+        Spacer()
+      }
+      
+      TimePickerView()
+    }
   }
   
   private var separatorView: some View {
@@ -72,10 +105,8 @@ struct AppBlockingSectionView: View {
       BackdropBlurView(isBlack: false, radius: 10)
       RoundedRectangle(cornerRadius: 20)
         .fill(
-          //          Color(hex: "A7A7A7").opacity(0.2)
           Color.white.opacity(0.07)
         )
-//        .strokeBorder(Color.white.opacity(0.2), lineWidth: 1)
     }
   }
   

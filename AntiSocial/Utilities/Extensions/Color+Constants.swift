@@ -1,6 +1,10 @@
 import SwiftUI
 
 extension Color {
+  static let as_green = Color(hex: "24F38F")
+  
+  
+  //MARK: - Other Colors
   static let ri_gray = Color(red: 138/255, green: 138/255, blue: 139/255)
   static let ri_blue = Color(red: 179/255, green: 86/255, blue: 255/255)
   static let ri_black = Color(hex: "151515")
@@ -91,6 +95,21 @@ extension Color {
     endPoint: .bottomTrailing
   )
   
+  static let as_gradietn_stroke = LinearGradient(
+    colors: [Color(hex: "6468E4"),
+             Color(hex: "E28180")],
+    startPoint: .leading,
+    endPoint: .trailing
+  )
+  
+  static let as_gradietn_main_button = LinearGradient(
+    colors: [Color(hex: "FF6061"),
+             Color(hex: "3D47C4")],
+    startPoint: .topTrailing,
+    endPoint: .bottomLeading
+  )
+
+  //MARK: - Other Gradients
   static let gradient_simple_bg = RadialGradient(
     gradient: Gradient(colors: [Color(hex: "#3B3838"),
                                 Color(hex: "#212540")]),
