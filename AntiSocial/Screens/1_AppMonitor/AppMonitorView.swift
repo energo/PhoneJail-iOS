@@ -13,12 +13,6 @@ import ManagedSettings
 import ManagedSettingsUI
 import DeviceActivity
 
-// Константы для ключей UserDefaults
-let enabledAppsKey = "EnabledApps"
-let disabledAppsKey = "DisabledApps"
-let isAuthorizedKey = "IsAuthorized"
-
-
 
 struct AppMonitorView: View {
   @StateObject private var viewModel: AppMonitorViewModel
@@ -115,14 +109,14 @@ struct AppMonitorView: View {
   
   private var monitoredAppsListView: some View {
     VStack(alignment: .leading, spacing: 8) {
-      Text("Мониторинг приложений")
+      Text("Tracking apps")
         .font(.headline)
       
       ForEach(0..<viewModel.monitoredApps.count, id: \.self) { index in
         monitoredAppRow(app: viewModel.monitoredApps[index])
       }
       
-      Button("Добавить больше приложений") {
+      Button("Add more apps") {
         viewModel.showSelectApps()
       }
       .padding(.top, 8)
@@ -155,6 +149,12 @@ struct AppMonitorView: View {
 
 // Оригинальный selectedAppsView из ContentView (закомментирован, но можно включить)
 /*
+ //// Константы для ключей UserDefaults
+ //let enabledAppsKey = "EnabledApps"
+ //let disabledAppsKey = "DisabledApps"
+ //let isAuthorizedKey = "IsAuthorized"
+ //
+
  private var selectedAppsView: some View {
  Group {
  if (viewModel.model.activitySelection.applicationTokens.count > 0) {

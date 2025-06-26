@@ -80,6 +80,17 @@ extension Color {
 }
 
 extension Color {
+  static let gradietn_time_text_bg = LinearGradient(
+    stops: [
+      .init(color: Color(hex: "#CF4633"), location: 0.0),
+      .init(color: Color(hex: "#DDB7E9"), location: 0.34),
+      .init(color: Color(hex: "#C1CBFE"), location: 0.64),
+      .init(color: Color(hex: "#1D4CD9"), location: 1.0)
+    ],
+    startPoint: .topLeading,
+    endPoint: .bottomTrailing
+  )
+  
   static let gradient_simple_bg = RadialGradient(
     gradient: Gradient(colors: [Color(hex: "#3B3838"),
                                 Color(hex: "#212540")]),

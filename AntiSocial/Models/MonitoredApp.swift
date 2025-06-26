@@ -6,6 +6,8 @@
 //
 
 import Foundation
+import ManagedSettings
+
 
 struct MonitoredApp: Identifiable, Hashable {
   let id: String
