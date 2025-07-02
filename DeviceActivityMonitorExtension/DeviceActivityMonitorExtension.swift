@@ -103,7 +103,6 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     print("intervalWillEndWarning \n\(activity)")
     
     scheduleNotification(with: "intervalWillEndWarning", details: "\(activity)")
-
   }
   
   override func eventWillReachThresholdWarning(_ event: DeviceActivityEvent.Name, activity: DeviceActivityName) {

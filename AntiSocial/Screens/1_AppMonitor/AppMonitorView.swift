@@ -72,16 +72,17 @@ struct AppMonitorView: View {
   
   private var screenTimeSection: some View {
     VStack {
-      ScreenTimeSectionView(
-        totalTime: 7 * 3600 + 49 * 60,
-        focusTime: 1 * 3600 + 2 * 60,
-        pickups: 72,
-        mostUsedApps: [
-          AppIcon(name: "Apple TV", icon: Image(systemName: "appletv")),
-          AppIcon(name: "YouTube", icon: Image(systemName: "play.display")),
-          AppIcon(name: "CNN", icon: Image(systemName: "play.display"))
-        ]
-      )
+      ScreenTimeTodayView()
+//      ScreenTimeSectionView(
+//        totalTime: 7 * 3600 + 49 * 60,
+//        focusTime: 1 * 3600 + 2 * 60,
+//        pickups: 72,
+//        mostUsedApps: [
+//          AppIcon(name: "Apple TV", icon: Image(systemName: "appletv")),
+//          AppIcon(name: "YouTube", icon: Image(systemName: "play.display")),
+//          AppIcon(name: "CNN", icon: Image(systemName: "play.display"))
+//        ]
+//      )
     }
   }
   
