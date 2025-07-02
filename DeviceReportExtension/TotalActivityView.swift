@@ -8,19 +8,19 @@
 import SwiftUI
 
 
-struct AppIcon: Identifiable {
-  var id: String { name }
-  let name: String
-  let icon: Image
-}
+//struct AppIcon: Identifiable {
+//  var id: String { name }
+//  let name: String
+//  let icon: Image
+//}
 
-struct TotalActivityView: View {
-  var activityReport: ActivityReport
-
-  var body: some View {
-    ScreenTimeSectionView(report: activityReport)
-  }
-}
+//struct TotalActivityView: View {
+//  var activityReport: ActivityReport
+//
+//  var body: some View {
+//    ScreenTimeSectionView(report: activityReport)
+//  }
+//}
 
 
 //struct TotalActivityView: View {

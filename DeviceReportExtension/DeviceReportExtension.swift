@@ -13,7 +13,8 @@ struct DeviceReportExtension: DeviceActivityReportExtension {
     var body: some DeviceActivityReportScene {
         // Create a report for each DeviceActivityReport.Context that your app supports.
         TotalActivityReport { totalActivity in
-          TotalActivityView(activityReport: totalActivity)
+//          TotalActivityView(activityReport: totalActivity)
+          ScreenTimeSectionView(report: totalActivity)
         }
         // Add more reports here...
     }

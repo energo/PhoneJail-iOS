@@ -22,7 +22,7 @@ struct TotalActivityReport: DeviceActivityReportScene {
   let context: DeviceActivityReport.Context = .totalActivity
   
   // Define the custom configuration and the resulting view for this report.
-  let content: (ActivityReport) -> TotalActivityView
+  let content: (ActivityReport) -> ScreenTimeSectionView
   
   func makeConfiguration(representing data: DeviceActivityResults<DeviceActivityData>) async -> ActivityReport {
     // Reformat the data into a configuration that can be used to create
