@@ -39,7 +39,7 @@ struct TotalActivityReport: DeviceActivityReportScene {
     var categories: [String] = []
     
     for await d in data {
-      for await a in d.activitySegments{
+      for await a in d.activitySegments {
         totalPickups = a.totalPickupsWithoutApplicationActivity
         longestActivity = a.longestActivity
         firstPickup = a.firstPickup
@@ -47,9 +47,12 @@ struct TotalActivityReport: DeviceActivityReportScene {
         
         for await c in a.categories {
           categories.append((c.category.localizedDisplayName)!)
+          
           for await ap in c.applications {
             let appName = (ap.application.localizedDisplayName ?? "nil")
             let bundle = (ap.application.bundleIdentifier ?? "nil")
+            
+            
             if appName == bundle{
               continue
             }
@@ -62,28 +65,31 @@ struct TotalActivityReport: DeviceActivityReportScene {
             let numberOfHours = duration / 3600
             let numberOfMins = (duration % 3600) / 60
             var formatedDuration = ""
+            
             if numberOfHours == 0 {
               if numberOfMins != 1{
-                formatedDuration = "\(numberOfMins)mins"
+                formatedDuration = "\(numberOfMins)m"
               }else{
-                formatedDuration = "\(numberOfMins)min"
+                formatedDuration = "\(numberOfMins)m"
               }
             } else if numberOfHours == 1 {
               if numberOfMins != 1{
-                formatedDuration = "\(numberOfHours)hr \(numberOfMins)mins"
+                formatedDuration = "\(numberOfHours)h \(numberOfMins)m"
               } else {
-                formatedDuration = "\(numberOfHours)hr \(numberOfMins)min"
+                formatedDuration = "\(numberOfHours)h \(numberOfMins)m"
               }
             } else {
               if numberOfMins != 1 {
-                formatedDuration = "\(numberOfHours)hrs \(numberOfMins)mins"
+                formatedDuration = "\(numberOfHours)h \(numberOfMins)m"
               } else {
-                formatedDuration = "\(numberOfHours)hrs \(numberOfMins)min"
+                formatedDuration = "\(numberOfHours)h \(numberOfMins)m"
               }
             }
             
             let numberOfPickups = ap.numberOfPickups
             let notifs = ap.numberOfNotifications
+            
+
             let app = AppDeviceActivity(id: bundle,
                                         token: token,
                                         displayName: appName,
@@ -99,9 +105,8 @@ struct TotalActivityReport: DeviceActivityReportScene {
     }
     
     topList = list
-    
     topList = Array(list.sorted(by: sortApps).prefix(3))
-
+    
     return ActivityReport(totalDuration: totalActivityDuration,
                           totalPickupsWithoutApplicationActivity: totalPickups,
                           longestActivity: longestActivity,
@@ -112,7 +117,7 @@ struct TotalActivityReport: DeviceActivityReportScene {
   }
   
   func sortApps(this:AppDeviceActivity, that:AppDeviceActivity) -> Bool {
-      return this.durationInterval > that.durationInterval
+    return this.durationInterval > that.durationInterval
   }
 }
 

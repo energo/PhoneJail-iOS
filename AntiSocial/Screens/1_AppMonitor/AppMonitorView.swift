@@ -37,7 +37,7 @@ struct AppMonitorView: View {
         VStack(spacing: 8) {
           headerView
           screenTimeSection
-          Spacer()
+//          Spacer()
         }
         
         ScrollView(showsIndicators: false) {
@@ -71,7 +71,7 @@ struct AppMonitorView: View {
   }
   
   private var screenTimeSection: some View {
-    VStack {
+//    VStack {
       ScreenTimeTodayView()
 //      ScreenTimeSectionView(
 //        totalTime: 7 * 3600 + 49 * 60,
@@ -83,7 +83,7 @@ struct AppMonitorView: View {
 //          AppIcon(name: "CNN", icon: Image(systemName: "play.display"))
 //        ]
 //      )
-    }
+//    }
   }
   
   private var appBlockingSection: some View {

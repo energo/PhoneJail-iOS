@@ -95,21 +95,21 @@ extension TimeInterval{
     
     if numberOfHours == 0 {
       if numberOfMins != 1{
-        formatedDuration = "\(numberOfMins)mins"
+        formatedDuration = "\(numberOfMins)m"
       } else {
-        formatedDuration = "\(numberOfMins)min"
+        formatedDuration = "\(numberOfMins)m"
       }
     } else if numberOfHours == 1 {
       if numberOfMins != 1{
-        formatedDuration = "\(numberOfHours)hr \(numberOfMins)mins"
+        formatedDuration = "\(numberOfHours)h \(numberOfMins)m"
       } else {
-        formatedDuration = "\(numberOfHours)hr \(numberOfMins)min"
+        formatedDuration = "\(numberOfHours)hr \(numberOfMins)m"
       }
     } else {
       if numberOfMins != 1{
-        formatedDuration = "\(numberOfHours)hrs \(numberOfMins)mins"
+        formatedDuration = "\(numberOfHours)h \(numberOfMins)m"
       } else {
-        formatedDuration = "\(numberOfHours)hrs \(numberOfMins)min"
+        formatedDuration = "\(numberOfHours)h \(numberOfMins)m"
       }
     }
     

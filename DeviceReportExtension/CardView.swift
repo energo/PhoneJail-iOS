@@ -56,10 +56,10 @@ struct CardView: View {
       .frame(width: 24, height: 24)
 
 //      .scaleEffect(3)
-      .padding(4)
-      .mask(RoundedRectangle(cornerRadius: 8, style:.continuous))
+//      .padding(4)
+//      .mask(RoundedRectangle(cornerRadius: 8, style:.continuous))
     //        .frame(width: 90, height:60)
-      .padding()
+//      .padding()
       .scaleEffect(tapped ? 1.4 : 1)
       .animation(.spring(response: 0.4, dampingFraction: 0.6))
       .onTapGesture{

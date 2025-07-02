@@ -18,6 +18,8 @@ struct ScreenTimeSectionView: View {
       
       screenTimeView
       bottomView
+      
+      Spacer()
     }
     .padding()
     .padding(.horizontal, 32)
@@ -28,7 +30,7 @@ struct ScreenTimeSectionView: View {
       // Focus Time (мы не выделяем фокус явно, используем самое долгое использование)
       VStack {
         if let interval = report.longestActivity?.duration {
-          Text(Duration.seconds(interval).formatted(.units()))
+          Text(interval.formatedDuration())
             .font(.title2)
             .foregroundColor(.white)
         } else {
@@ -36,7 +38,7 @@ struct ScreenTimeSectionView: View {
             .font(.title2)
             .foregroundColor(.white)
         }
-        
+
         Text("TIME IN FOCUS")
           .font(.caption)
           .foregroundColor(.white.opacity(0.5))
