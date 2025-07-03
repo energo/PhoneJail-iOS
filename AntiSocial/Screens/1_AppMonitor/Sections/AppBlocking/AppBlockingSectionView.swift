@@ -25,13 +25,20 @@ struct AppBlockingSectionView: View {
   @State private var maxCategoriesAlert = false
   
   @State private var isDiscouragedPresented = false
+  @State private var timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
   
-  
+  //MARK: - Views
   var body: some View {
     VStack(alignment: .leading, spacing: 16) {
       headerView
       separatorView
-      durationSection
+      
+      if model.unlockDate != nil && (model.unlockDate ?? Date()) > Date() {
+        timeRemainingView
+      } else {
+        durationSection
+      }
+      
       separatorView
       whatToBlockView
       separatorView
@@ -40,37 +47,53 @@ struct AppBlockingSectionView: View {
       swipeBlockView
         .padding(.bottom, 8)
       
-//      Button(action: startBlocking) {
-//        Text("Start Blocking")
-//          .bold()
-//          .frame(maxWidth: .infinity)
-//          .padding()
-//          .background(isUnlocked ? Color.blue : Color.gray.opacity(0.5))
-//          .foregroundColor(.white)
-//          .cornerRadius(16)
-//      }
-//      .disabled(!isUnlocked)
-//      .alert("No categories selected", isPresented: $noCategoriesAlert) {
-//        Button("OK", role: .cancel) { }
-//      }
-//      .alert("Too many categories selected", isPresented: $maxCategoriesAlert) {
-//        Button("OK", role: .cancel) { }
-//      }
+      //      Button(action: startBlocking) {
+      //        Text("Start Blocking")
+      //          .bold()
+      //          .frame(maxWidth: .infinity)
+      //          .padding()
+      //          .background(isUnlocked ? Color.blue : Color.gray.opacity(0.5))
+      //          .foregroundColor(.white)
+      //          .cornerRadius(16)
+      //      }
+      //      .disabled(!isUnlocked)
+      //      .alert("No categories selected", isPresented: $noCategoriesAlert) {
+      //        Button("OK", role: .cancel) { }
+      //      }
+      //      .alert("Too many categories selected", isPresented: $maxCategoriesAlert) {
+      //        Button("OK", role: .cancel) { }
+      //      }
     }
     .padding()
     .background(bgBlur)
     .onChange(of: isUnlocked) { newValue in
-        if newValue {
-            startBlocking()
-        } else {
-            stopBlocking()
-        }
+      if newValue {
+        startBlocking()
+      } else {
+        stopBlocking()
+      }
     }
     .alert("No categories selected", isPresented: $noCategoriesAlert) {
-        Button("OK", role: .cancel) { }
+      Button("OK", role: .cancel) { }
     }
     .alert("Too many categories selected", isPresented: $maxCategoriesAlert) {
-        Button("OK", role: .cancel) { }
+      Button("OK", role: .cancel) { }
+    }
+  }
+  
+  private var timeRemainingView: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Text("Time Remaining Until Unlock")
+        .foregroundStyle(Color.white)
+        .font(.headline)
+      Text(model.timeRemainingString)
+        .font(.system(size: 32, weight: .bold, design: .monospaced))
+        .foregroundColor(.yellow)
+    }
+    .padding()
+    .onReceive(timer) { _ in
+      // Просто триггерим обновление вью
+      _ = model.timeRemainingString
     }
   }
   
@@ -266,42 +289,54 @@ struct AppBlockingSectionView: View {
   }
   
   private func stopBlocking() {
-      // Сбросить все настройки блокировки
-      UserDefaults.standard.set(false, forKey: "inRestrictionMode")
-      UserDefaults(suiteName:"group.ChristianPichardo.ScreenBreak")?.set(false, forKey:"widgetInRestrictionMode")
-
-      // Можно очистить savedSelection, если нужно
-      model.savedSelection.removeAll()
-
-      // Сбросить время окончания
-      UserDefaults.standard.removeObject(forKey: "endHour")
-      UserDefaults.standard.removeObject(forKey: "endMins")
-      UserDefaults(suiteName:"group.ChristianPichardo.ScreenBreak")?.removeObject(forKey:"widgetEndHour")
-      UserDefaults(suiteName:"group.ChristianPichardo.ScreenBreak")?.removeObject(forKey:"widgetEndMins")
-
-      WidgetCenter.shared.reloadAllTimelines()
-
-      // Если есть метод для остановки DeviceActivityCenter — вызови его:
-      // Например:
-      // MySchedule.stopSchedule()
+    // Сбросить все настройки блокировки
+    UserDefaults.standard.set(false, forKey: "inRestrictionMode")
+    UserDefaults(suiteName:"group.ChristianPichardo.ScreenBreak")?.set(false, forKey:"widgetInRestrictionMode")
+    
+    // Можно очистить savedSelection, если нужно
+    model.savedSelection.removeAll()
+    
+    // Сбросить время окончания
+    UserDefaults.standard.removeObject(forKey: "endHour")
+    UserDefaults.standard.removeObject(forKey: "endMins")
+    UserDefaults(suiteName:"group.ChristianPichardo.ScreenBreak")?.removeObject(forKey:"widgetEndHour")
+    UserDefaults(suiteName:"group.ChristianPichardo.ScreenBreak")?.removeObject(forKey:"widgetEndMins")
+    
+    WidgetCenter.shared.reloadAllTimelines()
+    
+    // Если есть метод для остановки DeviceActivityCenter — вызови его:
+    // Например:
+    // MySchedule.stopSchedule()
   }
   
-  private func getEndTime(hourDuration: Int, minuteDuration: Int) -> (Int, Int) {
-    let now = Date()
-    let calendar = Calendar.current
-    var endHour = calendar.component(.hour, from: now) + hourDuration
-    var endMins = calendar.component(.minute, from: now) + minuteDuration
-    
-    if endMins >= 60 {
-      endMins -= 60
-      endHour += 1
-    }
-    if endHour > 23 {
-      endHour = 23
-      endMins = 59
-    }
-    return (endHour, endMins)
+  func getEndTime(hourDuration: Int, minuteDuration: Int) -> (Int, Int) {
+      let now = Date()
+      let calendar = Calendar.current
+      // Прибавляем к текущему времени общее количество минут
+      if let endDate = calendar.date(byAdding: .minute, value: hourDuration * 60 + minuteDuration, to: now) {
+          let comps = calendar.dateComponents([.hour, .minute], from: endDate)
+          return (comps.hour ?? 23, comps.minute ?? 59)
+      }
+      // Если что-то пошло не так — fallback
+      return (23, 59)
   }
+
+//  private func getEndTime(hourDuration: Int, minuteDuration: Int) -> (Int, Int) {
+//    let now = Date()
+//    let calendar = Calendar.current
+//    var endHour = calendar.component(.hour, from: now) + hourDuration
+//    var endMins = calendar.component(.minute, from: now) + minuteDuration
+//    
+//    if endMins >= 60 {
+//      endMins -= 60
+//      endHour += 1
+//    }
+//    if endHour > 23 {
+//      endHour = 23
+//      endMins = 59
+//    }
+//    return (endHour, endMins)
+//  }
 }
 
 //struct AppBlockingSectionView: View {
