@@ -23,16 +23,16 @@ struct AppBlockingSectionView: View {
   @State private var isUnlocked: Bool = false
   @State private var noCategoriesAlert = false
   @State private var maxCategoriesAlert = false
-  
   @State private var isDiscouragedPresented = false
   @State private var timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+  @State private var timeRemainingString: String = ""
   
   //MARK: - Views
   var body: some View {
     VStack(alignment: .leading, spacing: 16) {
       headerView
       separatorView
-            
+      
       if model.unlockDate != nil && (model.unlockDate ?? Date()) > Date() {
         timeRemainingView
       } else {
@@ -46,23 +46,6 @@ struct AppBlockingSectionView: View {
       separatorView
       swipeBlockView
         .padding(.bottom, 8)
-      
-      //      Button(action: startBlocking) {
-      //        Text("Start Blocking")
-      //          .bold()
-      //          .frame(maxWidth: .infinity)
-      //          .padding()
-      //          .background(isUnlocked ? Color.blue : Color.gray.opacity(0.5))
-      //          .foregroundColor(.white)
-      //          .cornerRadius(16)
-      //      }
-      //      .disabled(!isUnlocked)
-      //      .alert("No categories selected", isPresented: $noCategoriesAlert) {
-      //        Button("OK", role: .cancel) { }
-      //      }
-      //      .alert("Too many categories selected", isPresented: $maxCategoriesAlert) {
-      //        Button("OK", role: .cancel) { }
-      //      }
     }
     .padding()
     .background(bgBlur)
@@ -77,6 +60,10 @@ struct AppBlockingSectionView: View {
       // Восстанавливаем isUnlocked из UserDefaults
       let inRestriction = UserDefaults.standard.bool(forKey: "inRestrictionMode")
       isUnlocked = inRestriction
+      timeRemainingString = model.timeRemainingString
+    }
+    .onReceive(timer) { _ in
+      timeRemainingString = model.timeRemainingString
     }
     .alert("No categories selected", isPresented: $noCategoriesAlert) {
       Button("OK", role: .cancel) { }
@@ -91,15 +78,11 @@ struct AppBlockingSectionView: View {
       Text("Time Remaining Until Unlock")
         .foregroundStyle(Color.white)
         .font(.headline)
-      Text(model.timeRemainingString)
+      Text(timeRemainingString)
         .font(.system(size: 32, weight: .bold, design: .monospaced))
         .foregroundColor(.yellow)
     }
     .padding()
-    .onReceive(timer) { _ in
-      // Просто триггерим обновление вью
-      _ = model.timeRemainingString
-    }
   }
   
   private var headerView: some View {
@@ -187,33 +170,6 @@ struct AppBlockingSectionView: View {
     }
   }
   
-  //  private var whatToBlockView: some View {
-  //    VStack(alignment: .leading, spacing: 16) {
-  //      Text("What to Block")
-  //        .foregroundStyle(Color.white)
-  //
-  //      HStack(spacing: 8) {
-  //        ForEach(AppCategory.allCases, id: \.self) { category in
-  ////          Button(action: { toggleCategory(category) }) {
-  //            Text(category.title)
-  //                .padding(.horizontal, 12)
-  //                .padding(.vertical, 6)
-  //                .background(categories.contains(category) ? Color.white.opacity(0.85) : Color.gray.opacity(0.2))
-  //                .cornerRadius(30)
-  //                .foregroundColor(.black)
-  //                .font(.system(size: 15, weight: .light))
-  ////          }
-  //        }
-  //      }
-  //      .onTapGesture {
-  //        isDiscouragedPresented = true
-  //      }
-  //      .sheet(isPresented: $isDiscouragedPresented) {
-  //          FamilyPickerView(model: model, isDiscouragedPresented: $isDiscouragedPresented)
-  //      }
-  //    }
-  //  }
-  
   private var strictBlockView: some View {
     VStack(alignment: .leading, spacing: 16) {
       Toggle("Strict Block", isOn: $isStrictBlock)
@@ -284,8 +240,10 @@ struct AppBlockingSectionView: View {
     restrictionModel.endHour = endHour
     restrictionModel.endMins = endMins
     
-    // Устанавливаем unlockDate для восстановления после перезапуска
-    model.setUnlockDate(hour: endHour, minute: endMins)
+    // Устанавливаем unlockDate только если её нет или она в прошлом
+    if model.unlockDate == nil || (model.unlockDate ?? Date()) <= Date() {
+      model.setUnlockDate(hour: endHour, minute: endMins)
+    }
     
     UserDefaults.standard.set(endHour, forKey: "endHour")
     UserDefaults.standard.set(endMins, forKey: "endMins")
@@ -320,135 +278,14 @@ struct AppBlockingSectionView: View {
   }
   
   func getEndTime(hourDuration: Int, minuteDuration: Int) -> (Int, Int) {
-      let now = Date()
-      let calendar = Calendar.current
-      // Прибавляем к текущему времени общее количество минут
-      if let endDate = calendar.date(byAdding: .minute, value: hourDuration * 60 + minuteDuration, to: now) {
-          let comps = calendar.dateComponents([.hour, .minute], from: endDate)
-          return (comps.hour ?? 23, comps.minute ?? 59)
-      }
-      // Если что-то пошло не так — fallback
-      return (23, 59)
+    let now = Date()
+    let calendar = Calendar.current
+    // Прибавляем к текущему времени общее количество минут
+    if let endDate = calendar.date(byAdding: .minute, value: hourDuration * 60 + minuteDuration, to: now) {
+      let comps = calendar.dateComponents([.hour, .minute], from: endDate)
+      return (comps.hour ?? 23, comps.minute ?? 59)
+    }
+    // Если что-то пошло не так — fallback
+    return (23, 59)
   }
-
-//  private func getEndTime(hourDuration: Int, minuteDuration: Int) -> (Int, Int) {
-//    let now = Date()
-//    let calendar = Calendar.current
-//    var endHour = calendar.component(.hour, from: now) + hourDuration
-//    var endMins = calendar.component(.minute, from: now) + minuteDuration
-//    
-//    if endMins >= 60 {
-//      endMins -= 60
-//      endHour += 1
-//    }
-//    if endHour > 23 {
-//      endHour = 23
-//      endMins = 59
-//    }
-//    return (endHour, endMins)
-//  }
 }
-
-//struct AppBlockingSectionView: View {
-//  @Binding var hours: Int
-//  @Binding var minutes: Int
-//
-//  @Binding var categories: [AppCategory]
-//  @Binding var isStrictBlock: Bool
-//
-//  @State var isUnlocked: Bool = false
-//
-//  var onBlock: () -> Void
-//
-//  var body: some View {
-//    VStack(alignment: .leading, spacing: 16) {
-//      headerVeiw
-//      separatorView
-//      durationSection
-//      separatorView
-//      whatToBlockView
-//      separatorView
-//      stricktBlockView
-//      separatorView
-//      swipeBlockView
-//        .padding(.bottom, 8)
-//    }
-//    .padding()
-//    .background(bgBlur)
-//  }
-//
-//  private var swipeBlockView: some View {
-//    SlideToTurnOnView(isUnlocked: $isUnlocked)
-//  }
-//
-//  private var stricktBlockView: some View {
-//    VStack(alignment: .leading, spacing: 16) {
-//      Toggle("Strict Block", isOn: $isStrictBlock)
-//        .foregroundStyle(Color.white)
-//    }
-//  }
-//
-//  private var whatToBlockView: some View {
-//    VStack(alignment: .leading, spacing: 16) {
-//
-//      Text("What to Block")
-//        .foregroundStyle(Color.white)
-//
-//      HStack(spacing: 8) {
-//        ForEach(AppCategory.allCases, id: \.self) { category in
-//          Button(action: { toggleCategory(category) }) {
-//            Text(category.title)
-//              .padding(.horizontal, 12)
-//              .padding(.vertical, 6)
-//              .background(categories.contains(category) ? Color.white.opacity(0.85) : Color.gray.opacity(0.2))
-//              .cornerRadius(30)
-//              .foregroundColor(.black)
-//              .font(.system(size: 15, weight: .light))
-//          }
-//        }
-//      }
-//    }
-//  }
-//
-//  private var headerVeiw: some View {
-//    Text("App Blocking")
-//      .font(.headline)
-//      .foregroundStyle(Color.white)
-//  }
-//
-//  private var durationSection: some View {
-//    VStack {
-//      HStack {
-//        Text("Duration")
-//          .foregroundStyle(Color.white)
-//        Spacer()
-//      }
-//
-//      TimePickerView()
-//    }
-//  }
-//
-//  private var separatorView: some View {
-//    Rectangle()
-//      .fill(Color(hex: "D9D9D9").opacity(0.13))
-//      .frame(height: 0.5)
-//  }
-//
-//  private var bgBlur: some View {
-//    ZStack {
-//      BackdropBlurView(isBlack: false, radius: 10)
-//      RoundedRectangle(cornerRadius: 32)
-//        .fill(
-//          Color.white.opacity(0.07)
-//        )
-//    }
-//  }
-//
-//  private func toggleCategory(_ category: AppCategory) {
-//    if let idx = categories.firstIndex(of: category) {
-//      categories.remove(at: idx)
-//    } else {
-//      categories.append(category)
-//    }
-//  }
-//}
