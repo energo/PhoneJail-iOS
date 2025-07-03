@@ -263,6 +263,8 @@ struct AppBlockingSectionView: View {
     
     // Сохраняем выбранные категории в MyModel (или как вам нужно)
     model.savedSelection = categories.map { AppEntity(name: $0.title) }
+    // Сохраняем FamilyActivitySelection для восстановления после перезапуска
+    model.saveFamilyActivitySelection(model.selectionToDiscourage)
     
     // Устанавливаем время старта/окончания
     let now = Date()
