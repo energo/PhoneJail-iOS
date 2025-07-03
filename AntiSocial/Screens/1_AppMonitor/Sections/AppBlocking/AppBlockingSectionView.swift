@@ -9,6 +9,8 @@ import SwiftUI
 
 import SwiftUI
 import WidgetKit
+import FamilyControls
+
 
 struct AppBlockingSectionView: View {
   @EnvironmentObject var model: MyModel
@@ -40,10 +42,12 @@ struct AppBlockingSectionView: View {
       }
       
       separatorView
+      
       whatToBlockView
       separatorView
-      strictBlockView
-      separatorView
+      
+      //      strictBlockView
+      //      separatorView
       swipeBlockView
         .padding(.bottom, 8)
     }
@@ -56,6 +60,11 @@ struct AppBlockingSectionView: View {
         stopBlocking()
       }
     }
+    .onChange(of: isUnlocked) { newValue in
+      if !newValue {
+        resetBlockState()
+      }
+    }
     .onAppear {
       // Восстанавливаем isUnlocked из UserDefaults
       let inRestriction = UserDefaults.standard.bool(forKey: "inRestrictionMode")
@@ -63,7 +72,14 @@ struct AppBlockingSectionView: View {
       timeRemainingString = model.timeRemainingString
     }
     .onReceive(timer) { _ in
-      timeRemainingString = model.timeRemainingString
+      if let unlockDate = model.unlockDate, unlockDate > Date() {
+        timeRemainingString = model.timeRemainingString
+      } else {
+        timeRemainingString = "00:00:00"
+      }
+      if let unlockDate = model.unlockDate, unlockDate <= Date() {
+        resetBlockState()
+      }
     }
     .alert("No categories selected", isPresented: $noCategoriesAlert) {
       Button("OK", role: .cancel) { }
@@ -74,13 +90,18 @@ struct AppBlockingSectionView: View {
   }
   
   private var timeRemainingView: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Text("Time Remaining Until Unlock")
-        .foregroundStyle(Color.white)
-        .font(.headline)
-      Text(timeRemainingString)
-        .font(.system(size: 32, weight: .bold, design: .monospaced))
-        .foregroundColor(.yellow)
+    HStack {
+      Spacer()
+      VStack(alignment: .center, spacing: 8) {
+        Text("Time Remaining Until Unlock")
+          .foregroundStyle(Color(hex: "CFD3E6"))
+          .font(.system(size: 16, weight: .semibold))
+        
+        Text(timeRemainingString)
+          .font(.system(size: 56, weight: .bold, design: .monospaced))
+          .foregroundColor(.white)
+      }
+      Spacer()
     }
     .padding()
   }
@@ -110,7 +131,7 @@ struct AppBlockingSectionView: View {
       
       ScrollView(.horizontal, showsIndicators: false) {
         if (model.selectionToDiscourage.applicationTokens.count > 0
-            || model.selectionToDiscourage.categoryTokens.count > 0 ) {
+            || model.selectionToDiscourage.categoryTokens.count > 0) {
           HStack(spacing: 8) {
             // Категории
             ForEach(Array(model.selectionToDiscourage.categoryTokens), id: \.self) { category in
@@ -118,7 +139,6 @@ struct AppBlockingSectionView: View {
                 Label(category)
                   .labelStyle(.iconOnly)
                   .shadow(radius: 2)
-                  .scaleEffect(3)
                   .frame(width: 24, height: 24)
               }
               .padding()
@@ -153,7 +173,7 @@ struct AppBlockingSectionView: View {
             Text("Choose apps to block")
               .padding(.horizontal, 12)
               .padding(.vertical, 6)
-              .background( Color.gray.opacity(0.2))
+              .background( Color.white.opacity(0.2))
               .cornerRadius(30)
               .foregroundColor(.black)
               .font(.system(size: 15, weight: .light))
@@ -275,6 +295,18 @@ struct AppBlockingSectionView: View {
     // Если есть метод для остановки DeviceActivityCenter — вызови его:
     // Например:
     // MySchedule.stopSchedule()
+  }
+  
+  private func resetBlockState() {
+    // Сбросить все выбранные приложения, категории, web-домены
+    model.selectionToDiscourage = FamilyActivitySelection()
+    model.savedSelection.removeAll()
+    model.saveFamilyActivitySelection(model.selectionToDiscourage)
+    model.unlockDate = nil
+    UserDefaults.standard.set(false, forKey: "inRestrictionMode")
+    UserDefaults(suiteName:"group.ChristianPichardo.ScreenBreak")?.set(false, forKey:"widgetInRestrictionMode")
+    isUnlocked = false
+    model.stopAppRestrictions()
   }
   
   func getEndTime(hourDuration: Int, minuteDuration: Int) -> (Int, Int) {

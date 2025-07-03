@@ -42,7 +42,7 @@ struct AppMonitorView: View {
         }
         
         ScrollView(showsIndicators: false) {
-          VStack {
+          VStack(spacing: 16) {
             Spacer().frame(height: UIScreen.main.bounds.height * 0.38)
             appBlockingSection
             screentimeAlertsSection
