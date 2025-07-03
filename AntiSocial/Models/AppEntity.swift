@@ -68,15 +68,20 @@ class MyModel: ObservableObject {
     
     private func saveUnlockDate() {
         if let date = unlockDate {
+            print("[MyModel] saveUnlockDate: \(date)")
             UserDefaults.standard.set(date, forKey: unlockDateKey)
         } else {
+            print("[MyModel] saveUnlockDate: nil (removing)")
             UserDefaults.standard.removeObject(forKey: unlockDateKey)
         }
     }
     
     private func loadUnlockDate() {
         if let date = UserDefaults.standard.object(forKey: unlockDateKey) as? Date {
+            print("[MyModel] loadUnlockDate: \(date)")
             unlockDate = date
+        } else {
+            print("[MyModel] loadUnlockDate: nil")
         }
     }
     

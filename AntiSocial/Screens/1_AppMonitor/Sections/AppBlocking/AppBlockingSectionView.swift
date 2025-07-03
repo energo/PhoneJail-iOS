@@ -32,7 +32,7 @@ struct AppBlockingSectionView: View {
     VStack(alignment: .leading, spacing: 16) {
       headerView
       separatorView
-      
+            
       if model.unlockDate != nil && (model.unlockDate ?? Date()) > Date() {
         timeRemainingView
       } else {
@@ -72,6 +72,11 @@ struct AppBlockingSectionView: View {
       } else {
         stopBlocking()
       }
+    }
+    .onAppear {
+      // Восстанавливаем isUnlocked из UserDefaults
+      let inRestriction = UserDefaults.standard.bool(forKey: "inRestrictionMode")
+      isUnlocked = inRestriction
     }
     .alert("No categories selected", isPresented: $noCategoriesAlert) {
       Button("OK", role: .cancel) { }
@@ -278,6 +283,9 @@ struct AppBlockingSectionView: View {
     let (endHour, endMins) = getEndTime(hourDuration: hours, minuteDuration: minutes)
     restrictionModel.endHour = endHour
     restrictionModel.endMins = endMins
+    
+    // Устанавливаем unlockDate для восстановления после перезапуска
+    model.setUnlockDate(hour: endHour, minute: endMins)
     
     UserDefaults.standard.set(endHour, forKey: "endHour")
     UserDefaults.standard.set(endMins, forKey: "endMins")
