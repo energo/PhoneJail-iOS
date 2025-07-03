@@ -36,6 +36,7 @@ struct AntiSocialApp: App {
   @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
   @StateObject private var authVM = AuthenticationViewModel(subscriptionManager: SubscriptionManager.shared)
   @StateObject private var subscriptionManager = SubscriptionManager.shared
+  @StateObject private var model = MyModel.shared
 
     var body: some Scene {
         WindowGroup {
@@ -43,6 +44,7 @@ struct AntiSocialApp: App {
           MainView()
             .environmentObject(authVM)
             .environmentObject(subscriptionManager)
+            .environmentObject(model)
 //            .task {
 //              LocalNotificationManager.shared.requestAuthorization { isNotificationAuthed in
 //                AppLogger.trace("isNotificationAuthed \(isNotificationAuthed)")

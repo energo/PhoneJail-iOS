@@ -16,7 +16,8 @@ import DeviceActivity
 
 struct AppMonitorView: View {
   @StateObject private var viewModel: AppMonitorViewModel
-  
+  @StateObject private var restrictionModel = MyRestrictionModel()
+
   let columns = [
     GridItem(.flexible()),
     GridItem(.flexible()),
@@ -89,11 +90,12 @@ struct AppMonitorView: View {
   private var appBlockingSection: some View {
     VStack {
       AppBlockingSectionView(
+        restrictionModel: restrictionModel,
         hours: $hours,
         minutes: $minutes,
         categories: .constant([.allInternet, .socialMedia, .news]),
-        isStrictBlock: .constant(false),
-        onBlock: { /* action */ }
+        isStrictBlock: .constant(false)
+//        onBlock: { /* action */ }
       )
     }
   }

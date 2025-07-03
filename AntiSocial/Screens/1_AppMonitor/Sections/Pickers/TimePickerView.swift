@@ -10,8 +10,8 @@ import SwiftUI
 struct TimePickerView: View {
   var steps: Int = 10
   
-  @State var value1: Int = 0
-  @State var value2: Int = 0
+  @Binding var value1: Int
+  @Binding var value2: Int
   
   @State var start1: Int = 0
   @State var end1: Int = 24
