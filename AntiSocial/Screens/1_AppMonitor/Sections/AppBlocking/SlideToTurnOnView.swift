@@ -1,11 +1,3 @@
-//
-//  ContentView.swift
-//  AntiSocial
-//
-//  Created by D C on 26.06.2025.
-//
-
-
 import SwiftUI
 
 struct SlideToTurnOnView: View {
@@ -88,6 +80,25 @@ struct SlideToTurnOnView: View {
         }
         .onAppear {
           widthOfSlide = geometry.size.width - 50 - 24
+          // Синхронизация offset с isUnlocked при появлении
+          if isUnlocked {
+            offset = widthOfSlide - 10
+            userDragging = false
+          } else {
+            offset = 0
+            userDragging = false
+          }
+        }
+        .onChange(of: isUnlocked) { newValue in
+          withAnimation {
+            if newValue {
+              offset = widthOfSlide - 10
+              userDragging = false
+            } else {
+              offset = 0
+              userDragging = false
+            }
+          }
         }
       }
     }
@@ -146,11 +157,10 @@ struct SlideToTurnOnView: View {
         BackdropBlurView(isBlack: false, radius: 10)
         RoundedRectangle(cornerRadius: 20)
           .fill(
-            //          Color(hex: "A7A7A7").opacity(0.2)
             Color.white.opacity(0.07)
           )
       }
       .padding(.horizontal, 20)
     }
   )
-}
+} 
