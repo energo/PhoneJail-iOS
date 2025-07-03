@@ -25,8 +25,8 @@ struct AppMonitorView: View {
     GridItem(.flexible()),
   ]
   
-  @State private var hours = 0
-  @State private var minutes = 20
+//  @State private var hours = 0
+//  @State private var minutes = 0
 
   init(model: SelectAppsModel) {
     self._viewModel = StateObject(wrappedValue: AppMonitorViewModel(model: model))
@@ -91,9 +91,9 @@ struct AppMonitorView: View {
     VStack {
       AppBlockingSectionView(
         restrictionModel: restrictionModel,
-        hours: $hours,
-        minutes: $minutes,
-        categories: .constant([.allInternet, .socialMedia, .news]),
+//        hours: $hours,
+//        minutes: $minutes,
+//        categories: .constant([.allInternet, .socialMedia, .news]),
         isStrictBlock: .constant(false)
 //        onBlock: { /* action */ }
       )

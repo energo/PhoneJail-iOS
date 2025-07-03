@@ -16,10 +16,10 @@ struct AppBlockingSectionView: View {
   @EnvironmentObject var model: MyModel
   @ObservedObject var restrictionModel: MyRestrictionModel
   
-  @Binding var hours: Int
-  @Binding var minutes: Int
+  @State var hours: Int = 0
+  @State var minutes: Int = 0
   
-  @Binding var categories: [AppCategory]
+//  @Binding var categories: [AppCategory]
   @Binding var isStrictBlock: Bool
   
   @State private var isUnlocked: Bool = false
@@ -70,6 +70,16 @@ struct AppBlockingSectionView: View {
       let inRestriction = UserDefaults.standard.bool(forKey: "inRestrictionMode")
       isUnlocked = inRestriction
       timeRemainingString = model.timeRemainingString
+      
+      if let savedHour = UserDefaults.standard.value(forKey: "endHour") as? Int,
+         let savedMin = UserDefaults.standard.value(forKey: "endMins") as? Int {
+          restrictionModel.endHour = savedHour
+          restrictionModel.endMins = savedMin
+      }
+      
+      
+      hours = restrictionModel.endHour
+      minutes = restrictionModel.endMins
     }
     .onReceive(timer) { _ in
       if let unlockDate = model.unlockDate, unlockDate > Date() {
@@ -173,11 +183,10 @@ struct AppBlockingSectionView: View {
             Text("Choose apps to block")
               .padding(.horizontal, 12)
               .padding(.vertical, 6)
-              .background( Color.white.opacity(0.2))
+              .background( Color.white)
               .cornerRadius(30)
               .foregroundColor(.black)
               .font(.system(size: 15, weight: .light))
-            
           }
         }
       }
@@ -199,6 +208,14 @@ struct AppBlockingSectionView: View {
   
   private var swipeBlockView: some View {
     SlideToTurnOnView(isUnlocked: $isUnlocked)
+      .disabled(isBlockButtonDisabled)
+  }
+  
+  private var isBlockButtonDisabled: Bool {
+    (hours == 0 && minutes == 0) ||
+    (model.selectionToDiscourage.applicationTokens.isEmpty &&
+     model.selectionToDiscourage.categoryTokens.isEmpty &&
+     model.selectionToDiscourage.webDomainTokens.isEmpty)
   }
   
   private var separatorView: some View {
@@ -224,26 +241,30 @@ struct AppBlockingSectionView: View {
   }
   
   private func startBlocking() {
-    // Проверка выбранных категорий (аналогично RestrictionView с приложениями)
-    if categories.isEmpty {
-      noCategoriesAlert = true
-      maxCategoriesAlert = false
+    // Не запускать блокировку, если время не выбрано
+    if hours == 0 && minutes == 0 {
       return
-    } else if categories.count > 20 {
-      noCategoriesAlert = false
-      maxCategoriesAlert = true
-      return
-    } else {
-      noCategoriesAlert = false
-      maxCategoriesAlert = false
     }
+    // Проверка выбранных категорий (аналогично RestrictionView с приложениями)
+//    if categories.isEmpty {
+//      noCategoriesAlert = true
+//      maxCategoriesAlert = false
+//      return
+//    } else if categories.count > 20 {
+//      noCategoriesAlert = false
+//      maxCategoriesAlert = true
+//      return
+//    } else {
+//      noCategoriesAlert = false
+//      maxCategoriesAlert = false
+//    }
     
     // Сохраняем режим блокировки
     UserDefaults.standard.set(true, forKey: "inRestrictionMode")
     UserDefaults(suiteName:"group.ChristianPichardo.ScreenBreak")?.set(true, forKey:"widgetInRestrictionMode")
     
     // Сохраняем выбранные категории в MyModel (или как вам нужно)
-    model.savedSelection = categories.map { AppEntity(name: $0.title) }
+//    model.savedSelection = categories.map { AppEntity(name: $0.title) }
     // Сохраняем FamilyActivitySelection для восстановления после перезапуска
     model.saveFamilyActivitySelection(model.selectionToDiscourage)
     
@@ -315,9 +336,9 @@ struct AppBlockingSectionView: View {
     // Прибавляем к текущему времени общее количество минут
     if let endDate = calendar.date(byAdding: .minute, value: hourDuration * 60 + minuteDuration, to: now) {
       let comps = calendar.dateComponents([.hour, .minute], from: endDate)
-      return (comps.hour ?? 23, comps.minute ?? 59)
+      return (comps.hour ?? 0, comps.minute ?? 0)
     }
     // Если что-то пошло не так — fallback
-    return (23, 59)
+    return (0, 0)
   }
 }

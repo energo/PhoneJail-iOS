@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SlideToTurnOnView: View {
   @Binding var isUnlocked: Bool
+  @Environment(\.isEnabled) private var isEnabled
   
   @State var offset: CGFloat = .zero
   @State var widthOfSlide: CGFloat = .zero
@@ -41,7 +42,7 @@ struct SlideToTurnOnView: View {
               .frame(width: 72, height: 72)
               .padding(.horizontal, 6)
               .offset(x: offset)
-              .gesture(drag)
+              .gesture(isEnabled ? drag : nil)
             Spacer()
           }
           .frame(maxWidth: .infinity)
@@ -59,6 +60,7 @@ struct SlideToTurnOnView: View {
           .cornerRadius(9999)
           .scaleEffect(userDragging ? 0.99 : 1.0)
           .onTapGesture {
+            guard isEnabled else { return }
             withAnimation {
               userDragging = true
               offset = 20
@@ -78,6 +80,7 @@ struct SlideToTurnOnView: View {
             slideText
           }
         }
+        .opacity(isEnabled ? 1.0 : 0.5)
         .onAppear {
           widthOfSlide = geometry.size.width - 50 - 24
           // Синхронизация offset с isUnlocked при появлении
