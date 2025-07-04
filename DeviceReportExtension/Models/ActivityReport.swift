@@ -65,6 +65,13 @@ struct CategoryDeviceActivity: Identifiable {
   var token: ActivityCategoryToken
 }
 
+struct ChartBar: Identifiable {
+  let id = UUID()
+  let hour: Int
+  var focusedMinutes: Int
+  var distractedMinutes: Int
+}
+
 
 extension TimeInterval{
   

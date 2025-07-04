@@ -9,8 +9,12 @@
 import SwiftUI
 import DeviceActivity
 
+extension DeviceActivityReport.Context {
+  static let totalActivity = Self("Total Activity")
+}
+
 struct ScreenTimeTodayView: View {
-    @State private var context: DeviceActivityReport.Context = .init(rawValue: "Total Activity")
+    @State private var context: DeviceActivityReport.Context = .totalActivity
     @State private var filter = DeviceActivityFilter(
         segment: .daily(
             during: Calendar.current.dateInterval(of: .day, for: .now)!

@@ -38,6 +38,11 @@ class AppMonitorViewModel: ObservableObject {
     @Published var monitoredApps: [MonitoredApp] = []
     @Published var isAuthorized = false
     @Published var model: SelectAppsModel
+    @Published var stats: StatsData = StatsData(totalDuration: 0,
+                                                chartData: [],
+                                                focusedDuration: 0,
+                                                distractedDuration: 0,
+                                                appUsages: [])
     
     private let isAuthorizedKey = "IsAuthorized"
     
@@ -98,6 +103,7 @@ class AppMonitorViewModel: ObservableObject {
             print("Нет приложений, показываем подсказку")
             showPickerWithInstructions()
         }
+        await loadStats()
     }
     
     func showSelectApps() {
@@ -227,5 +233,12 @@ class AppMonitorViewModel: ObservableObject {
         var enabledSelection = FamilyActivitySelection()
         enabledSelection.applicationTokens = enabledApps
         SharedData.selectedFamilyActivity = enabledSelection
+    }
+    
+    @MainActor
+    func loadStats() async {
+        // TODO: Реализовать сбор usage-данных через DeviceActivity API
+        // Здесь должна быть реальная агрегация usage, сейчас просто пустые значения
+        // stats = ...
     }
 } 

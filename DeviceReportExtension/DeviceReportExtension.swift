@@ -16,6 +16,10 @@ struct DeviceReportExtension: DeviceActivityReportExtension {
 //          TotalActivityView(activityReport: totalActivity)
           ScreenTimeSectionView(report: totalActivity)
         }
-        // Add more reports here...
+      
+        // Новый отчёт для статистики
+        StatsActivityReport { statsActivity in
+          StatsSectionView(stats: statsActivity)
+        }
     }
 }

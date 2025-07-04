@@ -35,25 +35,17 @@ enum AlertCategory: String, CaseIterable, Identifiable {
 }
 
 struct StatsData {
-  let focusedLifetime: TimeInterval
-  let chartData: [ChartBar] // см. ниже
-  let focusedPercent: Int
-  let distractedPercent: Int
-  let offlinePercent: Int
+  let totalDuration: TimeInterval
+  let chartData: [ChartBar]
+  let focusedDuration: TimeInterval
+  let distractedDuration: TimeInterval
   let appUsages: [AppUsage]
-  
-  var focusedLifetimeString: String {
-    let hours = Int(focusedLifetime) / 3600
-    let minutes = (Int(focusedLifetime) % 3600) / 60
-    return "\(hours)H \(minutes)M FOCUSED LIFETIME"
+  var focusedPercent: Int {
+    totalDuration > 0 ? Int((focusedDuration / totalDuration) * 100) : 0
   }
-}
-
-struct ChartBar: Identifiable {
-  let id = UUID()
-  let hour: Int
-  let focusedMinutes: Int
-  let distractedMinutes: Int
+  var distractedPercent: Int {
+    totalDuration > 0 ? Int((distractedDuration / totalDuration) * 100) : 0
+  }
 }
 
 struct AppUsage: Identifiable {

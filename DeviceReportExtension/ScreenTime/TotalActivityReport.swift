@@ -8,13 +8,10 @@
 import DeviceActivity
 import SwiftUI
 
-func containsIPhone(_ name: String) -> Bool {
-  return name.range(of: "iPhone", options: .caseInsensitive) != nil
-}
+//func containsIPhone(_ name: String) -> Bool {
+//  return name.range(of: "iPhone", options: .caseInsensitive) != nil
+//}
 
-extension DeviceActivityReport.Context {
-  static let totalActivity = Self("Total Activity")
-}
 
 struct TotalActivityReport: DeviceActivityReportScene {
   

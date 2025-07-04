@@ -110,28 +110,27 @@ struct AppMonitorView: View {
     }
   }
   
+  @State private var context: DeviceActivityReport.Context = .init(rawValue: "Stats Activity")
+  @State private var filter = DeviceActivityFilter(
+      segment: .daily(
+          during: Calendar.current.dateInterval(
+             of: .day, for: .now
+          )!
+      ),
+      users: .all,
+      devices: .init([.iPhone, .iPad])
+  )
+
+  
   private var statsSection: some View {
-    VStack {
-      StatsSectionView(
-        stats: StatsData(
-          focusedLifetime: 23 * 3600 + 45 * 60,
-          chartData: [
-            ChartBar(hour: 0, focusedMinutes: 0, distractedMinutes: 5),
-            ChartBar(hour: 6, focusedMinutes: 10, distractedMinutes: 0),
-            ChartBar(hour: 12, focusedMinutes: 60, distractedMinutes: 20),
-            // ...добавь остальные часы
-          ],
-          focusedPercent: 28,
-          distractedPercent: 31,
-          offlinePercent: 51,
-          appUsages: [
-            //                  AppUsage(name: "Instagram", icon: UIImage(named: "instagram")!, usage: 3 * 3600 + 47 * 60),
-            //                  AppUsage(name: "SnapChat", icon: UIImage(named: "snapchat")!, usage: 1 * 3600 + 29 * 60),
-            //                  AppUsage(name: "Facebook", icon: UIImage(named: "facebook")!, usage: 54 * 60)
-          ]
-        )
-      )
-    }
+    StatsSectionViewProxy()
+      .frame(maxWidth: .infinity)
+      .frame(minHeight: 400)
+      .frame(maxHeight: .infinity)
+//    StatsSectionViewProxy()
+//    VStack {
+//      StatsSectionView(stats: viewModel.stats)
+//    }
   }
   
   //MARK: - OLD Implementation (base functional for tracking use of app

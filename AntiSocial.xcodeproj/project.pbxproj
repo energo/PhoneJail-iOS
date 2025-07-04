@@ -110,8 +110,8 @@
 		471FD1672E0AC22D00DE59AA /* Exceptions for "AntiSocial" folder in "DeviceActivityMonitorExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Models/AppIcon.swift,
 				Models/SharedData.swift,
-				Screens/1_AppMonitor/AppIcon.swift,
 				"Utilities/Extensions/Color+Constants.swift",
 			);
 			target = 478055D52D5BE259003988E7 /* DeviceActivityMonitorExtension */;
@@ -126,16 +126,18 @@
 		47412E0A2E1440B50099F20A /* Exceptions for "DeviceReportExtension" folder in "AntiSocialApp" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				ScreenTimeTodayView.swift,
+				Models/ActivityReport.swift,
+				ScreenTime/ScreenTimeTodayView.swift,
+				Stats/StatsSectionViewProxy.swift,
 			);
 			target = 478055122D5BD68B003988E7 /* AntiSocialApp */;
 		};
 		474138182E15710C0099F20A /* Exceptions for "DeviceReportExtension" folder in "DeviceActivityMonitorExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				ActivityReport.swift,
 				CardView.swift,
-				ScreenTimeSectionView.swift,
+				Models/ActivityReport.swift,
+				ScreenTime/ScreenTimeSectionView.swift,
 			);
 			target = 478055D52D5BE259003988E7 /* DeviceActivityMonitorExtension */;
 		};
@@ -143,6 +145,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				"Utilities/Extensions/Color+Constants.swift",
+				Views/Blur/BackdropBlurView.swift,
 			);
 			target = 47412DF42E143FFE0099F20A /* DeviceReportExtension */;
 		};
