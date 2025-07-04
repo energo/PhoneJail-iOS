@@ -33,34 +33,3 @@ enum AlertCategory: String, CaseIterable, Identifiable {
   var id: String { rawValue }
   var title: String { rawValue }
 }
-
-struct StatsData {
-  let totalDuration: TimeInterval
-  let chartData: [ChartBar]
-  let focusedDuration: TimeInterval
-  let distractedDuration: TimeInterval
-  let appUsages: [AppUsage]
-  var focusedPercent: Int {
-    totalDuration > 0 ? Int((focusedDuration / totalDuration) * 100) : 0
-  }
-  var distractedPercent: Int {
-    totalDuration > 0 ? Int((distractedDuration / totalDuration) * 100) : 0
-  }
-}
-
-struct AppUsage: Identifiable {
-  let id = UUID()
-  let name: String
-  let icon: UIImage
-  let usage: TimeInterval
-  
-  var usageString: String {
-    let hours = Int(usage) / 3600
-    let minutes = (Int(usage) % 3600) / 60
-    if hours > 0 {
-      return "\(hours)h \(minutes)m"
-    } else {
-      return "\(minutes)m"
-    }
-  }
-}

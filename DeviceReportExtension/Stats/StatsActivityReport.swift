@@ -9,7 +9,10 @@ struct StatsActivityReport: DeviceActivityReportScene {
   func makeConfiguration(representing data: DeviceActivityResults<DeviceActivityData>) async -> StatsData {
     print("makeConfiguration called for StatsActivityReport")
 
-    var chartData = Array(repeating: ChartBar(hour: 0, focusedMinutes: 0, distractedMinutes: 0), count: 24)
+    var chartData = Array(repeating: ChartBar(hour: 0,
+                                              focusedMinutes: 0,
+                                              distractedMinutes: 0),
+                          count: 24)
     for hour in 0..<24 {
       chartData[hour] = ChartBar(hour: hour, focusedMinutes: 0, distractedMinutes: 0)
     }

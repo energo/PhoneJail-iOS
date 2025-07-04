@@ -29,6 +29,8 @@ struct StatsSectionView: View {
           PercentageView(label: "FOCUSED", value: stats.focusedPercent, color: .green)
           Spacer()
           PercentageView(label: "DISTRACTED", value: stats.distractedPercent, color: .blue)
+          Spacer()
+          PercentageView(label: "OFFLINE", value: stats.offlinePercent, color: .blue)
         }
         
         ForEach(stats.appUsages) { app in
@@ -63,80 +65,7 @@ struct StatsSectionView: View {
   }
 }
 
-struct PercentageView: View {
-  let label: String
-  let value: Int
-  let color: Color
-  
-  var body: some View {
-    VStack(spacing: 4) {
-      Text("\(value)%")
-        .foregroundStyle(color)
-        .font(.headline)
-      Text(label)
-        .foregroundStyle(.gray)
-        .font(.caption)
-    }
-  }
-}
 
-struct ChartView: View {
-  let chartData: [ChartBar]
-  
-  var body: some View {
-    HStack(alignment: .bottom, spacing: 4) {
-      ForEach(chartData) { bar in
-        VStack {
-          Capsule()
-            .fill(Color.green)
-            .frame(height: CGFloat(bar.focusedMinutes))
-          Capsule()
-            .fill(Color.pink)
-            .frame(height: CGFloat(bar.distractedMinutes))
-        }
-        .frame(width: 6)
-      }
-    }
-  }
-}
-
-struct StatsData {
-  let totalDuration: TimeInterval
-  let chartData: [ChartBar]
-  let focusedDuration: TimeInterval
-  let distractedDuration: TimeInterval
-  let appUsages: [AppUsage]
-  var focusedPercent: Int {
-    totalDuration > 0 ? Int((focusedDuration / totalDuration) * 100) : 0
-  }
-  var distractedPercent: Int {
-    totalDuration > 0 ? Int((distractedDuration / totalDuration) * 100) : 0
-  }
-}
-
-struct AppUsage: Identifiable {
-  let id = UUID()
-  let name: String
-  var token: ApplicationToken
-  let usage: TimeInterval
-  
-  var usageString: String {
-    let hours = Int(usage) / 3600
-    let minutes = (Int(usage) % 3600) / 60
-    if hours > 0 {
-      return "\(hours)h \(minutes)m"
-    } else {
-      return "\(minutes)m"
-    }
-  }
-}
-
-//struct ChartBar: Identifiable {
-//  let id = UUID()
-//  let hour: Int
-//  var focusedMinutes: Int
-//  var distractedMinutes: Int
-//}
 
 extension TimeInterval {
   func formattedAsHoursMinutes() -> String {

@@ -111,6 +111,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Models/AppIcon.swift,
+				Models/AppUsage.swift,
 				Models/SharedData.swift,
 				"Utilities/Extensions/Color+Constants.swift",
 			);
@@ -144,6 +145,8 @@
 		4741381D2E1571FB0099F20A /* Exceptions for "AntiSocial" folder in "DeviceReportExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Models/AppUsage.swift,
+				Models/StatsData.swift,
 				"Utilities/Extensions/Color+Constants.swift",
 				Views/Blur/BackdropBlurView.swift,
 			);
