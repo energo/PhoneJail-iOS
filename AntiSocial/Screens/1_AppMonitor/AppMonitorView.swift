@@ -125,7 +125,7 @@ struct AppMonitorView: View {
   private var statsSection: some View {
     StatsSectionViewProxy()
       .frame(maxWidth: .infinity)
-      .frame(minHeight: 400)
+      .frame(minHeight: 600)
       .frame(maxHeight: .infinity)
 //    StatsSectionViewProxy()
 //    VStack {

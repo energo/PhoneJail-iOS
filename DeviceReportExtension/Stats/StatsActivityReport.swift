@@ -1,10 +1,6 @@
 import DeviceActivity
 import SwiftUI
 
-//extension DeviceActivityReport.Context {
-//  static let statsActivity = Self("Stats Activity")
-//}
-//
 struct StatsActivityReport: DeviceActivityReportScene {
   let context: DeviceActivityReport.Context = .statsActivity
   let content: (StatsData) -> StatsSectionView
@@ -20,7 +16,10 @@ struct StatsActivityReport: DeviceActivityReportScene {
 
     var focusedDuration: TimeInterval = 0
     var distractedDuration: TimeInterval = 0
-    var appUsages: [AppUsage] = []
+    
+    // Используем словарь для агрегации usage по приложению
+    var appUsageDict: [String: AppUsage] = [:]
+    
     var totalDuration: TimeInterval = 0
 
     for await d in data {
@@ -31,24 +30,46 @@ struct StatsActivityReport: DeviceActivityReportScene {
           for await app in category.applications {
             let duration = app.totalActivityDuration
             let minutes = Int(duration / 60)
+            
+            if duration < 60 { continue }
+
 
             if hour >= 0 && hour < 24 {
-//              if segment.isUserInitiated {
-//                chartData[hour].focusedMinutes += minutes
-//                focusedDuration += duration
-//              } else {
+              // Если нужно учитывать userInitiated, раскомментируйте и используйте
+              // if segment.isUserInitiated {
+              //   chartData[hour].focusedMinutes += minutes
+              //   focusedDuration += duration
+              // } else {
                 chartData[hour].distractedMinutes += minutes
                 distractedDuration += duration
-//              }
+              // }
             }
 
             totalDuration += duration
             let appName = app.application.localizedDisplayName ?? "App"
-            appUsages.append(AppUsage(name: appName, token: app.application.token!, usage: duration))
+            let token = app.application.token!
+            let key = app.application.bundleIdentifier ?? "Unknown"
+            
+            // Агрегируем usage по key
+            if let existing = appUsageDict[key] {
+              appUsageDict[key] = AppUsage(
+                name: appName,
+                token: token,
+                usage: existing.usage + duration
+              )
+            } else {
+              appUsageDict[key] = AppUsage(
+                name: appName,
+                token: token,
+                usage: duration
+              )
+            }
           }
         }
       }
     }
+
+    let appUsages = Array(appUsageDict.values).sorted { $0.usage > $1.usage }
 
     return StatsData(
       totalDuration: totalDuration,
