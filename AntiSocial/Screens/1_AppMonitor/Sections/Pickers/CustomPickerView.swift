@@ -6,7 +6,7 @@ public enum SegmentStyle {
 }
 
 public struct CustomPickerView: View {
-  var segmentWidth: CGFloat = 1.0
+  var segmentWidth: CGFloat = 32.0
   
   @Binding var count: Int
   var values: ClosedRange<Int>
@@ -20,7 +20,7 @@ public struct CustomPickerView: View {
   public init(count: Binding<Int>,
               from: Int,
               to: Int,
-              spacing: Double = 24,
+              spacing: Double = 24.0,
               steps: Int,
               style: SegmentStyle,
               selectedExtraText: String = "") {
@@ -43,6 +43,7 @@ public struct CustomPickerView: View {
               }, onScrollingFinished: {
                 isScrolling = false
               })
+              
               HStack(spacing: spacing) {
                 SegmentView(
                   values: values,
@@ -59,7 +60,14 @@ public struct CustomPickerView: View {
           }
           .scrollIndicators(.hidden)
           .safeAreaPadding(.horizontal, geo.size.width / 2.0)
-          .scrollTargetBehavior(.viewAligned)
+//          .scrollTargetBehavior(.viewAligned)
+          .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
+              withAnimation {
+                proxy.scrollTo(count, anchor: .center)
+              }
+            }
+          }
           .scrollPosition(
             id: .init(
               get: {
@@ -81,8 +89,8 @@ public struct CustomPickerView: View {
               withAnimation{
                 if count != Int(newIndex) {
                   count = Int(newIndex)
-                  
                 }
+                proxy.scrollTo(count, anchor: .center)
               }
             }
           })
@@ -98,6 +106,6 @@ public struct CustomPickerView: View {
   }
 }
 
-//#Preview {
-//    CustomPickerView()
-//}
+#Preview {
+  CustomPickerView(count: .constant(10), from: 0, to: 10, steps: 1, style: .styleOne)
+}

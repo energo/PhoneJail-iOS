@@ -40,14 +40,14 @@ struct TimePickerView: View {
           CustomPickerView(count: $value1,
                            from: start1,
                            to: end1,
-                           steps: 3,
+                           steps: 1,
                            style: .styleTwo,
                            selectedExtraText: "h")
           
           CustomPickerView(count: $value2,
                            from: start2,
                            to: end2,
-                           steps: 3,
+                           steps: 1,
                            style: .styleTwo,
                            selectedExtraText: "m")
         }
