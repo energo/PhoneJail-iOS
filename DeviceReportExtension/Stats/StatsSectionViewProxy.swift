@@ -26,8 +26,6 @@ struct StatsSectionViewProxy: View {
   
   var body: some View {
     VStack {
-      Text("Hello")
-        .foregroundStyle(Color.white)
       DeviceActivityReport(context)
         .padding(0) // Убираем системные отступы
       //        .frame(height: 40)
