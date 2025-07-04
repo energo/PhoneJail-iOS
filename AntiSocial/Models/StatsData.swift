@@ -30,3 +30,10 @@ struct StatsData {
       return Int((offline / secondsInDay) * 100)
   }
 }
+
+struct ChartBar: Identifiable {
+  let id = UUID()
+  let hour: Int
+  var focusedMinutes: Int
+  var distractedMinutes: Int
+}

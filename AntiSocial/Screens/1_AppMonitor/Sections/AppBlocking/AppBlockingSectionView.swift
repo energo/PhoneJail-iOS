@@ -22,7 +22,7 @@ struct AppBlockingSectionView: View {
 //  @Binding var categories: [AppCategory]
   @Binding var isStrictBlock: Bool
   
-  @State private var isUnlocked: Bool = false
+  @State private var isBlocked: Bool = false
   @State private var noCategoriesAlert = false
   @State private var maxCategoriesAlert = false
   @State private var isDiscouragedPresented = false
@@ -53,22 +53,20 @@ struct AppBlockingSectionView: View {
     }
     .padding()
     .background(bgBlur)
-    .onChange(of: isUnlocked) { newValue in
+    .onChange(of: isBlocked) { newValue in
       if newValue {
         startBlocking()
       } else {
         stopBlocking()
-      }
-    }
-    .onChange(of: isUnlocked) { newValue in
-      if !newValue {
+        hours = 0
+        minutes = 0
         resetBlockState()
       }
     }
     .onAppear {
       // Восстанавливаем isUnlocked из UserDefaults
       let inRestriction = UserDefaults.standard.bool(forKey: "inRestrictionMode")
-      isUnlocked = inRestriction
+      isBlocked = inRestriction
       timeRemainingString = model.timeRemainingString
       
       if let savedHour = UserDefaults.standard.value(forKey: "endHour") as? Int,
@@ -77,9 +75,11 @@ struct AppBlockingSectionView: View {
           restrictionModel.endMins = savedMin
       }
       
-      
-      hours = restrictionModel.endHour
-      minutes = restrictionModel.endMins
+      if !isBlocked {
+        
+        hours = restrictionModel.endHour
+        minutes = restrictionModel.endMins
+      }
     }
     .onReceive(timer) { _ in
       if let unlockDate = model.unlockDate, unlockDate > Date() {
@@ -87,6 +87,7 @@ struct AppBlockingSectionView: View {
       } else {
         timeRemainingString = "00:00:00"
       }
+      
       if let unlockDate = model.unlockDate, unlockDate <= Date() {
         resetBlockState()
       }
@@ -207,7 +208,7 @@ struct AppBlockingSectionView: View {
   }
   
   private var swipeBlockView: some View {
-    SlideToTurnOnView(isUnlocked: $isUnlocked)
+    SlideToTurnOnView(isBlocked: $isBlocked)
       .disabled(isBlockButtonDisabled)
   }
   
@@ -261,7 +262,7 @@ struct AppBlockingSectionView: View {
     
     // Сохраняем режим блокировки
     UserDefaults.standard.set(true, forKey: "inRestrictionMode")
-    UserDefaults(suiteName:"group.ChristianPichardo.ScreenBreak")?.set(true, forKey:"widgetInRestrictionMode")
+    UserDefaults(suiteName:"group.com.app.antisocial.sharedData")?.set(true, forKey:"widgetInRestrictionMode")
     
     // Сохраняем выбранные категории в MyModel (или как вам нужно)
 //    model.savedSelection = categories.map { AppEntity(name: $0.title) }
@@ -288,19 +289,30 @@ struct AppBlockingSectionView: View {
     
     UserDefaults.standard.set(endHour, forKey: "endHour")
     UserDefaults.standard.set(endMins, forKey: "endMins")
-    UserDefaults(suiteName:"group.ChristianPichardo.ScreenBreak")?.set(endHour, forKey:"widgetEndHour")
-    UserDefaults(suiteName:"group.ChristianPichardo.ScreenBreak")?.set(endMins, forKey:"widgetEndMins")
+    UserDefaults(suiteName:"group.com.app.antisocial.sharedData")?.set(endHour, forKey:"widgetEndHour")
+    UserDefaults(suiteName:"group.com.app.antisocial.sharedData")?.set(endMins, forKey:"widgetEndMins")
     
     WidgetCenter.shared.reloadAllTimelines()
     
     // Запуск блокировки (аналогично RestrictionView)
     MySchedule.setSchedule(endHour: endHour, endMins: endMins)
+    
+    // После установки блокировки — сохраняем статистику по всем выбранным приложениям
+    let today = Date()
+    for app in model.selectionToDiscourage.applications {
+      FocusedTimeStatsStore.shared.saveUsage(for: app.localizedDisplayName ?? "APP",
+                                             date: today,
+                                             duration: TimeInterval(hours * 3600 + minutes * 60))
+    }
+    // Сохраняем время старта блокировки как Double
+    let startTime = Date()
+    UserDefaults(suiteName: "group.ScreenTimeTestApp.sharedData")?.set(startTime.timeIntervalSince1970, forKey: "restrictionStartTime")
   }
   
   private func stopBlocking() {
     // Сбросить все настройки блокировки
     UserDefaults.standard.set(false, forKey: "inRestrictionMode")
-    UserDefaults(suiteName:"group.ChristianPichardo.ScreenBreak")?.set(false, forKey:"widgetInRestrictionMode")
+    UserDefaults(suiteName:"group.com.app.antisocial.sharedData")?.set(false, forKey:"widgetInRestrictionMode")
     
     // Можно очистить savedSelection, если нужно
     model.savedSelection.removeAll()
@@ -308,14 +320,26 @@ struct AppBlockingSectionView: View {
     // Сбросить время окончания
     UserDefaults.standard.removeObject(forKey: "endHour")
     UserDefaults.standard.removeObject(forKey: "endMins")
-    UserDefaults(suiteName:"group.ChristianPichardo.ScreenBreak")?.removeObject(forKey:"widgetEndHour")
-    UserDefaults(suiteName:"group.ChristianPichardo.ScreenBreak")?.removeObject(forKey:"widgetEndMins")
+    UserDefaults(suiteName:"group.com.app.antisocial.sharedData")?.removeObject(forKey:"widgetEndHour")
+    UserDefaults(suiteName:"group.com.app.antisocial.sharedData")?.removeObject(forKey:"widgetEndMins")
     
     WidgetCenter.shared.reloadAllTimelines()
     
     // Если есть метод для остановки DeviceActivityCenter — вызови его:
     // Например:
     // MySchedule.stopSchedule()
+    // Получаем время старта блокировки как Double
+    if let startTimestamp = UserDefaults(suiteName: "group.ScreenTimeTestApp.sharedData")?.object(forKey: "restrictionStartTime") as? Double {
+      let startTime = Date(timeIntervalSince1970: startTimestamp)
+      let endTime = Date()
+      let duration = endTime.timeIntervalSince(startTime)
+      let today = Date()
+      for app in model.selectionToDiscourage.applications {
+        FocusedTimeStatsStore.shared.saveUsage(for: app.localizedDisplayName ?? "App", date: today, duration: duration)
+      }
+      // Очищаем время старта
+      UserDefaults(suiteName: "group.ScreenTimeTestApp.sharedData")?.removeObject(forKey: "restrictionStartTime")
+    }
   }
   
   private func resetBlockState() {
@@ -325,8 +349,8 @@ struct AppBlockingSectionView: View {
     model.saveFamilyActivitySelection(model.selectionToDiscourage)
     model.unlockDate = nil
     UserDefaults.standard.set(false, forKey: "inRestrictionMode")
-    UserDefaults(suiteName:"group.ChristianPichardo.ScreenBreak")?.set(false, forKey:"widgetInRestrictionMode")
-    isUnlocked = false
+    UserDefaults(suiteName:"group.com.app.antisocial.sharedData")?.set(false, forKey:"widgetInRestrictionMode")
+    isBlocked = false
     model.stopAppRestrictions()
   }
   

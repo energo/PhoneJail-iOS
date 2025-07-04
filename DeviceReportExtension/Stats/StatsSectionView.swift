@@ -1,9 +1,13 @@
 import SwiftUI
 import DeviceActivity
 import ManagedSettings
+import Foundation
 
 struct StatsSectionView: View {
   let stats: StatsData
+  
+  // Новый блок: загрузка Focused Time
+  @State private var focusedTime: TimeInterval = 0
   
   var body: some View {
     VStack(alignment: .leading, spacing: 16) {
@@ -33,6 +37,17 @@ struct StatsSectionView: View {
           PercentageView(label: "OFFLINE", value: stats.offlinePercent, color: .blue)
         }
         
+        // Новый блок: отображение Focused Time
+        //TODO: FOR TESTING
+        HStack {
+          Text("Focused Time (all apps):")
+            .foregroundStyle(.white)
+          Spacer()
+          Text(focusedTime.formattedAsHoursMinutes())
+            .foregroundStyle(.green)
+        }
+        .padding(.vertical, 8)
+        
         ForEach(stats.appUsages) { app in
           HStack {
             Label(app.token)
@@ -52,6 +67,9 @@ struct StatsSectionView: View {
     }
     .padding()
     .background(bgBlur)
+    .onAppear {
+      focusedTime = FocusedTimeStatsStore.shared.getTotalFocusedTime(for: Date())
+    }
   }
   
   private var bgBlur: some View {

@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct SlideToTurnOnView: View {
-  @Binding var isUnlocked: Bool
+  @Binding var isBlocked: Bool
   @Environment(\.isEnabled) private var isEnabled
   
   @State var offset: CGFloat = .zero
@@ -14,7 +14,7 @@ struct SlideToTurnOnView: View {
         withAnimation {
           offset = max(0, value.translation.width)
           userDragging = true
-          isUnlocked = offset >= (widthOfSlide * 0.55)
+          isBlocked = offset >= (widthOfSlide * 0.55)
         }
       }
       .onEnded { value in
@@ -22,10 +22,10 @@ struct SlideToTurnOnView: View {
           userDragging = false
           if value.translation.width >= (widthOfSlide * 0.55) {
             offset = widthOfSlide - 10
-            isUnlocked = true
+            isBlocked = true
           } else {
             offset = .zero
-            isUnlocked = false
+            isBlocked = false
           }
         }
       }
@@ -37,7 +37,7 @@ struct SlideToTurnOnView: View {
         Spacer()
         ZStack(alignment: .center) {
           HStack {
-            Image(isUnlocked ? .icMainButtonLocked : .icMainButton)
+            Image(isBlocked ? .icMainButtonLocked : .icMainButton)
               .resizable()
               .frame(width: 72, height: 72)
               .padding(.horizontal, 6)
@@ -51,7 +51,7 @@ struct SlideToTurnOnView: View {
             RoundedRectangle(cornerRadius: 9999)
               .fill(Color.clear)
               .stroke(
-                isUnlocked
+                isBlocked
                 ? AnyShapeStyle(Color.as_green)
                 : AnyShapeStyle(Color.as_gradietn_main_button),
                 lineWidth: 2
@@ -69,12 +69,12 @@ struct SlideToTurnOnView: View {
               withAnimation {
                 userDragging = false
                 offset = .zero
-                isUnlocked = false
+                isBlocked = false
               }
             }
           }
           
-          if isUnlocked  {
+          if isBlocked  {
             lockedText
           } else {
             slideText
@@ -84,7 +84,7 @@ struct SlideToTurnOnView: View {
         .onAppear {
           widthOfSlide = geometry.size.width - 50 - 24
           // Синхронизация offset с isUnlocked при появлении
-          if isUnlocked {
+          if isBlocked {
             offset = widthOfSlide - 10
             userDragging = false
           } else {
@@ -92,7 +92,7 @@ struct SlideToTurnOnView: View {
             userDragging = false
           }
         }
-        .onChange(of: isUnlocked) { newValue in
+        .onChange(of: isBlocked) { newValue in
           withAnimation {
             if newValue {
               offset = widthOfSlide - 10
@@ -152,7 +152,7 @@ struct SlideToTurnOnView: View {
   @Previewable @State var isLocked: Bool = false
   
   VStack {
-    SlideToTurnOnView(isUnlocked: $isLocked)
+    SlideToTurnOnView(isBlocked: $isLocked)
   }.background(
     ZStack {
       Image(.bgMain)
