@@ -10,21 +10,25 @@ struct StatsSectionView: View {
   @State private var focusedTime: TimeInterval = 0
   
   var body: some View {
-    VStack(alignment: .leading, spacing: 16) {
+    VStack(alignment: .center, spacing: 16) {
 //      Text("Stats")
 //        .font(.title2).bold()
 //        .foregroundStyle(.white)
+      Text(stats.totalDuration.formattedAsHoursMinutes())
+        .font(.system(size: 32, weight: .bold))
+        .foregroundStyle(.white)
+
       
       ScrollView() {
-        VStack(spacing: 8) {
-          Text(stats.totalDuration.formattedAsHoursMinutes())
-            .font(.system(size: 32, weight: .bold))
-            .foregroundStyle(.white)
+//        VStack(spacing: 8) {
+//          Text(stats.totalDuration.formattedAsHoursMinutes())
+//            .font(.system(size: 32, weight: .bold))
+//            .foregroundStyle(.white)
           
-          Text("TODAY, " + Date().formatted(.dateTime.month(.wide).day().year()))
-            .font(.caption)
-            .foregroundStyle(.gray)
-        }
+//          Text("TODAY, " + Date().formatted(.dateTime.month(.wide).day().year()))
+//            .font(.caption)
+//            .foregroundStyle(.gray)
+//        }
         
         ChartView(chartData: stats.chartData)
           .frame(height: 160)

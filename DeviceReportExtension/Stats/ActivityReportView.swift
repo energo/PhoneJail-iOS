@@ -27,45 +27,51 @@ struct ActivityReportView: View {
   }
   
   var body: some View {
-    VStack(alignment: .leading, spacing: 16) {
-      
-      Text("Stats")
-        .font(.title2).bold()
-        .foregroundStyle(.white)
+    VStack(alignment: .center, spacing: 16) {
       
       HStack {
-        Button(action: {
-          selectedDate = Calendar.current.date(byAdding: .day, value: -1, to: selectedDate)!
-        }) {
-          Image(systemName: "chevron.left.circle.fill")
-            .font(.system(size: 32))
-            .symbolRenderingMode(.hierarchical)
-            .foregroundStyle(.white, .white.opacity(0.07))
-        }
-        
+        Text("Stats")
+          .font(.title2).bold()
+          .foregroundStyle(.white)
         Spacer()
-        
-        Text(selectedDate, style: .date)
-        
-        Spacer()
-        
-        Button(action: {
-          selectedDate = Calendar.current.date(byAdding: .day, value: 1, to: selectedDate)!
-        }) {
-          Image(systemName: "chevron.right.circle.fill")
-            .font(.system(size: 32))
-            .symbolRenderingMode(.hierarchical)
-            .foregroundStyle(.white, .white.opacity(0.07))
-        }
       }
-      .foregroundStyle(Color.white)
-      .padding()
+      datePicker
       
       // Сам отчёт
       DeviceActivityReport(context, filter: filter)
     }
     .padding()
     .background(bgBlur)
+  }
+  
+  private var datePicker: some View {
+    HStack {
+      Button(action: {
+        selectedDate = Calendar.current.date(byAdding: .day, value: -1, to: selectedDate)!
+      }) {
+        Image(systemName: "chevron.left.circle.fill")
+          .font(.system(size: 32))
+          .symbolRenderingMode(.hierarchical)
+          .foregroundStyle(.white, .white.opacity(0.07))
+      }
+      
+      Spacer()
+      
+      Text(selectedDate, style: .date)
+      
+      Spacer()
+      
+      Button(action: {
+        selectedDate = Calendar.current.date(byAdding: .day, value: 1, to: selectedDate)!
+      }) {
+        Image(systemName: "chevron.right.circle.fill")
+          .font(.system(size: 32))
+          .symbolRenderingMode(.hierarchical)
+          .foregroundStyle(.white, .white.opacity(0.07))
+      }
+    }
+    .foregroundStyle(Color.white)
+//    .padding()
   }
   
   private var bgBlur: some View {

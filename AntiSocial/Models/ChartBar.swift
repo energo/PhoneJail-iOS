@@ -8,8 +8,9 @@
 import Foundation
 
 struct ChartBar: Identifiable {
-  let id = UUID()
+  var id: Int { hour } // <-- фикс
   let hour: Int
   var focusedMinutes: Int
   var distractedMinutes: Int
 }
+

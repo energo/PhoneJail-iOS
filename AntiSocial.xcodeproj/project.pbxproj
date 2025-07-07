@@ -149,6 +149,7 @@
 				Models/AppUsage.swift,
 				Models/ChartBar.swift,
 				Models/StatsData.swift,
+				Screens/1_AppMonitor/Sections/Stats/ChartView.swift,
 				"Utilities/Extensions/Color+Constants.swift",
 				Utilities/Services/Storage/Local/FocusedTimeStatsStore.swift,
 				Views/Blur/BackdropBlurView.swift,

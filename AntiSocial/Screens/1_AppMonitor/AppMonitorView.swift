@@ -123,15 +123,10 @@ struct AppMonitorView: View {
 
   
   private var statsSection: some View {
-//    StatsSectionViewProxy()
     ActivityReportView()
       .frame(maxWidth: .infinity)
       .frame(minHeight: 600)
       .frame(maxHeight: .infinity)
-//    StatsSectionViewProxy()
-//    VStack {
-//      StatsSectionView(stats: viewModel.stats)
-//    }
   }
   
   //MARK: - OLD Implementation (base functional for tracking use of app
