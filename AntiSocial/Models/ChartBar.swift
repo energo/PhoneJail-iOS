@@ -12,5 +12,6 @@ struct ChartBar: Identifiable {
   let hour: Int
   var focusedMinutes: Int
   var distractedMinutes: Int
+  var offlineMinutes: Int = 0
 }
 

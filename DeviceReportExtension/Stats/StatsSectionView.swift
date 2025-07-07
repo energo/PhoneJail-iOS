@@ -11,27 +11,16 @@ struct StatsSectionView: View {
   
   var body: some View {
     VStack(alignment: .center, spacing: 16) {
-//      Text("Stats")
-//        .font(.title2).bold()
-//        .foregroundStyle(.white)
+      //      Text("Stats")
+      //        .font(.title2).bold()
+      //        .foregroundStyle(.white)
       Text(stats.totalDuration.formattedAsHoursMinutes())
         .font(.system(size: 32, weight: .bold))
         .foregroundStyle(.white)
-
       
-      ScrollView() {
-//        VStack(spacing: 8) {
-//          Text(stats.totalDuration.formattedAsHoursMinutes())
-//            .font(.system(size: 32, weight: .bold))
-//            .foregroundStyle(.white)
-          
-//          Text("TODAY, " + Date().formatted(.dateTime.month(.wide).day().year()))
-//            .font(.caption)
-//            .foregroundStyle(.gray)
-//        }
+      
         
         ChartView(chartData: stats.chartData)
-//          .frame(height: 120)
         
         HStack {
           PercentageView(label: "FOCUSED", value: stats.focusedPercent, color: .green)
@@ -52,12 +41,13 @@ struct StatsSectionView: View {
         }
         .padding(.vertical, 8)
         
+      ScrollView() {
         ForEach(stats.appUsages) { app in
           HStack {
             Label(app.token)
-                .labelStyle(.iconOnly)
-                .frame(width: 30, height: 30)
-
+              .labelStyle(.iconOnly)
+              .frame(width: 30, height: 30)
+            
             Text(app.name)
               .foregroundStyle(.white)
             
@@ -69,25 +59,11 @@ struct StatsSectionView: View {
         }
       }
     }
-//    .padding()
-//    .background(bgBlur)
     .onAppear {
       focusedTime = FocusedTimeStatsStore.shared.getTotalFocusedTime(for: Date())
     }
   }
-  
-//  private var bgBlur: some View {
-//    ZStack {
-//      BackdropBlurView(isBlack: false, radius: 10)
-//      RoundedRectangle(cornerRadius: 32)
-//        .fill(
-//          Color.white.opacity(0.07)
-//        )
-//    }
-//  }
 }
-
-
 
 extension TimeInterval {
   func formattedAsHoursMinutes() -> String {

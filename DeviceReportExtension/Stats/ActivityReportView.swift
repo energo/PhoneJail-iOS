@@ -27,7 +27,7 @@ struct ActivityReportView: View {
   }
   
   var body: some View {
-    VStack(alignment: .center, spacing: 16) {
+    VStack(alignment: .center, spacing: 0) {
       
       HStack {
         Text("Stats")
@@ -35,6 +35,7 @@ struct ActivityReportView: View {
           .foregroundStyle(.white)
         Spacer()
       }
+      .padding(.bottom, 16)
       datePicker
       
       // Сам отчёт
@@ -57,7 +58,10 @@ struct ActivityReportView: View {
       
       Spacer()
       
-      Text(selectedDate, style: .date)
+//      Text(selectedDate, style: .date)
+      Text("TODAY, " + selectedDate.formatted(.dateTime.month(.wide).day()))
+        .font(.caption)
+        .foregroundStyle(.gray)
       
       Spacer()
       
