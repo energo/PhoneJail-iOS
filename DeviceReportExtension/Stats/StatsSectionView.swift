@@ -11,9 +11,9 @@ struct StatsSectionView: View {
   
   var body: some View {
     VStack(alignment: .leading, spacing: 16) {
-      Text("Stats")
-        .font(.title2).bold()
-        .foregroundStyle(.white)
+//      Text("Stats")
+//        .font(.title2).bold()
+//        .foregroundStyle(.white)
       
       ScrollView() {
         VStack(spacing: 8) {
@@ -65,22 +65,22 @@ struct StatsSectionView: View {
         }
       }
     }
-    .padding()
-    .background(bgBlur)
+//    .padding()
+//    .background(bgBlur)
     .onAppear {
       focusedTime = FocusedTimeStatsStore.shared.getTotalFocusedTime(for: Date())
     }
   }
   
-  private var bgBlur: some View {
-    ZStack {
-      BackdropBlurView(isBlack: false, radius: 10)
-      RoundedRectangle(cornerRadius: 32)
-        .fill(
-          Color.white.opacity(0.07)
-        )
-    }
-  }
+//  private var bgBlur: some View {
+//    ZStack {
+//      BackdropBlurView(isBlack: false, radius: 10)
+//      RoundedRectangle(cornerRadius: 32)
+//        .fill(
+//          Color.white.opacity(0.07)
+//        )
+//    }
+//  }
 }
 
 

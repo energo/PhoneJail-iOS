@@ -129,6 +129,7 @@
 			membershipExceptions = (
 				Models/ActivityReport.swift,
 				ScreenTime/ScreenTimeTodayView.swift,
+				Stats/ActivityReportView.swift,
 				Stats/StatsSectionViewProxy.swift,
 			);
 			target = 478055122D5BD68B003988E7 /* AntiSocialApp */;
@@ -146,6 +147,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Models/AppUsage.swift,
+				Models/ChartBar.swift,
 				Models/StatsData.swift,
 				"Utilities/Extensions/Color+Constants.swift",
 				Utilities/Services/Storage/Local/FocusedTimeStatsStore.swift,

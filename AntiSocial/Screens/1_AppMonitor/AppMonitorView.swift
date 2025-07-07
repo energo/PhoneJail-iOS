@@ -123,7 +123,8 @@ struct AppMonitorView: View {
 
   
   private var statsSection: some View {
-    StatsSectionViewProxy()
+//    StatsSectionViewProxy()
+    ActivityReportView()
       .frame(maxWidth: .infinity)
       .frame(minHeight: 600)
       .frame(maxHeight: .infinity)
