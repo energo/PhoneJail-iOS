@@ -31,7 +31,7 @@ struct StatsSectionView: View {
 //        }
         
         ChartView(chartData: stats.chartData)
-          .frame(height: 160)
+//          .frame(height: 120)
         
         HStack {
           PercentageView(label: "FOCUSED", value: stats.focusedPercent, color: .green)

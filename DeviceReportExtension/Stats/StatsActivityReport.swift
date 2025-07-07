@@ -47,14 +47,14 @@ struct StatsActivityReport: DeviceActivityReportScene {
     }
 
     let appUsages = Array(appUsageDict.values).sorted { $0.usage > $1.usage }
-    let displayArray = Array(appUsages.prefix(3))
+//    let displayArray = Array(appUsages.prefix(3))
 
     return StatsData(
       totalDuration: totalDuration,
       chartData: chartData,
       focusedDuration: 0, // будет подставлено отдельно
       distractedDuration: distractedDuration,
-      appUsages: displayArray
+      appUsages: appUsages
     )
   }
 

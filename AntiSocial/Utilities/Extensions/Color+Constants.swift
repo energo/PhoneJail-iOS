@@ -2,6 +2,7 @@ import SwiftUI
 
 extension Color {
   static let as_green = Color(hex: "24F38F")
+  static let as_gray = Color(hex: "CACACA")
   
   
   //MARK: - Other Colors
