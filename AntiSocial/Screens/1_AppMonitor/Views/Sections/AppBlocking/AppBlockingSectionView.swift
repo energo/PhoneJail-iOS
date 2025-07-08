@@ -13,7 +13,7 @@ import FamilyControls
 
 
 struct AppBlockingSectionView: View {
-  @EnvironmentObject var model: MyModel
+  @EnvironmentObject var model: DeviceActivityService
   @ObservedObject var restrictionModel: MyRestrictionModel
   
   @State var hours: Int = 0
@@ -293,7 +293,7 @@ struct AppBlockingSectionView: View {
     WidgetCenter.shared.reloadAllTimelines()
     
     // Запуск блокировки (аналогично RestrictionView)
-    MySchedule.setSchedule(endHour: endHour, endMins: endMins)
+    DeviceActivityScheduleService.setSchedule(endHour: endHour, endMins: endMins)
     
     // После установки блокировки — сохраняем статистику по всем выбранным приложениям
     let today = Date()

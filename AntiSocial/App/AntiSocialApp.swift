@@ -36,7 +36,7 @@ struct AntiSocialApp: App {
   @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
   @StateObject private var authVM = AuthenticationViewModel(subscriptionManager: SubscriptionManager.shared)
   @StateObject private var subscriptionManager = SubscriptionManager.shared
-  @StateObject private var model = MyModel.shared
+  @StateObject private var model = DeviceActivityService.shared
 
     var body: some Scene {
         WindowGroup {

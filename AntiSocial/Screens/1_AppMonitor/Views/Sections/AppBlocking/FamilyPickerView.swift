@@ -10,7 +10,7 @@ import SwiftUI
 import FamilyControls
 
 struct FamilyPickerView: View {
-    @ObservedObject var model: MyModel
+    @ObservedObject var model: DeviceActivityService
     @Binding var isDiscouragedPresented: Bool
 
     @State private var noAppsAlert = false
@@ -43,7 +43,7 @@ struct FamilyPickerView: View {
             
             Spacer()
             Button(action : {
-                if(MyModel.shared.selectionToDiscourage.applicationTokens.count == 0 && MyModel.shared.selectionToDiscourage.categoryTokens.count == 0) {
+                if(DeviceActivityService.shared.selectionToDiscourage.applicationTokens.count == 0 && DeviceActivityService.shared.selectionToDiscourage.categoryTokens.count == 0) {
                     noAppsAlert = true
                 } else {
                     isDiscouragedPresented = false

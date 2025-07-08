@@ -17,7 +17,7 @@ extension DeviceActivityEvent.Name {
     static let discouraged = Self("discouraged")
 }
 
-class MySchedule {
+class DeviceActivityScheduleService {
     static public func setSchedule(endHour: Int, endMins: Int) {
         let now = Date()
         let calendar = Calendar.current
@@ -63,7 +63,7 @@ class MySchedule {
         print("END TIME: \(endHour):\(endMins)")
 
         // Применяем ограничения
-        MyModel.shared.setShieldRestrictions()
+        DeviceActivityService.shared.setShieldRestrictions()
 
         let schedule = DeviceActivitySchedule(
             intervalStart: DateComponents(hour: curHour, minute: curMins),
@@ -73,7 +73,7 @@ class MySchedule {
 
         let events: [DeviceActivityEvent.Name: DeviceActivityEvent] = [
             .discouraged: DeviceActivityEvent(
-                applications: MyModel.shared.selectionToDiscourage.applicationTokens,
+                applications: DeviceActivityService.shared.selectionToDiscourage.applicationTokens,
                 threshold: DateComponents(second: 15)
             )
         ]

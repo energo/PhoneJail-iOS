@@ -26,6 +26,7 @@
 		47889F852E12A4B900D86A0E /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 47889F842E12A4B900D86A0E /* ManagedSettings.framework */; };
 		47889F872E12A4B900D86A0E /* ManagedSettingsUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 47889F862E12A4B900D86A0E /* ManagedSettingsUI.framework */; };
 		47889F8F2E12A4B900D86A0E /* Shield.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 47889F832E12A4B900D86A0E /* Shield.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		47CEDE732E1D825C0007B639 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 47CEDE722E1D825C0007B639 /* GoogleService-Info.plist */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -104,16 +105,16 @@
 		47889F832E12A4B900D86A0E /* Shield.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = Shield.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		47889F842E12A4B900D86A0E /* ManagedSettings.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettings.framework; path = System/Library/Frameworks/ManagedSettings.framework; sourceTree = SDKROOT; };
 		47889F862E12A4B900D86A0E /* ManagedSettingsUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettingsUI.framework; path = System/Library/Frameworks/ManagedSettingsUI.framework; sourceTree = SDKROOT; };
+		47CEDE722E1D825C0007B639 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
 		471FD1672E0AC22D00DE59AA /* Exceptions for "AntiSocial" folder in "DeviceActivityMonitorExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Models/AppIcon.swift,
 				Models/AppUsage.swift,
-				Models/SharedData.swift,
 				"Utilities/Extensions/Color+Constants.swift",
+				Utilities/Services/DeviceActivity/SharedData.swift,
 			);
 			target = 478055D52D5BE259003988E7 /* DeviceActivityMonitorExtension */;
 		};
@@ -148,7 +149,7 @@
 			membershipExceptions = (
 				Models/AppUsage.swift,
 				Models/ChartBar.swift,
-				Models/StatsData.swift,
+				Models/DeviceActivity/StatsData.swift,
 				Screens/1_AppMonitor/Views/Sections/Stats/ChartView.swift,
 				"Utilities/Extensions/Color+Constants.swift",
 				Utilities/Services/Storage/Local/FocusedTimeStatsStore.swift,
@@ -293,6 +294,7 @@
 		4780550A2D5BD68B003988E7 = {
 			isa = PBXGroup;
 			children = (
+				47CEDE722E1D825C0007B639 /* GoogleService-Info.plist */,
 				471FE2AE2E0ADDFF00DE59AA /* AntiSocialApp-Info.plist */,
 				478055152D5BD68B003988E7 /* AntiSocial */,
 				478055262D5BD68C003988E7 /* AntiSocialAppTests */,
@@ -557,6 +559,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				47CEDE732E1D825C0007B639 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

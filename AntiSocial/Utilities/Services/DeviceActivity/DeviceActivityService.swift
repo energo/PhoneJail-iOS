@@ -9,10 +9,10 @@ struct AppEntity: Codable, Identifiable {
   var name: String
 }
 
-class MyModel: ObservableObject {
+class DeviceActivityService: ObservableObject {
   // MARK: - Settings Store
   let store = ManagedSettingsStore(named: .mySettingStore)
-  static let shared = MyModel()
+  static let shared = DeviceActivityService()
   
   // MARK: - Published Properties
   @Published var selectionToDiscourage: FamilyActivitySelection
@@ -165,7 +165,7 @@ class MyModel: ObservableObject {
   }
   
   // MARK: - Singleton
-  class var sharedInstance: MyModel { shared }
+  class var sharedInstance: DeviceActivityService { shared }
 }
 
 extension ManagedSettingsStore.Name {
