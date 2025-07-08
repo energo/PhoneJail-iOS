@@ -30,8 +30,6 @@ extension SharedData {
     }
 }
 
-
-
 class AppMonitorViewModel: ObservableObject {
     @Published var pickerIsPresented = false
     @Published var showSocialMediaHint = false

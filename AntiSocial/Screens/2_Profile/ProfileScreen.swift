@@ -18,6 +18,7 @@ struct ProfileScreen: View {
   @State private var isAboutViewPresented = false
   @State private var isPrivacyPresented = false
   @State private var isTermsPresented = false
+  @State private var isShowNotifcations = false
   @State private var canRequestReview = false
   
   //MARK: - Views
@@ -43,6 +44,9 @@ struct ProfileScreen: View {
     }
     .fullScreenCover(isPresented: $showPaywall) {
       return PaywallView(displayCloseButton: true)
+    }
+    .fullScreenCover(isPresented: $isShowNotifcations) {
+      NotificationsScreen()
     }
   }
   
@@ -160,31 +164,32 @@ struct ProfileScreen: View {
   private var settingsSection: some View {
     VStack(spacing: 1) {
       settingRow(icon: "bell.fill", text: "Notifications") {
-        print("Open notifications settings")
+        isShowNotifcations = true
       }
       
       separatorView
       
-      settingRow(icon: "person.2.fill", text: "Invite a friend") {
-        //        shareInviteLink()
+      if let url = URL(string: "https://apps.apple.com/app/id6747712365") {
+        shareButton(url)
+          .padding(.bottom, 32)
       }
-      
+
       separatorView
       
-      settingRow(icon: "doc.text.fill", text: "Contact Us") {
-        //        openSupportForm()
-      }
-      
-      separatorView
-      
-      settingRow(icon: "questionmark.circle", text: "FAQ") {
-        //        openFAQ()
-      }
-      
-      separatorView
+//      settingRow(icon: "doc.text.fill", text: "Contact Us") {
+//        //        openSupportForm()
+//      }
+//      
+//      separatorView
+//      
+//      settingRow(icon: "questionmark.circle", text: "FAQ") {
+//        //        openFAQ()
+//      }
+//      
+//      separatorView
       
       settingRow(icon: "shield.fill", text: "Terms & Policy") {
-        //        openURL("https://example.com/terms")
+        isPrivacyPresented = true
       }
       
       separatorView
@@ -202,12 +207,17 @@ struct ProfileScreen: View {
                  color: .red) {
         loguOut()
       }
-      
     }
     .padding()
     .blurBackground()
   }
   
+  private func shareButton(_ url: URL) -> some View {
+    ShareLink(item: url) {
+      settingRow(icon: "person.2.fill", text: "Invite a friend")
+    }
+  }
+
   
   private func settingRow(icon: String,
                           text: String,
