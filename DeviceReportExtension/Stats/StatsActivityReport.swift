@@ -45,8 +45,6 @@ struct StatsActivityReport: DeviceActivityReportScene {
           for await app in category.applications {
             let appDuration = app.totalActivityDuration
             
-            guard appDuration >= 60 else { continue }
-            
             let key = app.application.bundleIdentifier ?? "Unknown"
             let appName = app.application.localizedDisplayName ?? "App"
             let token = app.application.token!

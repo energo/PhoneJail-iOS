@@ -98,11 +98,11 @@ struct ChartView: View {
   }
 }
 
-#Preview {
-  let sampleData = (0..<24).map { ChartBar(hour: $0,
-                                           focusedMinutes: Int.random(in: 0...60),
-                                           distractedMinutes: Int.random(in: 0...60)) }
-  ChartView(chartData: sampleData)
-  //    .previewLayout(.sizeThatFits)
-    .padding()
-}
+//#Preview {
+//  let sampleData = (0..<24).map { ChartBar(hour: $0,
+//                                           focusedMinutes: Int.random(in: 0...60),
+//                                           distractedMinutes: Int.random(in: 0...60)) }
+//  ChartView(chartData: sampleData)
+//  //    .previewLayout(.sizeThatFits)
+//    .padding()
+//}
