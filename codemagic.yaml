@@ -1,0 +1,71 @@
+workflows:
+  ios-submit_to_testflight:
+    name: iOS Native
+    max_build_duration: 120
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: CodeMagic
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.app.antisocial
+      vars:
+        BUNDLE_ID: "com.app.antisocial"
+        XCODE_WORKSPACE: "AntiSocial.xcodeproj"
+        XCODE_SCHEME: "AntiSocial"
+        APP_STORE_APPLE_ID: 6747712365
+      xcode: 16.2
+      cocoapods: default
+    scripts:
+      - name: Set up provisioning profiles
+        script: xcode-project use-profiles
+      
+      - name: Increment build number
+        script: |
+          cd $CM_BUILD_DIR
+          LATEST_BUILD_NUMBER=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID")
+          NEW_BUILD_NUMBER=$(($LATEST_BUILD_NUMBER + 1))
+          agvtool new-version -all $NEW_BUILD_NUMBER
+          echo "Updated build number: $NEW_BUILD_NUMBER"
+
+      - name: Build ipa
+        script: | 
+          xcode-project build-ipa \
+            --project "$CM_BUILD_DIR/$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME"
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+      
+    publishing:
+      email:
+        recipients:
+          - daniil.bystrov@gmail.com
+        notify:
+          success: true
+          failure: false
+          
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        beta_groups:
+          - Test_Group_1
+        submit_to_app_store: false
+      
+      scripts:
+        - name: Upload debug symbols to Firebase Crashlytics
+          script: | 
+            echo "Searching for dSYM files..."
+            dsymPath=$(find build/ios/xcarchive -name "*.dSYM" | head -1)
+            
+            if [[ -z "${dsymPath}" ]]; then
+              echo "❌ No debug symbols found"
+            else
+              echo "✅ Found dSYM: $dsymPath"
+              $HOME/Library/Developer/Xcode/DerivedData/**/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/upload-symbols \
+                -gsp "$CM_BUILD_DIR/ios/DoThisNow/GoogleService-Info.plist" \
+                -p ios "$dsymPath"
+            fi
