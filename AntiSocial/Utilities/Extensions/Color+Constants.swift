@@ -109,6 +109,13 @@ extension Color {
     startPoint: .topTrailing,
     endPoint: .bottomLeading
   )
+  
+  static let as_gradietn_button_purchase = LinearGradient(
+    colors: [Color(hex: "FF6061"),
+             Color(hex: "3D47C4")],
+    startPoint: .bottomLeading,
+    endPoint: .topTrailing
+  )
 
   //MARK: - Other Gradients
   static let gradient_simple_bg = RadialGradient(

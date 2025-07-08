@@ -31,10 +31,10 @@ struct MainView: View {
       case .authenticated:
         if isFirstRun {
 //          UnifiedOnboardingScreen(isShow: $isFirstRun)
-          AppMonitorView(model: SelectAppsModel())
+          AppMonitorScreen(model: SelectAppsModel())
           
         } else {
-          AppMonitorView(model: SelectAppsModel())
+          AppMonitorScreen(model: SelectAppsModel())
         }
     }
   }

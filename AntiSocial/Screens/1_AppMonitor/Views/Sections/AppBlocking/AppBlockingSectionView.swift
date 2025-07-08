@@ -220,9 +220,7 @@ struct AppBlockingSectionView: View {
   }
   
   private var separatorView: some View {
-    Rectangle()
-      .fill(Color(hex: "D9D9D9").opacity(0.13))
-      .frame(height: 0.5)
+    SeparatorView()
   }
   
   private var bgBlur: some View {

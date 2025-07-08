@@ -14,10 +14,12 @@ import ManagedSettingsUI
 import DeviceActivity
 
 
-struct AppMonitorView: View {
+struct AppMonitorScreen: View {
   @StateObject private var viewModel: AppMonitorViewModel
   @StateObject private var restrictionModel = MyRestrictionModel()
-
+  
+  @State private var isShowingProfile: Bool = false
+  
   let columns = [
     GridItem(.flexible()),
     GridItem(.flexible()),
@@ -25,20 +27,19 @@ struct AppMonitorView: View {
     GridItem(.flexible()),
   ]
   
-//  @State private var hours = 0
-//  @State private var minutes = 0
-
+  //MARK: - Init Methods
   init(model: SelectAppsModel) {
     self._viewModel = StateObject(wrappedValue: AppMonitorViewModel(model: model))
   }
   
+  //MARK: - Views
   var body: some View {
     BGView(imageRsc: .bgMain) {
       ZStack(alignment: .top) {
         VStack(spacing: 8) {
           headerView
           screenTimeSection
-//          Spacer()
+          //          Spacer()
         }
         
         ScrollView(showsIndicators: false) {
@@ -52,50 +53,44 @@ struct AppMonitorView: View {
         .padding(.horizontal, 20)
       }
     }
+    .fullScreenCover(isPresented: $isShowingProfile, content: {
+      ProfileScreen()
+    })
     .task {
       await viewModel.onAppear()
     }
-    .onChange(of: viewModel.model.activitySelection) { _ in
+    .onChangeWithOldValue(of: viewModel.model.activitySelection, perform: { _, _ in
       viewModel.onActivitySelectionChange()
-    }
+    })
   }
   
   private var headerView: some View {
     HStack {
       Spacer()
-      Image(systemName: "person.fill")
-        .font(.system(size: 24))
-        .foregroundStyle(Color.white)
-      //      Button(action: { }, label: Image(systemName: "person.fill").font(.system(size: 24)))
+      profileButton
     }
     .padding(.horizontal)
   }
   
+  private var profileButton: some View {
+    Button(action: { isShowingProfile = true },
+           label: {
+      Image(systemName: "person.fill")
+        .font(.system(size: 18))
+        .foregroundStyle(Color.white)
+        .contentShape(Rectangle())
+    })
+  }
+  
   private var screenTimeSection: some View {
-//    VStack {
-      ScreenTimeTodayView()
-//      ScreenTimeSectionView(
-//        totalTime: 7 * 3600 + 49 * 60,
-//        focusTime: 1 * 3600 + 2 * 60,
-//        pickups: 72,
-//        mostUsedApps: [
-//          AppIcon(name: "Apple TV", icon: Image(systemName: "appletv")),
-//          AppIcon(name: "YouTube", icon: Image(systemName: "play.display")),
-//          AppIcon(name: "CNN", icon: Image(systemName: "play.display"))
-//        ]
-//      )
-//    }
+    ScreenTimeTodayView()
   }
   
   private var appBlockingSection: some View {
     VStack {
       AppBlockingSectionView(
         restrictionModel: restrictionModel,
-//        hours: $hours,
-//        minutes: $minutes,
-//        categories: .constant([.allInternet, .socialMedia, .news]),
         isStrictBlock: .constant(false)
-//        onBlock: { /* action */ }
       )
     }
   }
@@ -109,18 +104,6 @@ struct AppMonitorView: View {
       )
     }
   }
-  
-  @State private var context: DeviceActivityReport.Context = .init(rawValue: "Stats Activity")
-  @State private var filter = DeviceActivityFilter(
-      segment: .daily(
-          during: Calendar.current.dateInterval(
-             of: .day, for: .now
-          )!
-      ),
-      users: .all,
-      devices: .init([.iPhone, .iPad])
-  )
-
   
   private var statsSection: some View {
     ActivityReportView()
@@ -301,7 +284,7 @@ struct AppMonitorView: View {
 
 
 #Preview {
-  AppMonitorView(model: SelectAppsModel())
+  AppMonitorScreen(model: SelectAppsModel())
 }
 
 // Оригинальный selectedAppsView из ContentView (закомментирован, но можно включить)
