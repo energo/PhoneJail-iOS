@@ -3,7 +3,7 @@ import SwiftUI
 extension Color {
   static let as_green = Color(hex: "24F38F")
   static let as_gray = Color(hex: "CACACA")
-  
+  static let as_blue_toggle = Color(hex: "1D4CD9")
   
   //MARK: - Other Colors
   static let ri_gray = Color(red: 138/255, green: 138/255, blue: 139/255)
