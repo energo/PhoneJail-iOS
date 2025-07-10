@@ -57,14 +57,14 @@ struct OnboardingScreen: View {
         ) {
           VStack {
             Spacer()
-            Image(.icNotificationsAlert)
-              .resizable()
-              .frame(width: 270, height: 178)
+//            Image(.icNotificationsAlert)
+//              .resizable()
+//              .frame(width: 270, height: 178)
           }
         }
         .tag(2)
                 .task {
-                  try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 секунды
+                  try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 секунды
         
                   LocalNotificationManager.shared.requestAuthorization { isNotificationAuthed in
                     AppLogger.trace("isNotificationAuthed \(isNotificationAuthed)")
