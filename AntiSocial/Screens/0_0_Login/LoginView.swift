@@ -1,6 +1,6 @@
 //
 //  LoginView.swift
-//   
+//
 //
 //  Created by D C on 12.03.2025.
 //
@@ -14,22 +14,22 @@ struct LoginView: View {
   @Environment(\.colorScheme) var colorScheme
   @EnvironmentObject var authVM: AuthenticationViewModel
   @Environment(\.presentationMode) var presentationMode
-
+  
   @State private var email: String = ""
   @State private var password: String = ""
-
+  
   @State private var selectedCardIndex: Int = 0
-//  @State private var contents: [WelcomeContent] = []
+  //  @State private var contents: [WelcomeContent] = []
   @State private var showPaywall = false
   @AppStorage("hasSeenPaywallAfterOnboarding") var hasSeenPaywallAfterOnboarding: Bool = false
-
+  
   //MARK: - Views
   var body: some View {
     BGView(imageRsc: .bgLogin) {
-    contentView
+      contentView
     }
     .task {
-//      contents = WelcomeContent.example
+      //      contents = WelcomeContent.example
       if !hasSeenPaywallAfterOnboarding {
         showPaywall = true
       }
@@ -39,19 +39,20 @@ struct LoginView: View {
       return PaywallView(displayCloseButton: true)
     }
   }
-
-    //MARK: - Private Views
+  
+  //MARK: - Private Views
   private var contentView: some View {
     VStack {
       Spacer()
-
+        .frame(maxHeight: 80)
+      
       textView
       
       logoView
       
       buttonsView
-      .padding(.bottom, 32)
-      .padding(.horizontal, 32)
+        .padding(.bottom, 32)
+        .padding(.horizontal, 32)
     }
   }
   
@@ -65,8 +66,8 @@ struct LoginView: View {
   private var logoView: some View {
     Image(.icLock)
       .resizable()
-      .frame(maxHeight: 420)
-      .frame(maxWidth: 350)
+      .frame(maxWidth: 341)
+      .frame(maxHeight: 391)
   }
   
   private var buttonsView: some View {
@@ -87,7 +88,7 @@ struct LoginView: View {
       }
     )
   }
-
+  
   private var googleButton: some View {
     ButtonLeftIcon(title: "Sign in with Google",
                    imageLeading: Image(.icGoogleWhite),
@@ -95,10 +96,10 @@ struct LoginView: View {
                    colorTxt: .white,
                    showStroke: true)
     {
-    signInWithGoogle()
+      signInWithGoogle()
     }
   }
-
+  
   private var skipButton: some View {
     Button {
       signInAnonymously()
@@ -108,22 +109,22 @@ struct LoginView: View {
         .foregroundStyle(.white)
     }
   }
-
-//  private var carouselContentView: some View {
-//    TabView(selection: $selectedCardIndex) {
-//      ForEach(contents.indices, id: \.self) { index in
-//        GeometryReader { geometry in
-//          WelcomeView(content: contents[index])
-//            .tag(index)
-//            .padding(.horizontal, 16)
-//            .padding(.vertical, 8)
-//        }
-//      }
-//    }
-//    .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
-//    .padding(.bottom, 20) // добавляем отступ снизу, чтобы избежать перекрытия
-//  }
-
+  
+  //  private var carouselContentView: some View {
+  //    TabView(selection: $selectedCardIndex) {
+  //      ForEach(contents.indices, id: \.self) { index in
+  //        GeometryReader { geometry in
+  //          WelcomeView(content: contents[index])
+  //            .tag(index)
+  //            .padding(.horizontal, 16)
+  //            .padding(.vertical, 8)
+  //        }
+  //      }
+  //    }
+  //    .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
+  //    .padding(.bottom, 20) // добавляем отступ снизу, чтобы избежать перекрытия
+  //  }
+  
   //MARK: - Private Methods
   private func signInWithGoogle() {
     Task {
@@ -132,7 +133,7 @@ struct LoginView: View {
       }
     }
   }
-
+  
   private func signInAnonymously() {
     Task.detached() {
       if await authVM.signInAnonymously() == true {

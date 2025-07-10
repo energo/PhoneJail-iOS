@@ -29,10 +29,6 @@ struct OnboardingScreen: View {
       }
     }
     .ignoresSafeArea()
-    .onAppear {
-      //      UIPageControl.appearance().currentPageIndicatorTintColor = UIColor(Color.td_purple_active)
-      //      UIPageControl.appearance().pageIndicatorTintColor = UIColor(.gray)
-    }
   }
   
   private var tabView: some View {
@@ -67,15 +63,15 @@ struct OnboardingScreen: View {
           }
         }
         .tag(2)
-        //        .task {
-        //          try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 секунды
-        //
-        //          LocalNotificationManager.shared.requestAuthorization { isNotificationAuthed in
-        //            AppLogger.trace("isNotificationAuthed \(isNotificationAuthed)")
-        //
-        //            UNUserNotificationCenter.current().delegate = DTNNotificationHandler.shared
-        //          }
-        //        }
+                .task {
+                  try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 секунды
+        
+                  LocalNotificationManager.shared.requestAuthorization { isNotificationAuthed in
+                    AppLogger.trace("isNotificationAuthed \(isNotificationAuthed)")
+        
+                    UNUserNotificationCenter.current().delegate = DTNNotificationHandler.shared
+                  }
+                }
       }
       .tabViewStyle(.page(indexDisplayMode: .never))
       
