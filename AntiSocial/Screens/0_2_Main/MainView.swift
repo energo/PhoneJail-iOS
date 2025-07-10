@@ -10,17 +10,11 @@ import RevenueCatUI
 
 struct MainView: View {
   @EnvironmentObject var authVM: AuthenticationViewModel
-  @AppStorage("hasSeenOnboarding") var hasSeenOnboarding: Bool = true
   @AppStorage("isFirstRun") private var isFirstRun: Bool = true
 
   @State private var showPaywall = false
   
   //MARK: - Init Methods
-  init() {
-    UITabBar.appearance().unselectedItemTintColor = UIColor(Color.white)
-//    let appearance = UITabBarAppearance()
-//    UITabBar.appearance().scrollEdgeAppearance = appearance    
-  }
   
   //MARK: - Views
   var body: some View {
@@ -30,9 +24,7 @@ struct MainView: View {
         
       case .authenticated:
         if isFirstRun {
-//          UnifiedOnboardingScreen(isShow: $isFirstRun)
-          AppMonitorScreen(model: SelectAppsModel())
-          
+          OnboardingScreen(isShow: $isFirstRun)
         } else {
           AppMonitorScreen(model: SelectAppsModel())
         }

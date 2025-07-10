@@ -79,6 +79,11 @@ struct AppMonitorScreen: View {
         .font(.system(size: 18))
         .foregroundStyle(Color.white)
         .contentShape(Rectangle())
+        .overlay {
+          Circle()
+            .fill(Color.clear)
+            .frame(width: 32, height: 32)
+        }
     })
   }
   

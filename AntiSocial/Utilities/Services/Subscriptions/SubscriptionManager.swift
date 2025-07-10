@@ -252,7 +252,7 @@ class SubscriptionManager: ObservableObject, SubscriptionManagerProtocol {
   
   //MARK: - Private Methods
   private func configureRevenueCat() {
-    Purchases.logLevel = .debug
+    Purchases.logLevel = .error
     Purchases.configure(withAPIKey: Constants.apiKey)
   }
   

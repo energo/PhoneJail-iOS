@@ -59,6 +59,7 @@ struct LoginView: View {
     Text("Less Screen.\nMore Freedom.")
       .font(.system(size: 32, weight: .semibold))
       .foregroundColor(.white)
+      .multilineTextAlignment(.center)
   }
   
   private var logoView: some View {
