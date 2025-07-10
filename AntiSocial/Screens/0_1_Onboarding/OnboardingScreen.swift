@@ -4,8 +4,11 @@
 //
 
 import SwiftUI
+import RevenueCatUI
 
 struct OnboardingScreen: View {
+  @EnvironmentObject var subscriptionManager: SubscriptionManager
+
   @Binding var isShow: Bool
   @State private var currentPage = 0
   
@@ -22,13 +25,25 @@ struct OnboardingScreen: View {
         VStack {
           Spacer()
           
-          nextButton
-            .padding(.horizontal, 72)
-            .padding(.bottom, 56)
+          if !isLastPage {
+            nextButton
+              .padding(.horizontal, 72)
+              .padding(.bottom, 56)
+          }
         }
       }
     }
     .ignoresSafeArea()
+    .onChangeWithOldValue(of: isLastPage) { _, newValue in
+      if newValue {
+        saveConsentAndGoal()
+      }
+    }
+    .onChangeWithOldValue(of: subscriptionManager.isSubscriptionActive) { oldValue, newValue in
+      if newValue {
+        isShow = false
+      }
+    }
   }
   
   private var tabView: some View {
@@ -57,33 +72,36 @@ struct OnboardingScreen: View {
         ) {
           VStack {
             Spacer()
-//            Image(.icNotificationsAlert)
-//              .resizable()
-//              .frame(width: 270, height: 178)
           }
         }
         .tag(2)
-                .task {
-                  try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 секунды
+        .task {
+          try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 секунды
+          
+          LocalNotificationManager.shared.requestAuthorization { isNotificationAuthed in
+            AppLogger.trace("isNotificationAuthed \(isNotificationAuthed)")
+            
+            UNUserNotificationCenter.current().delegate = DTNNotificationHandler.shared
+          }
+        }
         
-                  LocalNotificationManager.shared.requestAuthorization { isNotificationAuthed in
-                    AppLogger.trace("isNotificationAuthed \(isNotificationAuthed)")
-        
-                    UNUserNotificationCenter.current().delegate = DTNNotificationHandler.shared
-                  }
-                }
+        PaywallView(displayCloseButton: true)
+          .tag(3)
       }
       .tabViewStyle(.page(indexDisplayMode: .never))
       
-      Spacer()
-        .frame(height: 80)
+      if !isLastPage {
+        Spacer()
+          .frame(height: 80)
+      }
     }
   }
   
   private var nextButton: some View {
     ButtonMain(title: "Next") {
       if isLastPage {
-        isShow = false
+//        saveConsentAndGoal()
+//        isShow = false
       } else {
         currentPage += 1
       }
@@ -93,6 +111,24 @@ struct OnboardingScreen: View {
   private var isLastPage: Bool {
     currentPage == 3
   }
+  
+  func saveConsentAndGoal() {
+    guard var currentUser = Storage.shared.user else { return }
+    
+    currentUser.agreedToDataStorage = agreedToStorage
+    currentUser.agreedToDataProcessing = agreedToProcessing
+    currentUser.mainGoal = selectedGoal
+    currentUser.lastUpdated = Date()
+    
+    Task {
+      do {
+        try await Storage.shared.saveUser(currentUser)
+      } catch {
+        print("Failed to save user: \(error.localizedDescription)")
+      }
+    }
+  }
+  
 }
 
 //MARK: - Preview
