@@ -56,7 +56,7 @@ struct LoginView: View {
   }
   
   private var textView: some View {
-    Text("Simplify Your Screen. Amplify Your Life.")
+    Text("Less Screen.\nMore Freedom.")
       .font(.system(size: 32, weight: .semibold))
       .foregroundColor(.white)
   }

@@ -24,7 +24,7 @@ class SubscriptionManager: ObservableObject, SubscriptionManagerProtocol {
     /*
      The API key for your app from the RevenueCat dashboard: https://app.revenuecat.com
      */
-    static let apiKey = "appl_vTDocKjHQkbBxAVTOWSecTtOrsD"
+    static let apiKey = "appl_xHDwwaqjicDtYkIWMWgOpPQHVcF"
     
     /*
      The entitlement ID from the RevenueCat dashboard that is activated upon successful in-app purchase for the duration of the purchase.
@@ -252,7 +252,7 @@ class SubscriptionManager: ObservableObject, SubscriptionManagerProtocol {
   
   //MARK: - Private Methods
   private func configureRevenueCat() {
-    Purchases.logLevel = .error
+    Purchases.logLevel = .debug
     Purchases.configure(withAPIKey: Constants.apiKey)
   }
   

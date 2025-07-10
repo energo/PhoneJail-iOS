@@ -171,7 +171,6 @@ struct ProfileScreen: View {
       
       if let url = URL(string: "https://apps.apple.com/app/id6747712365") {
         shareButton(url)
-          .padding(.bottom, 32)
       }
 
       separatorView
