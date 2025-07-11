@@ -1,0 +1,23 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "SweetPad: Build and Run (Wait for debugger)",
+            "type": "swift",
+            "request": "launch",
+            "program": "${workspaceFolder}/AntiSocial/App/AntiSocialApp.swift",
+            "args": [],
+            "cwd": "${workspaceFolder}/AntiSocial/App",
+            "preLaunchTask": "sweetpad: debuging-launch"
+        },
+        {
+            "type": "sweetpad-lldb",
+            "request": "attach",
+            "name": "SweetPad: Build and Run (Wait for debugger)",
+            "preLaunchTask": "sweetpad: debuging-launch"
+        }
+    ]
+}
