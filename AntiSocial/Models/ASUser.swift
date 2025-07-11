@@ -128,3 +128,55 @@ extension ASUser {
     )
   }
 }
+
+// MARK: - App Blocking Relations
+extension ASUser {
+    /// Получить все сессии блокировки пользователя
+    func getBlockingSessions() async throws -> [AppBlockingSession] {
+        return try await Storage.shared.getBlockingSessions(for: self.id)
+    }
+    
+    /// Получить дневную статистику блокировок
+    func getDailyBlockingStats(for date: Date) async throws -> [DailyAppBlockingStats] {
+        return try await Storage.shared.getDailyBlockingStats(for: self.id, date: date)
+    }
+    
+    /// Получить статистику за период
+    func getBlockingStatsForPeriod(from: Date, to: Date) async throws -> [DailyAppBlockingStats] {
+        return try await Storage.shared.getBlockingStatsForPeriod(for: self.id, from: from, to: to)
+    }
+    
+    /// Получить активные сессии блокировки
+    func getActiveBlockingSessions() async throws -> [AppBlockingSession] {
+        return try await Storage.shared.getActiveBlockingSessions(for: self.id)
+    }
+    
+    /// Получить топ заблокированных приложений
+    func getTopBlockedApps(limit: Int = 10) async throws -> [(appName: String, totalDuration: TimeInterval)] {
+        return try await Storage.shared.getTopBlockedApps(for: self.id, limit: limit)
+    }
+    
+    /// Получить общее время блокировки за сегодня
+    func getTodayBlockingTime() async throws -> TimeInterval {
+        let today = Date()
+        let stats = try await getDailyBlockingStats(for: today)
+        return stats.reduce(0) { $0 + $1.totalBlockedDuration }
+    }
+    
+    /// Получить количество завершенных сессий за сегодня
+    func getTodayCompletedSessions() async throws -> Int {
+        let today = Date()
+        let stats = try await getDailyBlockingStats(for: today)
+        return stats.reduce(0) { $0 + $1.completedSessionsCount }
+    }
+    
+    /// Получить общий процент завершенных сессий за период
+    func getCompletionRate(from: Date, to: Date) async throws -> Double {
+        let stats = try await getBlockingStatsForPeriod(from: from, to: to)
+        let totalSessions = stats.reduce(0) { $0 + $1.sessionsCount }
+        let completedSessions = stats.reduce(0) { $0 + $1.completedSessionsCount }
+        
+        guard totalSessions > 0 else { return 0 }
+        return Double(completedSessions) / Double(totalSessions) * 100
+    }
+}

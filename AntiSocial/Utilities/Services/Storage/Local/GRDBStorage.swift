@@ -8,7 +8,7 @@ import GRDB
 
 final class GRDBStorage {
   static let shared = GRDBStorage()
-  private var writer: DatabaseWriter?
+  internal var writer: DatabaseWriter?
   private var userId: String?
 
   private init() {
@@ -43,8 +43,14 @@ final class GRDBStorage {
         t.column("imageURL", .text)
         t.column("lastUpdated", .date)
         t.column("isAnonymous", .boolean)
+        t.column("agreedToDataStorage", .boolean)
+        t.column("agreedToDataProcessing", .boolean)
+        t.column("mainGoal", .text)
       }
     }
+    
+    // Настройка таблиц для блокировки приложений
+    try setupBlockingTables()
   }
 
   func saveUser(_ user: ASUser) async throws {
@@ -73,9 +79,14 @@ final class GRDBStorage {
 
   func ensureDatabaseSchema() async throws {
     try await writer?.write { db in
-      let exists = try self.tableExists(db, tableName: ASUser.databaseTableName)
-      if !exists {
+      let userTableExists = try self.tableExists(db, tableName: ASUser.databaseTableName)
+      let blockingTableExists = try self.tableExists(db, tableName: "app_blocking_sessions")
+      
+      if !userTableExists {
         try self.setupDatabase()
+      } else if !blockingTableExists {
+        // Если user таблица есть, но blocking таблиц нет - создаем их
+        try self.setupBlockingTables()
       }
     }
   }

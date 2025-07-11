@@ -12,14 +12,15 @@ import FamilyControls
 import ManagedSettings
 import ManagedSettingsUI
 import DeviceActivity
-
+import RevenueCatUI
 
 struct AppMonitorScreen: View {
   @StateObject private var viewModel: AppMonitorViewModel
   @StateObject private var restrictionModel = MyRestrictionModel()
   
   @State private var isShowingProfile: Bool = false
-  
+  @State private var showPaywall = false
+
   let columns = [
     GridItem(.flexible()),
     GridItem(.flexible()),
@@ -62,6 +63,17 @@ struct AppMonitorScreen: View {
     .onChangeWithOldValue(of: viewModel.model.activitySelection, perform: { _, _ in
       viewModel.onActivitySelectionChange()
     })
+    .task {
+      //      contents = WelcomeContent.example
+//      if !hasSeenPaywallAfterOnboarding {
+        showPaywall = true
+//      }
+    }
+    .fullScreenCover(isPresented: $showPaywall) {
+//      hasSeenPaywallAfterOnboarding = true
+      return PaywallView(displayCloseButton: true)
+    }
+
   }
   
   private var headerView: some View {

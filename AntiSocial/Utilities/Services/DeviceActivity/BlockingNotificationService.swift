@@ -55,7 +55,24 @@ final class BlockingNotificationService: ObservableObject {
     // Set schedule
     DeviceActivityScheduleService.setSchedule(endHour: endHour, endMins: endMin)
 
-    // Save usage forecast
+    // Log blocking sessions for each app
+    let plannedDuration = TimeInterval(hours * 3600 + minutes * 60)
+    Task { @MainActor in
+      for app in selection.applications {
+        guard let appToken = app.token else { continue }
+        do {
+          _ = try await AppBlockingLogger.shared.startBlockingSession(
+            applicationToken: appToken,
+            appDisplayName: app.localizedDisplayName ?? "Unknown App",
+            plannedDuration: plannedDuration
+          )
+                  } catch {
+            AppLogger.critical(error, details: "Failed to start blocking session for \(app.localizedDisplayName ?? "Unknown App")")
+          }
+      }
+    }
+
+    // Save usage forecast (legacy support)
     let today = Date()
     for app in selection.applications {
       FocusedTimeStatsStore.shared.saveUsage(for: app.localizedDisplayName ?? "App", date: today, duration: TimeInterval(hours * 3600 + minutes * 60))
@@ -76,7 +93,21 @@ final class BlockingNotificationService: ObservableObject {
 
     WidgetCenter.shared.reloadAllTimelines()
 
-    // Save real usage duration
+    // Complete blocking sessions for each app
+    Task { @MainActor in
+      for app in selection.applications {
+        guard let appToken = app.token else { continue }
+        if let activeSession = AppBlockingLogger.shared.findActiveSession(for: appToken) {
+          do {
+            try await AppBlockingLogger.shared.completeBlockingSession(activeSession.id)
+          } catch {
+            AppLogger.critical(error, details: "Failed to complete blocking session for \(app.localizedDisplayName ?? "Unknown App")")
+          }
+        }
+      }
+    }
+
+    // Save real usage duration (legacy support)
     if let startTimestamp = UserDefaults(suiteName: "group.ScreenTimeTestApp.sharedData")?.double(forKey: "restrictionStartTime") {
       let duration = Date().timeIntervalSince1970 - startTimestamp
       let today = Date()
@@ -96,6 +127,18 @@ final class BlockingNotificationService: ObservableObject {
     UserDefaults.standard.set(false, forKey: "inRestrictionMode")
     UserDefaults(suiteName:"group.com.app.antisocial.sharedData")?.set(false, forKey:"widgetInRestrictionMode")
     service.stopAppRestrictions()
+    
+    // Interrupt all active blocking sessions
+    Task { @MainActor in
+      let activeSessions = AppBlockingLogger.shared.activeSessions
+      for session in activeSessions {
+        do {
+          try await AppBlockingLogger.shared.interruptBlockingSession(session.id)
+        } catch {
+          AppLogger.critical(error, details: "Failed to interrupt blocking session for \(session.appDisplayName)")
+        }
+      }
+    }
   }
 
   func getEndTime(hourDuration: Int, minuteDuration: Int) -> (Int, Int) {

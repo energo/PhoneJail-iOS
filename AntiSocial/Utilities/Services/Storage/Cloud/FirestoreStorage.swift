@@ -8,7 +8,7 @@ import FirebaseFirestore
 
 final class FirestoreStorage {
   static let shared = FirestoreStorage()
-  private let db = Firestore.firestore()
+  internal let db = Firestore.firestore()
   private var userId: String?
 
   private init() {}
@@ -17,7 +17,7 @@ final class FirestoreStorage {
     self.userId = id
   }
 
-  private func ensureUserId() throws -> String {
+  internal func ensureUserId() throws -> String {
     guard let id = userId else {
       throw NSError(domain: "FirestoreItemsStorage", code: 1, userInfo: [NSLocalizedDescriptionKey: "userId not set"])
     }

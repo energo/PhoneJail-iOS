@@ -35,7 +35,9 @@ class SubscriptionManager: ObservableObject, SubscriptionManagerProtocol {
   public static let shared = SubscriptionManager()
   @Published public var isRestoringPurchases = false
   
-  @Published public var isSubscriptionActive = (FCUserDefaults.shared.get(key: .isSubscribed) ?? false) as! Bool ? true : false
+//  @Published public var isSubscriptionActive = (FCUserDefaults.shared.get(key: .isSubscribed) ?? false) as! Bool ? true : false
+  @Published public var isSubscriptionActive: Bool
+
   
   private var usageCounters: [String: Int] {
     get {
@@ -50,18 +52,25 @@ class SubscriptionManager: ObservableObject, SubscriptionManagerProtocol {
   }
   
   init() {
+    AppLogger.notice("SubscriptionManager init")
+    let savedStatus = FCUserDefaults.shared.get(key: .isSubscribed) as? Bool ?? false
+    self.isSubscriptionActive = savedStatus
+
     configureRevenueCat()
-    refreshSubscription()
-    
     addFirebaseAnalytcis()
   
+    refreshSubscription()
+    Task {
+//      async let _: () = self.syncPurchases()
+      async let _: () = self.listenUpdates()
+    }
 //    Task {
 //      await syncPurchases()
 //    }
-    
-    Task.detached {
-      await self.listenUpdates()
-    }
+//    
+//    Task.detached {
+//      await self.listenUpdates()
+//    }
   }
   
   /// Sync purchases and update subscription status
@@ -269,20 +278,21 @@ class SubscriptionManager: ObservableObject, SubscriptionManagerProtocol {
       }
     }
   }
-  
+
   func refreshSubscription() {
-    Purchases.shared.getCustomerInfo { (customerInfo, error) in
-      if let error = error {
-        AppLogger.alert("Error refreshing subscription: \(error)")
-        return
+      Purchases.shared.getCustomerInfo { (customerInfo, error) in
+          guard error == nil, let customerInfo = customerInfo else {
+              AppLogger.alert("Error refreshing subscription: \(String(describing: error))")
+              return
+          }
+          let isActive = (customerInfo.entitlements.all[Constants.entitlementID]?.isActive == true)
+          DispatchQueue.main.async {
+              if self.isSubscriptionActive != isActive {
+                  self.isSubscriptionActive = isActive
+                  FCUserDefaults.shared.set(isActive, key: .isSubscribed)
+              }
+          }
       }
-      
-      let isActive = (customerInfo?.entitlements.all[Constants.entitlementID]?.isActive == true)
-      DispatchQueue.main.async {
-        self.isSubscriptionActive = isActive
-        FCUserDefaults.shared.set(isActive, key: .isSubscribed)
-      }
-    }
   }
   
   private func addFirebaseAnalytcis() {

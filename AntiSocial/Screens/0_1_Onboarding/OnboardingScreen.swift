@@ -25,25 +25,25 @@ struct OnboardingScreen: View {
         VStack {
           Spacer()
           
-          if !isLastPage {
+//          if !isLastPage {
             nextButton
               .padding(.horizontal, 72)
               .padding(.bottom, 56)
-          }
+//          }
         }
       }
     }
     .ignoresSafeArea()
-    .onChangeWithOldValue(of: isLastPage) { _, newValue in
-      if newValue {
-        saveConsentAndGoal()
-      }
-    }
-    .onChangeWithOldValue(of: subscriptionManager.isSubscriptionActive) { oldValue, newValue in
-      if newValue {
-        isShow = false
-      }
-    }
+//    .onChangeWithOldValue(of: isLastPage) { _, newValue in
+//      if newValue {
+//        saveConsentAndGoal()
+//      }
+//    }
+//    .onChangeWithOldValue(of: subscriptionManager.isSubscriptionActive) { oldValue, newValue in
+//      if newValue {
+//        isShow = false
+//      }
+//    }
   }
   
   private var tabView: some View {
@@ -84,9 +84,6 @@ struct OnboardingScreen: View {
             UNUserNotificationCenter.current().delegate = DTNNotificationHandler.shared
           }
         }
-        
-        PaywallView(displayCloseButton: true)
-          .tag(3)
       }
       .tabViewStyle(.page(indexDisplayMode: .never))
       
@@ -100,8 +97,8 @@ struct OnboardingScreen: View {
   private var nextButton: some View {
     ButtonMain(title: "Next") {
       if isLastPage {
-//        saveConsentAndGoal()
-//        isShow = false
+        saveConsentAndGoal()
+        isShow = false
       } else {
         currentPage += 1
       }
@@ -109,7 +106,7 @@ struct OnboardingScreen: View {
   }
   
   private var isLastPage: Bool {
-    currentPage == 3
+    currentPage == 2
   }
   
   func saveConsentAndGoal() {
