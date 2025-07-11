@@ -56,6 +56,15 @@ struct AntiSocialApp: App {
             .task {
               setupATTracking()
     //          await requestSceenTimeAuthorization()
+              
+              // Обновляем статистику блокировок при запуске приложения
+              await AppBlockingLogger.shared.refreshAllData()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+              Task {
+                // Обновляем статистику при возврате в приложение
+                await AppBlockingLogger.shared.refreshAllData()
+              }
             }
 
         }

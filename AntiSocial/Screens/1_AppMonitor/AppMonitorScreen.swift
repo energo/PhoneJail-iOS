@@ -12,15 +12,18 @@ import FamilyControls
 import ManagedSettings
 import ManagedSettingsUI
 import DeviceActivity
+
 import RevenueCatUI
+import RevenueCat
 
 struct AppMonitorScreen: View {
+  @EnvironmentObject var subscriptionManager: SubscriptionManager
+  
   @StateObject private var viewModel: AppMonitorViewModel
   @StateObject private var restrictionModel = MyRestrictionModel()
   
   @State private var isShowingProfile: Bool = false
-  @State private var showPaywall = false
-
+  
   let columns = [
     GridItem(.flexible()),
     GridItem(.flexible()),
@@ -59,21 +62,25 @@ struct AppMonitorScreen: View {
     })
     .task {
       await viewModel.onAppear()
+      
+      // Обновляем статистику блокировок для расширения
+      await AppBlockingLogger.shared.refreshAllData()
     }
     .onChangeWithOldValue(of: viewModel.model.activitySelection, perform: { _, _ in
       viewModel.onActivitySelectionChange()
     })
-    .task {
-      //      contents = WelcomeContent.example
-//      if !hasSeenPaywallAfterOnboarding {
-        showPaywall = true
-//      }
-    }
-    .fullScreenCover(isPresented: $showPaywall) {
-//      hasSeenPaywallAfterOnboarding = true
-      return PaywallView(displayCloseButton: true)
-    }
-
+    .presentPaywallIfNeeded(
+      requiredEntitlementIdentifier: SubscriptionManager.Constants.entitlementID,
+      purchaseCompleted: { customerInfo in
+        // Paywall will be dismissed automatically if "pro" is now active.
+      },
+      restoreCompleted: { customerInfo in
+        // Handle restored purchases
+        Task {
+          try? await subscriptionManager.restorePurchases()
+        }
+      }
+    )
   }
   
   private var headerView: some View {

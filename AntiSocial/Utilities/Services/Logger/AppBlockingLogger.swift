@@ -8,6 +8,19 @@
 import Foundation
 import ManagedSettings
 
+
+
+/// Структура для хранения статистики блокировок за день
+struct TodayBlockingStats {
+    let totalBlockingTime: TimeInterval
+    let completedSessions: Int
+    let totalSessions: Int
+    
+    static var empty: TodayBlockingStats {
+        TodayBlockingStats(totalBlockingTime: 0, completedSessions: 0, totalSessions: 0)
+    }
+}
+
 /// Сервис для логирования и управления блокировками приложений
 @MainActor
 final class AppBlockingLogger: ObservableObject {
@@ -17,7 +30,13 @@ final class AppBlockingLogger: ObservableObject {
     @Published private(set) var activeSessions: [AppBlockingSession] = []
     @Published private(set) var todayStats: [DailyAppBlockingStats] = []
     
-    private init() {}
+    private init() {
+        // Загружаем статистику при инициализации
+        Task {
+            await loadActiveSessions()
+            await loadTodayStats()
+        }
+    }
     
     // MARK: - Session Management
     
@@ -115,9 +134,26 @@ final class AppBlockingLogger: ObservableObject {
             
             let stats = try await Storage.shared.getDailyBlockingStats(for: currentUser.id, date: Date())
             self.todayStats = stats
+            
+            // Сохраняем данные в SharedData для доступа из расширения
+            await updateSharedStats()
         } catch {
             AppLogger.critical(error, details: "Failed to load today's blocking stats")
         }
+    }
+    
+    /// Обновить статистику в SharedData для расширения
+    @MainActor
+    private func updateSharedStats() {
+        let totalTime = getTodayTotalBlockingTime()
+        let completedCount = getTodayCompletedSessions()
+        let totalCount = getTodayTotalSessions()
+        
+        SharedDataConstants.userDefaults?.set(totalTime, forKey: SharedDataConstants.AppBlocking.todayTotalBlockingTime)
+        SharedDataConstants.userDefaults?.set(completedCount, forKey: SharedDataConstants.AppBlocking.todayCompletedSessions)
+        SharedDataConstants.userDefaults?.set(totalCount, forKey: SharedDataConstants.AppBlocking.todayTotalSessions)
+        
+        AppLogger.notice("Updated shared blocking stats: \(totalTime)s total, \(completedCount)/\(totalCount) sessions")
     }
     
     // MARK: - Statistics
@@ -186,6 +222,37 @@ final class AppBlockingLogger: ObservableObject {
     /// Проверить, заблокировано ли приложение сейчас
     func isAppCurrentlyBlocked(_ applicationToken: ApplicationToken) -> Bool {
         return findActiveSession(for: applicationToken) != nil
+    }
+    
+    /// Принудительно обновить все данные и SharedData
+    func refreshAllData() async {
+        await loadActiveSessions()
+        await loadTodayStats()
+    }
+    
+    // MARK: - Static Methods for Extensions
+    
+    /// Получить статистику блокировок за сегодня из SharedData (для использования в расширениях)
+    static func getTodayBlockingStatsFromSharedData() -> TodayBlockingStats {
+        let totalBlockingTime = SharedDataConstants.userDefaults?.double(forKey: SharedDataConstants.AppBlocking.todayTotalBlockingTime) ?? 0
+        let completedSessions = SharedDataConstants.userDefaults?.integer(forKey: SharedDataConstants.AppBlocking.todayCompletedSessions) ?? 0
+        let totalSessions = SharedDataConstants.userDefaults?.integer(forKey: SharedDataConstants.AppBlocking.todayTotalSessions) ?? 0
+        
+        return TodayBlockingStats(
+            totalBlockingTime: totalBlockingTime,
+            completedSessions: completedSessions,
+            totalSessions: totalSessions
+        )
+    }
+    
+    /// Получить суммарное время блокировок за сегодня (статический метод для расширений)
+    static func getTodayTotalBlockingTimeFromSharedData() -> TimeInterval {
+        return SharedDataConstants.userDefaults?.double(forKey: SharedDataConstants.AppBlocking.todayTotalBlockingTime) ?? 0
+    }
+    
+    /// Получить количество завершенных сессий за сегодня (статический метод для расширений)
+    static func getTodayCompletedSessionsFromSharedData() -> Int {
+        return SharedDataConstants.userDefaults?.integer(forKey: SharedDataConstants.AppBlocking.todayCompletedSessions) ?? 0
     }
 }
 

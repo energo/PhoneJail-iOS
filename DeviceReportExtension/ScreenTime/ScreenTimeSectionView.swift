@@ -7,8 +7,11 @@
 
 import SwiftUI
 
+
+
 struct ScreenTimeSectionView: View {
   let report: ActivityReport
+  @State private var totalBlockingTime: TimeInterval = 0
   
   var body: some View {
     VStack(spacing: 0) {
@@ -23,14 +26,33 @@ struct ScreenTimeSectionView: View {
     }
     .padding()
     .padding(.horizontal, 32)
+    .onAppear {
+      loadBlockingStats()
+    }
+  }
+  
+  // MARK: - Data Loading
+  
+  private func loadBlockingStats() {
+    // Загружаем статистику блокировок через единый API (временное решение)
+    // TODO: Мигрировать на полноценный AppBlockingLogger когда расширение поддержит shared frameworks
+    totalBlockingTime = Self.getTodayTotalBlockingTimeFromSharedData()
+  }
+  
+  // MARK: - Temporary API (uses same keys as AppBlockingLogger)
+  
+  /// Временная функция для получения данных из SharedData (использует те же ключи что и AppBlockingLogger)
+  private static func getTodayTotalBlockingTimeFromSharedData() -> TimeInterval {
+    let groupDefaults = SharedDataConstants.userDefaults
+    return groupDefaults?.double(forKey: SharedDataConstants.AppBlocking.todayTotalBlockingTime) ?? 0
   }
   
   private var bottomView: some View {
     HStack(spacing: 32) {
-      // Focus Time (мы не выделяем фокус явно, используем самое долгое использование)
+      // Time Blocked (время в фокусе = время блокировок)
       VStack {
-        if let interval = report.longestActivity?.duration {
-          Text(interval.formatedDuration())
+        if totalBlockingTime > 0 {
+          Text(totalBlockingTime.formatedDuration())
             .font(.title2)
             .foregroundColor(.white)
         } else {
