@@ -6,11 +6,16 @@ struct StatsActivityReport: DeviceActivityReportScene {
   let content: (StatsData) -> StatsSectionView
   
   func makeConfiguration(representing data: DeviceActivityResults<DeviceActivityData>) async -> StatsData {
-    var (chartData, focusedDuration, distractedDuration, totalDuration, appUsageDict, _) = await processDeviceActivityData(data)
+    // Используем тот же корректный алгоритм что и в TotalActivityReport
+    let totalDuration = await data.flatMap { $0.activitySegments }.reduce(0, {
+      $0 + $1.totalActivityDuration
+    })
+    
+    var (chartData, focusedDuration, distractedDuration, _, appUsageDict, _) = await processDeviceActivityData(data)
     calculateOfflineMinutes(for: &chartData)
     let appUsages = Array(appUsageDict.values).sorted { $0.usage > $1.usage }
     return StatsData(
-      totalDuration: totalDuration,
+      totalDuration: totalDuration, // Используем корректное значение
       chartData: chartData,
       focusedDuration: focusedDuration,
       distractedDuration: distractedDuration,
@@ -30,7 +35,7 @@ struct StatsActivityReport: DeviceActivityReportScene {
     var chartDataRaw = (0..<24).map { _ in (focused: 0.0, distracted: 0.0) }
     var distractedDuration: TimeInterval = 0
     var focusedDuration: TimeInterval = 0
-    var totalDuration: TimeInterval = 0
+    var totalDuration: TimeInterval = 0 // Оставляем для совместимости, но не используем
     var appUsageDict: [String: AppUsage] = [:]
     var perAppHourlyUsage: [String: [Int: TimeInterval]] = [:]
     
@@ -77,7 +82,8 @@ struct StatsActivityReport: DeviceActivityReportScene {
               current = intervalEnd
             }
             
-            totalDuration += appDuration
+            // Убираем неправильное суммирование - теперь используем segment-based подход
+            // totalDuration += appDuration // ❌ УДАЛЕНО - это вызывало двойной подсчет
             
             if let existing = appUsageDict[key] {
               appUsageDict[key] = AppUsage(name: appName, token: token, usage: existing.usage + appDuration)
