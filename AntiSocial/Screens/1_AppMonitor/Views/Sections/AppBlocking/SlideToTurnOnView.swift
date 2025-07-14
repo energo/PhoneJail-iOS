@@ -31,6 +31,7 @@ struct SlideToTurnOnView: View {
       }
   }
   
+  //MARK: - Views
   var body: some View {
     GeometryReader { geometry in
       VStack {
@@ -52,8 +53,8 @@ struct SlideToTurnOnView: View {
               .fill(Color.clear)
               .stroke(
                 isBlocked
-                ? AnyShapeStyle(Color.as_green)
-                : AnyShapeStyle(Color.as_gradietn_main_button),
+                ? AnyShapeStyle(Color.as_red)
+                : AnyShapeStyle(Color.as_gradietn_main_red_button),
                 lineWidth: 2
               )
           )
@@ -61,10 +62,12 @@ struct SlideToTurnOnView: View {
           .scaleEffect(userDragging ? 0.99 : 1.0)
           .onTapGesture {
             guard isEnabled else { return }
+            
             withAnimation {
               userDragging = true
               offset = 20
             }
+            
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
               withAnimation {
                 userDragging = false
@@ -83,6 +86,7 @@ struct SlideToTurnOnView: View {
         .opacity(isEnabled ? 1.0 : 0.5)
         .onAppear {
           widthOfSlide = geometry.size.width - 50 - 24
+          
           // Синхронизация offset с isUnlocked при появлении
           if isBlocked {
             offset = widthOfSlide - 10
@@ -166,4 +170,4 @@ struct SlideToTurnOnView: View {
       .padding(.horizontal, 20)
     }
   )
-} 
+}

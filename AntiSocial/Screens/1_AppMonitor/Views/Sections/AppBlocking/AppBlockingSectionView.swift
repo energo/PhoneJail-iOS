@@ -148,13 +148,13 @@ struct AppBlockingSectionView: View {
 
           // Основной блок — Select Apps (всегда отображается)
           HStack(spacing: 12) {
-            Text("Select Apps")
+            Text("Apps")
               .foregroundColor(.white)
               .font(.system(size: 15, weight: .regular))
 
             Spacer()
 
-            Text("\(model.selectionToDiscourage.applicationTokens.count) Choosen")
+            Text("\(model.selectionToDiscourage.applicationTokens.count)")
               .foregroundColor(Color.as_white_light)
               .font(.system(size: 15, weight: .regular))
 
@@ -173,7 +173,7 @@ struct AppBlockingSectionView: View {
 
               Spacer()
 
-              Text("\(model.selectionToDiscourage.categoryTokens.count) Choosen")
+              Text("\(model.selectionToDiscourage.categoryTokens.count)")
                 .foregroundColor(Color.as_white_light)
                 .font(.system(size: 15, weight: .regular))
 
