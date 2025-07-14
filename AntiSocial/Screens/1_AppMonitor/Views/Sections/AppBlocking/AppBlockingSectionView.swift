@@ -7,7 +7,6 @@
 
 import SwiftUI
 
-import SwiftUI
 import WidgetKit
 import FamilyControls
 
@@ -139,59 +138,98 @@ struct AppBlockingSectionView: View {
   private var whatToBlockView: some View {
     VStack(alignment: .leading, spacing: 16) {
       Text("What to Block")
-        .foregroundStyle(Color.white)
-      
-      ScrollView(.horizontal, showsIndicators: false) {
-        if (model.selectionToDiscourage.applicationTokens.count > 0
-            || model.selectionToDiscourage.categoryTokens.count > 0) {
-          HStack(spacing: 8) {
-            // Категории
-            ForEach(Array(model.selectionToDiscourage.categoryTokens), id: \.self) { category in
-              VStack {
-                Label(category)
-                  .labelStyle(.iconOnly)
-                  .shadow(radius: 2)
-                  .frame(width: 24, height: 24)
-              }
-              .padding()
-              .multilineTextAlignment(.center)
-              
-            }
-            // Приложения
-            ForEach(Array(model.selectionToDiscourage.applicationTokens), id: \.self) { app in
-              VStack {
-                Label(app)
-                  .labelStyle(.iconOnly)
-                  .shadow(radius: 2)
-                  .scaleEffect(3)
-                  .frame(width:50, height:50)
-                
-              }
-              .padding()
-              .multilineTextAlignment(.center)
-              
-            }
+        .foregroundColor(.white)
+        .font(.headline)
+
+      Button(action: {
+        isDiscouragedPresented = true
+      }) {
+        VStack(alignment: .leading, spacing: 8) {
+
+          // Основной блок — Select Apps (всегда отображается)
+          HStack(spacing: 12) {
+            Text("Select Apps")
+              .foregroundColor(.white)
+              .font(.system(size: 15, weight: .regular))
+
+            Spacer()
+
+            Text("\(model.selectionToDiscourage.applicationTokens.count) Choosen")
+              .foregroundColor(Color.as_white_light)
+              .font(.system(size: 15, weight: .regular))
+
+            stackedAppIcons
+
+            Image(systemName: "chevron.right")
+              .foregroundColor(Color.as_white_light)
           }
-          .contentShape(Rectangle())
-        } else {
-          HStack {
-            Text("Choose apps to block")
-              .padding(.horizontal, 12)
-              .padding(.vertical, 6)
-              .background( Color.white)
-              .cornerRadius(30)
-              .foregroundColor(.black)
-              .font(.system(size: 15, weight: .light))
+
+          // Показываем категории, только если они выбраны
+          if !model.selectionToDiscourage.categoryTokens.isEmpty {
+            HStack(spacing: 12) {
+              Text("Categories")
+                .foregroundColor(.white)
+                .font(.system(size: 15, weight: .regular))
+
+              Spacer()
+
+              Text("\(model.selectionToDiscourage.categoryTokens.count) Choosen")
+                .foregroundColor(Color.as_white_light)
+                .font(.system(size: 15, weight: .regular))
+
+              stackedCategoryIcons
+
+              Image(systemName: "chevron.right")
+                .foregroundColor(Color.as_white_light)
+            }
           }
         }
-      }
-      .onTapGesture {
-        isDiscouragedPresented = true
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(Color.white.opacity(0.07))
+        .clipShape(RoundedRectangle(cornerRadius: 30))
       }
       .sheet(isPresented: $isDiscouragedPresented) {
         FamilyPickerView(model: model, isDiscouragedPresented: $isDiscouragedPresented)
       }
     }
+  }
+
+  
+  private var stackedCategoryIcons: some View {
+    let tokens = Array(model.selectionToDiscourage.categoryTokens.prefix(4))
+
+    return ZStack {
+      ForEach(tokens.indices, id: \.self) { index in
+        let token = tokens[index]
+        Label(token)
+          .labelStyle(.iconOnly)
+          .frame(width: 20, height: 20)
+          .background(Color.white)
+          .clipShape(RoundedRectangle(cornerRadius: 6))
+          .offset(x: CGFloat(-(tokens.count - 1 - index)) * 12)
+          .zIndex(Double(index)) // правая поверх
+      }
+    }
+    .frame(width: CGFloat(20 + (tokens.count - 1) * 12), height: 20)
+  }
+
+  private var stackedAppIcons: some View {
+    let tokens = Array(model.selectionToDiscourage.applicationTokens.prefix(4))
+    
+    return ZStack {
+      ForEach(tokens.indices, id: \.self) { index in
+        let token = tokens[index]
+        Label(token)
+          .labelStyle(.iconOnly)
+          .frame(width: 20, height: 20)
+          .background(Color.white)
+          .clipShape(RoundedRectangle(cornerRadius: 6))
+          .offset(x: CGFloat(-(tokens.count - 1 - index)) * 12)
+          .zIndex(Double(index)) // правая поверх
+      }
+    }
+    .frame(width: CGFloat(20 + (tokens.count - 1) * 12), height: 20)
   }
   
   private var strictBlockView: some View {
