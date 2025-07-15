@@ -33,6 +33,16 @@ class DeviceActivityService: ObservableObject {
   private let encoder = PropertyListEncoder()
   private let decoder = PropertyListDecoder()
   
+  var timeBlockedString: String {
+    if let startTimestamp = SharedDataConstants.userDefaults?.double(forKey: SharedDataConstants.AppBlocking.currentBlockingStartTimestamp) {
+      let elapsed = Date().timeIntervalSince1970 - startTimestamp
+      let hours = Int(elapsed) / 3600
+      let minutes = (Int(elapsed) % 3600) / 60
+      return String(format: "%02dh %02dm", hours, minutes)
+    }
+    return "00h 00m"
+  }
+  
   // MARK: - Init
   init() {
     selectionToDiscourage = FamilyActivitySelection()

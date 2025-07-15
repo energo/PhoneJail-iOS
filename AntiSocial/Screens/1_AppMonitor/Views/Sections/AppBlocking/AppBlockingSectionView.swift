@@ -37,7 +37,7 @@ struct AppBlockingSectionView: View {
       } else {
         headerView
         separatorView
-        
+
         durationSection
         separatorView
         
@@ -55,7 +55,7 @@ struct AppBlockingSectionView: View {
         HStack(alignment: .top, spacing: 12) {
           savedBlockedView
             .frame(maxHeight: .infinity)
-          
+
           appsBlockedView
             .frame(maxHeight: .infinity)
         }
@@ -72,10 +72,6 @@ struct AppBlockingSectionView: View {
           selection: model.selectionToDiscourage,
           restrictionModel: restrictionModel
         )
-        
-        SharedDataConstants.userDefaults?.set(Date().timeIntervalSince1970,
-                                              forKey: SharedDataConstants.AppBlocking.currentBlockingStartTimestamp)
-        
       } else {
         BlockingNotificationService.shared.stopBlocking(selection: model.selectionToDiscourage)
         hours = 0
@@ -88,6 +84,7 @@ struct AppBlockingSectionView: View {
       isStrictBlock = SharedDataConstants.userDefaults?.bool(forKey: SharedDataConstants.Widget.isStricted) ?? false
       isBlocked = SharedDataConstants.userDefaults?.bool(forKey: SharedDataConstants.Widget.isBlocked) ?? false
       timeRemainingString = model.timeRemainingString
+      timeBlockedString = model.timeBlockedString
       
       if let savedHour = SharedDataConstants.userDefaults?.integer(forKey: SharedDataConstants.Widget.endHour),
          let savedMin = SharedDataConstants.userDefaults?.integer(forKey: SharedDataConstants.Widget.endMinutes) {
@@ -102,26 +99,8 @@ struct AppBlockingSectionView: View {
     }
     .onReceive(timer) { _ in
       if let unlockDate = model.unlockDate {
-        
         timeRemainingString = unlockDate > Date() ? model.timeRemainingString : "00:00:00"
-        
-        // Вычисляем прошедшее время
-        let calendar = Calendar.current
-        var comps = calendar.dateComponents([.year, .month, .day], from: Date())
-        comps.hour = restrictionModel.startHour
-        comps.minute = restrictionModel.startMin
-        comps.second = 0
-        
-        if let startTimestamp = SharedDataConstants.userDefaults?.string(forKey: SharedDataConstants.AppBlocking.currentBlockingStartTimestamp) as? TimeInterval {
-          
-          let elapsed = max(0, Date().timeIntervalSince1970 - startTimestamp)
-          let hours = Int(elapsed) / 3600
-          let minutes = (Int(elapsed) % 3600) / 60
-          timeBlockedString = String(format: "%02dh %02dm", hours, minutes)
-        } else {
-          timeBlockedString = "00h 00m"
-        }
-        
+        timeBlockedString = model.timeBlockedString
         if unlockDate <= Date() {
           BlockingNotificationService.shared.resetBlockingState()
         }
@@ -150,7 +129,6 @@ struct AppBlockingSectionView: View {
     .frame(height: 100)
     .blurBackground(cornerRadius: 20)
   }
-  
   
   private var appsBlockedView: some View {
     VStack(spacing: 12) {
@@ -279,7 +257,6 @@ struct AppBlockingSectionView: View {
       }
     }
   }
-  
   
   private var stackedCategoryIcons: some View {
     let tokens = Array(model.selectionToDiscourage.categoryTokens.prefix(4))

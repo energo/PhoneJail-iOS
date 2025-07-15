@@ -79,11 +79,12 @@ final class BlockingNotificationService: ObservableObject {
                                              duration: TimeInterval(hours * 3600 + minutes * 60))
     }
 
-    UserDefaults(suiteName: "group.ScreenTimeTestApp.sharedData")?.set(Date().timeIntervalSince1970, forKey: "restrictionStartTime")
+    SharedDataConstants.userDefaults?.set(Date().timeIntervalSince1970, forKey: SharedDataConstants.AppBlocking.currentBlockingStartTimestamp)
   }
 
   func stopBlocking(selection: FamilyActivitySelection) {
     SharedDataConstants.userDefaults?.set(false, forKey: SharedDataConstants.Widget.isBlocked)
+    SharedDataConstants.userDefaults?.removeObject(forKey: SharedDataConstants.AppBlocking.currentBlockingStartTimestamp)
 
     DeviceActivityService.shared.savedSelection.removeAll()
     SharedDataConstants.userDefaults?.removeObject(forKey: SharedDataConstants.Widget.endHour)
