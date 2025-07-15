@@ -73,7 +73,7 @@ struct ProfileScreen: View {
       }
       Button("Cancel", role: .cancel) {}
     } message: {
-      Text("This will delete all your tasks, habits, and goals permanently.")
+      Text("This will delete all your data permanently.")
     }
   }
   
