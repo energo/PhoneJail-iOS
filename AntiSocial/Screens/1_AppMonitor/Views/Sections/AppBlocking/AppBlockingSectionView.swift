@@ -85,6 +85,7 @@ struct AppBlockingSectionView: View {
       timeRemainingString = deviceActivityService.timeRemainingString
       timeBlockedString = deviceActivityService.timeBlockedString
       
+      //TODO: - need to refactor (looks like odd properties)
       if let savedHour = SharedDataConstants.userDefaults?.integer(forKey: SharedDataConstants.Widget.endHour),
          let savedMin = SharedDataConstants.userDefaults?.integer(forKey: SharedDataConstants.Widget.endMinutes) {
         restrictionModel.endHour = savedHour

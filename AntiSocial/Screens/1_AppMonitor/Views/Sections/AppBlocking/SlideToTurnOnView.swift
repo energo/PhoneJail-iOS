@@ -25,11 +25,12 @@ struct SlideToTurnOnView: View {
           isBlocked = offset >= (widthOfSlide * 0.55)
         }
       }
-      .onEnded { value in
+      .onEnded { value in        
         if isStrictBlock && isBlocked {
+          shakeNow()
           return
         }
-        
+
         withAnimation {
           userDragging = false
           if value.translation.width >= (widthOfSlide * 0.55) {
