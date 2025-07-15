@@ -63,7 +63,7 @@ struct ScreenTimeSectionView: View {
 
         Text("TIME IN FOCUS")
           .font(.caption)
-          .foregroundColor(.white.opacity(0.5))
+          .foregroundColor(.as_gray_light)
       }
       
       VStack {
@@ -74,8 +74,8 @@ struct ScreenTimeSectionView: View {
         }
         
         Text("MOST USED")
-          .font(.caption)
-          .foregroundColor(.white.opacity(0.5))
+          .font(.system(size: 11, weight: .regular))
+          .foregroundColor(.as_gray_light)
       }
       
       VStack {
@@ -84,8 +84,8 @@ struct ScreenTimeSectionView: View {
           .foregroundColor(.white)
         
         Text("PICKUPS")
-          .font(.caption)
-          .foregroundColor(.white.opacity(0.5))
+          .font(.system(size: 11, weight: .regular))
+          .foregroundColor(.as_gray_light)
       }
     }
   }

@@ -65,7 +65,7 @@ struct SlideToTurnOnView: View {
               .fill(Color.clear)
               .stroke(
                 isBlocked
-                ? AnyShapeStyle(Color.as_gradietn_main_red_button)
+                ? AnyShapeStyle(Color.as_red)
                 : AnyShapeStyle(Color.as_gradietn_main_button),
                 lineWidth: 2
               )
@@ -160,7 +160,7 @@ struct SlideToTurnOnView: View {
         .frame(maxWidth: 60)
       Text(isStrictBlock ? "Strict blocked" : "Apps blocked")
         .opacity(userDragging ? 0.5 : 1.0)
-        .foregroundStyle(Color.as_gradietn_main_red_button)
+        .foregroundStyle(Color.as_red)
         .font(.system(size: 16, weight: .light))
       Spacer()
         .frame(maxWidth: 100)

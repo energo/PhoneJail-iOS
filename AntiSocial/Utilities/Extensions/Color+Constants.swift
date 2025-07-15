@@ -7,7 +7,9 @@ extension Color {
   static let as_blue_toggle = Color(hex: "1D4CD9")
   static let as_hyper_link = Color(hex: "6D86FF")
   static let as_white_light = Color(hex: "CFD3E6")
-  
+  static let as_gray_light = Color(hex: "E7EAFF").opacity(0.5)
+  static let as_white = Color(hex: "E7EAFF")
+
   //MARK: - Other Colors
   static let ri_gray = Color(red: 138/255, green: 138/255, blue: 139/255)
   static let ri_blue = Color(red: 179/255, green: 86/255, blue: 255/255)

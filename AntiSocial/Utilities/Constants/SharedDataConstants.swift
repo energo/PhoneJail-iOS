@@ -34,6 +34,8 @@ public enum SharedDataConstants {
     
     /// Общее количество сессий за сегодня (Int)
     static let todayTotalSessions = "todayTotalSessions"
+    
+    static let currentBlockingStartTimestamp = "currentBlockingStartTimestamp"
   }
   
   // MARK: - Widget Keys

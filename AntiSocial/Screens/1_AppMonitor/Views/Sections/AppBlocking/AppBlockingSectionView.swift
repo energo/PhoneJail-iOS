@@ -20,34 +20,47 @@ struct AppBlockingSectionView: View {
   
   @State private var isStrictBlock: Bool = false
   @State private var isBlocked: Bool = false
+  
   @State private var noCategoriesAlert = false
   @State private var maxCategoriesAlert = false
   @State private var isDiscouragedPresented = false
   @State private var timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+  
   @State private var timeRemainingString: String = ""
+  @State private var timeBlockedString: String = ""
   
   //MARK: - Views
   var body: some View {
     VStack(alignment: .leading, spacing: 16) {
-      headerView
-      separatorView
-      
       if model.unlockDate != nil && (model.unlockDate ?? Date()) > Date() {
         timeRemainingView
       } else {
+        headerView
+        separatorView
+        
         durationSection
+        separatorView
+        
+        whatToBlockView
+        separatorView
+        
+        strictBlockView
+        separatorView
       }
-      
-      separatorView
-      
-      whatToBlockView
-      separatorView
-      
-      strictBlockView
-      separatorView
       
       swipeBlockView
         .padding(.bottom, 8)
+      
+      if model.unlockDate != nil && (model.unlockDate ?? Date()) > Date() {
+        HStack(alignment: .top, spacing: 12) {
+          savedBlockedView
+            .frame(maxHeight: .infinity)
+          
+          appsBlockedView
+            .frame(maxHeight: .infinity)
+        }
+        .frame(minHeight: 0, alignment: .top)
+      }
     }
     .padding()
     .blurBackground()
@@ -59,6 +72,10 @@ struct AppBlockingSectionView: View {
           selection: model.selectionToDiscourage,
           restrictionModel: restrictionModel
         )
+        
+        SharedDataConstants.userDefaults?.set(Date().timeIntervalSince1970,
+                                              forKey: SharedDataConstants.AppBlocking.currentBlockingStartTimestamp)
+        
       } else {
         BlockingNotificationService.shared.stopBlocking(selection: model.selectionToDiscourage)
         hours = 0
@@ -84,14 +101,30 @@ struct AppBlockingSectionView: View {
       }
     }
     .onReceive(timer) { _ in
-      if let unlockDate = model.unlockDate, unlockDate > Date() {
-        timeRemainingString = model.timeRemainingString
-      } else {
-        timeRemainingString = "00:00:00"
-      }
-      
-      if let unlockDate = model.unlockDate, unlockDate <= Date() {
-        BlockingNotificationService.shared.resetBlockingState()
+      if let unlockDate = model.unlockDate {
+        
+        timeRemainingString = unlockDate > Date() ? model.timeRemainingString : "00:00:00"
+        
+        // Вычисляем прошедшее время
+        let calendar = Calendar.current
+        var comps = calendar.dateComponents([.year, .month, .day], from: Date())
+        comps.hour = restrictionModel.startHour
+        comps.minute = restrictionModel.startMin
+        comps.second = 0
+        
+        if let startTimestamp = SharedDataConstants.userDefaults?.string(forKey: SharedDataConstants.AppBlocking.currentBlockingStartTimestamp) as? TimeInterval {
+          
+          let elapsed = max(0, Date().timeIntervalSince1970 - startTimestamp)
+          let hours = Int(elapsed) / 3600
+          let minutes = (Int(elapsed) % 3600) / 60
+          timeBlockedString = String(format: "%02dh %02dm", hours, minutes)
+        } else {
+          timeBlockedString = "00h 00m"
+        }
+        
+        if unlockDate <= Date() {
+          BlockingNotificationService.shared.resetBlockingState()
+        }
       }
     }
     .alert("No categories selected", isPresented: $noCategoriesAlert) {
@@ -100,6 +133,56 @@ struct AppBlockingSectionView: View {
     .alert("Too many categories selected", isPresented: $maxCategoriesAlert) {
       Button("OK", role: .cancel) { }
     }
+  }
+  
+  //MARK: - Views
+  private var savedBlockedView: some View {
+    VStack(alignment: .leading, spacing: 6) {
+      Text(timeBlockedString)
+        .font(.system(size: 20, weight: .bold, design: .monospaced))
+        .foregroundStyle(Color.as_white)
+      
+      Text("saved")
+        .font(.system(size: 14, weight: .regular))
+        .foregroundStyle(Color.as_gray_light)
+    }
+    .padding(16)
+    .frame(height: 100)
+    .blurBackground(cornerRadius: 20)
+  }
+  
+  
+  private var appsBlockedView: some View {
+    VStack(spacing: 12) {
+      HStack {
+        stackedAppIcons
+        stackedCategoryIcons
+        Spacer()
+      }
+      
+      HStack {
+        Text("\(model.selectionToDiscourage.applicationTokens.count)")
+          .foregroundColor(Color.as_white_light)
+          .font(.system(size: 14, weight: .regular))
+        
+        Text("apps and")
+          .foregroundStyle(Color.as_gray_light)
+          .font(.system(size: 14, weight: .regular))
+        
+        Text("\(model.selectionToDiscourage.categoryTokens.count)")
+          .foregroundColor(Color.as_white_light)
+          .font(.system(size: 14, weight: .regular))
+        
+        Text("categories")
+          .foregroundStyle(Color.as_gray_light)
+          .font(.system(size: 14, weight: .regular))
+        Spacer()
+      }
+    }
+    .padding(16)
+    .frame(height: 100)
+    .frame(maxWidth: .infinity)
+    .blurBackground(cornerRadius: 20)
   }
   
   private var timeRemainingView: some View {
@@ -248,7 +331,7 @@ struct AppBlockingSectionView: View {
   }
   
   private var isBlockButtonDisabled: Bool {
-    (hours == 0 && minutes == 0) ||
+    return (hours == 0 && minutes == 0) ||
     (model.selectionToDiscourage.applicationTokens.isEmpty &&
      model.selectionToDiscourage.categoryTokens.isEmpty &&
      model.selectionToDiscourage.webDomainTokens.isEmpty)

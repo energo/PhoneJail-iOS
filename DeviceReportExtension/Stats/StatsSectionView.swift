@@ -31,15 +31,15 @@ struct StatsSectionView: View {
         }
         
         // Новый блок: отображение Focused Time
-        //TODO: FOR TESTING
-        HStack {
-          Text("Focused Time (all apps):")
-            .foregroundStyle(.white)
-          Spacer()
-          Text(focusedTime.formattedAsHoursMinutes())
-            .foregroundStyle(.green)
-        }
-        .padding(.vertical, 8)
+//        //TODO: FOR TESTING
+//        HStack {
+//          Text("Focused Time (all apps):")
+//            .foregroundStyle(.white)
+//          Spacer()
+//          Text(focusedTime.formattedAsHoursMinutes())
+//            .foregroundStyle(.green)
+//        }
+//        .padding(.vertical, 8)
         
       ScrollView() {
         ForEach(stats.appUsages) { app in
