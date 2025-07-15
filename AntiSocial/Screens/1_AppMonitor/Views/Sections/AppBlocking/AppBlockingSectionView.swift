@@ -243,7 +243,7 @@ struct AppBlockingSectionView: View {
   }
   
   private var swipeBlockView: some View {
-    SlideToTurnOnView(isBlocked: $isBlocked)
+    SlideToTurnOnView(isBlocked: $isBlocked, isStrictBlock: $isStrictBlock)
       .disabled(isBlockButtonDisabled)
   }
   

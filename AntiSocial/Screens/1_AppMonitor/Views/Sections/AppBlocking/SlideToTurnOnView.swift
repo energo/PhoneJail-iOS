@@ -2,15 +2,23 @@ import SwiftUI
 
 struct SlideToTurnOnView: View {
   @Binding var isBlocked: Bool
+  @Binding var isStrictBlock: Bool
+  
   @Environment(\.isEnabled) private var isEnabled
   
-  @State var offset: CGFloat = .zero
-  @State var widthOfSlide: CGFloat = .zero
-  @State var userDragging: Bool = false
+  @State private var offset: CGFloat = .zero
+  @State private var widthOfSlide: CGFloat = .zero
+  @State private var userDragging: Bool = false
+  @State private var shakeTrigger: CGFloat = 0
   
   var drag: some Gesture {
     DragGesture()
       .onChanged { value in
+        // Запрещаем отключение, если strict и блокировка уже активна
+        if isStrictBlock && isBlocked {
+          return
+        }
+        
         withAnimation {
           offset = max(0, value.translation.width)
           userDragging = true
@@ -18,6 +26,10 @@ struct SlideToTurnOnView: View {
         }
       }
       .onEnded { value in
+        if isStrictBlock && isBlocked {
+          return
+        }
+        
         withAnimation {
           userDragging = false
           if value.translation.width >= (widthOfSlide * 0.55) {
@@ -63,6 +75,11 @@ struct SlideToTurnOnView: View {
           .onTapGesture {
             guard isEnabled else { return }
             
+            if isStrictBlock && isBlocked {
+              shakeNow()
+              return
+            }
+            
             withAnimation {
               userDragging = true
               offset = 20
@@ -83,6 +100,7 @@ struct SlideToTurnOnView: View {
             slideText
           }
         }
+        .modifier(ShakeEffect(animatableData: shakeTrigger))
         .opacity(isEnabled ? 1.0 : 0.5)
         .onAppear {
           widthOfSlide = geometry.size.width - 50 - 24
@@ -96,7 +114,7 @@ struct SlideToTurnOnView: View {
             userDragging = false
           }
         }
-        .onChange(of: isBlocked) { newValue in
+        .onChangeWithOldValue(of: isBlocked) { oldValue, newValue in
           withAnimation {
             if newValue {
               offset = widthOfSlide - 10
@@ -133,20 +151,25 @@ struct SlideToTurnOnView: View {
   
   private var lockedText: some View {
     HStack {
-      Image(.icBook)
+      Image(.icAppBlocked)
         .resizable()
-        .frame(width: 18, height: 20)
+        .frame(width: 24, height: 24)
         .padding(.leading, 16)
       
       Spacer()
         .frame(maxWidth: 60)
-      Text("News blocked")
+      Text(isStrictBlock ? "Strict blocked" : "Apps blocked")
         .opacity(userDragging ? 0.5 : 1.0)
-        .foregroundStyle(.white)
-        .font(.system(size: 13,
-                      weight: .light))
+        .foregroundStyle(Color.as_gradietn_main_red_button)
+        .font(.system(size: 16, weight: .light))
       Spacer()
         .frame(maxWidth: 100)
+    }
+  }
+  
+  private func shakeNow() {
+    withAnimation(.default) {
+      shakeTrigger += 1
     }
   }
 }
@@ -154,9 +177,10 @@ struct SlideToTurnOnView: View {
 //MARK: - Preview
 #Preview {
   @Previewable @State var isLocked: Bool = false
+  @Previewable @State var isStrict: Bool = false
   
   VStack {
-    SlideToTurnOnView(isBlocked: $isLocked)
+    SlideToTurnOnView(isBlocked: $isLocked, isStrictBlock: $isStrict)
   }.background(
     ZStack {
       Image(.bgMain)
