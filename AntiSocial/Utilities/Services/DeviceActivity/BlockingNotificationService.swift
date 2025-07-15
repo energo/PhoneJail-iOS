@@ -25,8 +25,7 @@ final class BlockingNotificationService: ObservableObject {
     guard hours > 0 || minutes > 0 else { return }
 
     // Save restriction mode
-    UserDefaults.standard.set(true, forKey: "inRestrictionMode")
-    SharedDataConstants.userDefaults?.set(true, forKey: SharedDataConstants.Widget.inRestrictionMode)
+    SharedDataConstants.userDefaults?.set(true, forKey: SharedDataConstants.Widget.isBlocked)
 
     // Save selection
     DeviceActivityService.shared.saveFamilyActivitySelection(selection)
@@ -47,8 +46,6 @@ final class BlockingNotificationService: ObservableObject {
     }
 
     // Store for widgets
-    UserDefaults.standard.set(endHour, forKey: "endHour")
-    UserDefaults.standard.set(endMin, forKey: "endMins")
     SharedDataConstants.userDefaults?.set(endHour, forKey: SharedDataConstants.Widget.endHour)
     SharedDataConstants.userDefaults?.set(endMin, forKey: SharedDataConstants.Widget.endMinutes)
 
@@ -77,19 +74,18 @@ final class BlockingNotificationService: ObservableObject {
     // Save usage forecast (legacy support)
     let today = Date()
     for app in selection.applications {
-      FocusedTimeStatsStore.shared.saveUsage(for: app.localizedDisplayName ?? "App", date: today, duration: TimeInterval(hours * 3600 + minutes * 60))
+      FocusedTimeStatsStore.shared.saveUsage(for: app.localizedDisplayName ?? "App",
+                                             date: today,
+                                             duration: TimeInterval(hours * 3600 + minutes * 60))
     }
 
     UserDefaults(suiteName: "group.ScreenTimeTestApp.sharedData")?.set(Date().timeIntervalSince1970, forKey: "restrictionStartTime")
   }
 
   func stopBlocking(selection: FamilyActivitySelection) {
-    UserDefaults.standard.set(false, forKey: "inRestrictionMode")
-    SharedDataConstants.userDefaults?.set(false, forKey: SharedDataConstants.Widget.inRestrictionMode)
+    SharedDataConstants.userDefaults?.set(false, forKey: SharedDataConstants.Widget.isBlocked)
 
     DeviceActivityService.shared.savedSelection.removeAll()
-    UserDefaults.standard.removeObject(forKey: "endHour")
-    UserDefaults.standard.removeObject(forKey: "endMins")
     SharedDataConstants.userDefaults?.removeObject(forKey: SharedDataConstants.Widget.endHour)
     SharedDataConstants.userDefaults?.removeObject(forKey: SharedDataConstants.Widget.endMinutes)
 
@@ -126,8 +122,8 @@ final class BlockingNotificationService: ObservableObject {
     service.savedSelection.removeAll()
     service.saveFamilyActivitySelection(service.selectionToDiscourage)
     service.unlockDate = nil
-    UserDefaults.standard.set(false, forKey: "inRestrictionMode")
-    SharedDataConstants.userDefaults?.set(false, forKey: SharedDataConstants.Widget.inRestrictionMode)
+    
+    SharedDataConstants.userDefaults?.set(false, forKey: SharedDataConstants.Widget.isBlocked)
     service.stopAppRestrictions()
     
     // Interrupt all active blocking sessions

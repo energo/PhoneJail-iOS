@@ -53,8 +53,8 @@ struct SlideToTurnOnView: View {
               .fill(Color.clear)
               .stroke(
                 isBlocked
-                ? AnyShapeStyle(Color.as_red)
-                : AnyShapeStyle(Color.as_gradietn_main_red_button),
+                ? AnyShapeStyle(Color.as_gradietn_main_red_button)
+                : AnyShapeStyle(Color.as_gradietn_main_button),
                 lineWidth: 2
               )
           )

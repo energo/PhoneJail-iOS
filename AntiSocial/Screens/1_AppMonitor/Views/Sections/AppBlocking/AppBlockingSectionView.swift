@@ -18,8 +18,7 @@ struct AppBlockingSectionView: View {
   @State var hours: Int = 0
   @State var minutes: Int = 0
   
-  @Binding var isStrictBlock: Bool
-  
+  @State private var isStrictBlock: Bool = false
   @State private var isBlocked: Bool = false
   @State private var noCategoriesAlert = false
   @State private var maxCategoriesAlert = false
@@ -44,6 +43,9 @@ struct AppBlockingSectionView: View {
       whatToBlockView
       separatorView
       
+      strictBlockView
+      separatorView
+      
       swipeBlockView
         .padding(.bottom, 8)
     }
@@ -66,12 +68,12 @@ struct AppBlockingSectionView: View {
     }
     .onAppear {
       // Восстанавливаем isUnlocked из UserDefaults
-      let inRestriction = UserDefaults.standard.bool(forKey: "inRestrictionMode")
-      isBlocked = inRestriction
+      isStrictBlock = SharedDataConstants.userDefaults?.bool(forKey: SharedDataConstants.Widget.isStricted) ?? false
+      isBlocked = SharedDataConstants.userDefaults?.bool(forKey: SharedDataConstants.Widget.isBlocked) ?? false
       timeRemainingString = model.timeRemainingString
       
-      if let savedHour = UserDefaults.standard.value(forKey: "endHour") as? Int,
-         let savedMin = UserDefaults.standard.value(forKey: "endMins") as? Int {
+      if let savedHour = SharedDataConstants.userDefaults?.integer(forKey: SharedDataConstants.Widget.endHour),
+         let savedMin = SharedDataConstants.userDefaults?.integer(forKey: SharedDataConstants.Widget.endMinutes) {
         restrictionModel.endHour = savedHour
         restrictionModel.endMins = savedMin
       }
@@ -105,7 +107,7 @@ struct AppBlockingSectionView: View {
       Spacer()
       VStack(alignment: .center, spacing: 8) {
         Text("Time Remaining Until Unlock")
-          .foregroundStyle(Color(hex: "CFD3E6"))
+          .foregroundStyle(Color.as_white_light)
           .font(.system(size: 16, weight: .semibold))
         
         Text(timeRemainingString)
@@ -140,45 +142,45 @@ struct AppBlockingSectionView: View {
       Text("What to Block")
         .foregroundColor(.white)
         .font(.headline)
-
+      
       Button(action: {
         isDiscouragedPresented = true
       }) {
         VStack(alignment: .leading, spacing: 8) {
-
+          
           // Основной блок — Select Apps (всегда отображается)
           HStack(spacing: 12) {
             Text("Apps")
               .foregroundColor(.white)
               .font(.system(size: 15, weight: .regular))
-
+            
             Spacer()
-
+            
             Text("\(model.selectionToDiscourage.applicationTokens.count)")
               .foregroundColor(Color.as_white_light)
               .font(.system(size: 15, weight: .regular))
-
+            
             stackedAppIcons
-
+            
             Image(systemName: "chevron.right")
               .foregroundColor(Color.as_white_light)
           }
-
+          
           // Показываем категории, только если они выбраны
           if !model.selectionToDiscourage.categoryTokens.isEmpty {
             HStack(spacing: 12) {
               Text("Categories")
                 .foregroundColor(.white)
                 .font(.system(size: 15, weight: .regular))
-
+              
               Spacer()
-
+              
               Text("\(model.selectionToDiscourage.categoryTokens.count)")
                 .foregroundColor(Color.as_white_light)
                 .font(.system(size: 15, weight: .regular))
-
+              
               stackedCategoryIcons
-
+              
               Image(systemName: "chevron.right")
                 .foregroundColor(Color.as_white_light)
             }
@@ -194,11 +196,11 @@ struct AppBlockingSectionView: View {
       }
     }
   }
-
+  
   
   private var stackedCategoryIcons: some View {
     let tokens = Array(model.selectionToDiscourage.categoryTokens.prefix(4))
-
+    
     return ZStack {
       ForEach(tokens.indices, id: \.self) { index in
         let token = tokens[index]
@@ -213,7 +215,7 @@ struct AppBlockingSectionView: View {
     }
     .frame(width: CGFloat(20 + (tokens.count - 1) * 12), height: 20)
   }
-
+  
   private var stackedAppIcons: some View {
     let tokens = Array(model.selectionToDiscourage.applicationTokens.prefix(4))
     
@@ -236,6 +238,7 @@ struct AppBlockingSectionView: View {
     VStack(alignment: .leading, spacing: 16) {
       Toggle("Strict Block", isOn: $isStrictBlock)
         .foregroundStyle(Color.white)
+        .toggleStyle(SwitchToggleStyle(tint: .purple))
     }
   }
   

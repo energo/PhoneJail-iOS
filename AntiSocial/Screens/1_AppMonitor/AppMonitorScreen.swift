@@ -112,10 +112,7 @@ struct AppMonitorScreen: View {
   
   private var appBlockingSection: some View {
     VStack {
-      AppBlockingSectionView(
-        restrictionModel: restrictionModel,
-        isStrictBlock: .constant(false)
-      )
+      AppBlockingSectionView(restrictionModel: restrictionModel)
     }
   }
   
