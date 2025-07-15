@@ -6,13 +6,12 @@
 //
 
 import SwiftUI
-
 import WidgetKit
 import FamilyControls
 
 
 struct AppBlockingSectionView: View {
-  @EnvironmentObject var model: DeviceActivityService
+  @EnvironmentObject var deviceActivityService: DeviceActivityService
   @ObservedObject var restrictionModel: MyRestrictionModel
   
   @State var hours: Int = 0
@@ -32,7 +31,7 @@ struct AppBlockingSectionView: View {
   //MARK: - Views
   var body: some View {
     VStack(alignment: .leading, spacing: 16) {
-      if model.unlockDate != nil && (model.unlockDate ?? Date()) > Date() {
+      if deviceActivityService.unlockDate != nil && (deviceActivityService.unlockDate ?? Date()) > Date() {
         timeRemainingView
       } else {
         headerView
@@ -51,7 +50,7 @@ struct AppBlockingSectionView: View {
       swipeBlockView
         .padding(.bottom, 8)
       
-      if model.unlockDate != nil && (model.unlockDate ?? Date()) > Date() {
+      if deviceActivityService.unlockDate != nil && (deviceActivityService.unlockDate ?? Date()) > Date() {
         HStack(alignment: .top, spacing: 12) {
           savedBlockedView
             .frame(maxHeight: .infinity)
@@ -69,11 +68,11 @@ struct AppBlockingSectionView: View {
         BlockingNotificationService.shared.startBlocking(
           hours: hours,
           minutes: minutes,
-          selection: model.selectionToDiscourage,
+          selection: deviceActivityService.selectionToDiscourage,
           restrictionModel: restrictionModel
         )
       } else {
-        BlockingNotificationService.shared.stopBlocking(selection: model.selectionToDiscourage)
+        BlockingNotificationService.shared.stopBlocking(selection: deviceActivityService.selectionToDiscourage)
         hours = 0
         minutes = 0
         BlockingNotificationService.shared.resetBlockingState()
@@ -83,8 +82,8 @@ struct AppBlockingSectionView: View {
       // Восстанавливаем isUnlocked из UserDefaults
       isStrictBlock = SharedDataConstants.userDefaults?.bool(forKey: SharedDataConstants.Widget.isStricted) ?? false
       isBlocked = SharedDataConstants.userDefaults?.bool(forKey: SharedDataConstants.Widget.isBlocked) ?? false
-      timeRemainingString = model.timeRemainingString
-      timeBlockedString = model.timeBlockedString
+      timeRemainingString = deviceActivityService.timeRemainingString
+      timeBlockedString = deviceActivityService.timeBlockedString
       
       if let savedHour = SharedDataConstants.userDefaults?.integer(forKey: SharedDataConstants.Widget.endHour),
          let savedMin = SharedDataConstants.userDefaults?.integer(forKey: SharedDataConstants.Widget.endMinutes) {
@@ -98,9 +97,10 @@ struct AppBlockingSectionView: View {
       }
     }
     .onReceive(timer) { _ in
-      if let unlockDate = model.unlockDate {
-        timeRemainingString = unlockDate > Date() ? model.timeRemainingString : "00:00:00"
-        timeBlockedString = model.timeBlockedString
+      if let unlockDate = deviceActivityService.unlockDate {
+        timeRemainingString = unlockDate > Date() ? deviceActivityService.timeRemainingString : "00:00:00"
+        timeBlockedString = deviceActivityService.timeBlockedString
+
         if unlockDate <= Date() {
           BlockingNotificationService.shared.resetBlockingState()
         }
@@ -139,7 +139,7 @@ struct AppBlockingSectionView: View {
       }
       
       HStack {
-        Text("\(model.selectionToDiscourage.applicationTokens.count)")
+        Text("\(deviceActivityService.selectionToDiscourage.applicationTokens.count)")
           .foregroundColor(Color.as_white_light)
           .font(.system(size: 14, weight: .regular))
         
@@ -147,7 +147,7 @@ struct AppBlockingSectionView: View {
           .foregroundStyle(Color.as_gray_light)
           .font(.system(size: 14, weight: .regular))
         
-        Text("\(model.selectionToDiscourage.categoryTokens.count)")
+        Text("\(deviceActivityService.selectionToDiscourage.categoryTokens.count)")
           .foregroundColor(Color.as_white_light)
           .font(.system(size: 14, weight: .regular))
         
@@ -217,7 +217,7 @@ struct AppBlockingSectionView: View {
             
             Spacer()
             
-            Text("\(model.selectionToDiscourage.applicationTokens.count)")
+            Text("\(deviceActivityService.selectionToDiscourage.applicationTokens.count)")
               .foregroundColor(Color.as_white_light)
               .font(.system(size: 15, weight: .regular))
             
@@ -228,7 +228,7 @@ struct AppBlockingSectionView: View {
           }
           
           // Показываем категории, только если они выбраны
-          if !model.selectionToDiscourage.categoryTokens.isEmpty {
+          if !deviceActivityService.selectionToDiscourage.categoryTokens.isEmpty {
             HStack(spacing: 12) {
               Text("Categories")
                 .foregroundColor(.white)
@@ -236,7 +236,7 @@ struct AppBlockingSectionView: View {
               
               Spacer()
               
-              Text("\(model.selectionToDiscourage.categoryTokens.count)")
+              Text("\(deviceActivityService.selectionToDiscourage.categoryTokens.count)")
                 .foregroundColor(Color.as_white_light)
                 .font(.system(size: 15, weight: .regular))
               
@@ -253,13 +253,13 @@ struct AppBlockingSectionView: View {
         .clipShape(RoundedRectangle(cornerRadius: 30))
       }
       .sheet(isPresented: $isDiscouragedPresented) {
-        FamilyPickerView(model: model, isDiscouragedPresented: $isDiscouragedPresented)
+        FamilyPickerView(model: deviceActivityService, isDiscouragedPresented: $isDiscouragedPresented)
       }
     }
   }
   
   private var stackedCategoryIcons: some View {
-    let tokens = Array(model.selectionToDiscourage.categoryTokens.prefix(4))
+    let tokens = Array(deviceActivityService.selectionToDiscourage.categoryTokens.prefix(4))
     
     return ZStack {
       ForEach(tokens.indices, id: \.self) { index in
@@ -277,7 +277,7 @@ struct AppBlockingSectionView: View {
   }
   
   private var stackedAppIcons: some View {
-    let tokens = Array(model.selectionToDiscourage.applicationTokens.prefix(4))
+    let tokens = Array(deviceActivityService.selectionToDiscourage.applicationTokens.prefix(4))
     
     return ZStack {
       ForEach(tokens.indices, id: \.self) { index in
@@ -308,10 +308,12 @@ struct AppBlockingSectionView: View {
   }
   
   private var isBlockButtonDisabled: Bool {
+    if isBlocked == true { return false }
+    
     return (hours == 0 && minutes == 0) ||
-    (model.selectionToDiscourage.applicationTokens.isEmpty &&
-     model.selectionToDiscourage.categoryTokens.isEmpty &&
-     model.selectionToDiscourage.webDomainTokens.isEmpty)
+    (deviceActivityService.selectionToDiscourage.applicationTokens.isEmpty &&
+     deviceActivityService.selectionToDiscourage.categoryTokens.isEmpty &&
+     deviceActivityService.selectionToDiscourage.webDomainTokens.isEmpty)
   }
   
   private var separatorView: some View {
