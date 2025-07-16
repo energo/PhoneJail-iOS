@@ -49,7 +49,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     // Handle the start of the interval.
     print("intervalDidStart \n\(activity)")
     DarwinNotificationManager.shared.postNotification(name: "com.yourapp.BroadcastStarted")
-    scheduleNotification(with: "interval did start", details: "\(activity)")
+    scheduleNotification(with: "The monitor is now running", details: "\(activity)")
   }
   
   override func intervalDidEnd(for activity: DeviceActivityName) {
@@ -58,7 +58,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     // Handle the end of the interval.
     print("intervalDidEnd \n\(activity)")
     DarwinNotificationManager.shared.postNotification(name: "com.yourapp.BroadcastStopped")
-    scheduleNotification(with: "interval did end", details: "\(activity)")
+    scheduleNotification(with: "The monitoring session has finished", details: "\(activity)")
   }
   
   override func eventDidReachThreshold(_ event: DeviceActivityEvent.Name, activity: DeviceActivityName) {
