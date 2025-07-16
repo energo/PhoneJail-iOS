@@ -26,7 +26,8 @@ struct MainView: View {
         if isFirstRun {
           OnboardingScreen(isShow: $isFirstRun)
         } else {
-          AppMonitorScreen(model: SelectAppsModel())
+//          AppMonitorScreen(model: SelectAppsModel())
+          AppMonitorScreen()
         }
     }
   }
