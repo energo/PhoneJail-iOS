@@ -76,10 +76,10 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
 
         if let displayName = application.localizedDisplayName {
               print("Приложение достигло лимита: \(displayName)")
-              scheduleNotification(with: "Hey! It's time to take a rest fro app!", details: displayName)
+              scheduleNotification(with: "Hey! Time to take a break from this app", details: displayName)
           } else {
               print("Не удалось получить отображаемое имя приложения")
-              scheduleNotification(with: "Hey! It's time to take a rest fro app!", details: "No app name")
+              scheduleNotification(with: "Phone Jail", details: "Hey! Time to take a break from this app")
           }
       }
     } else {

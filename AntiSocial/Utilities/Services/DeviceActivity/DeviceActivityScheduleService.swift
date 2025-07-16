@@ -37,7 +37,7 @@ class DeviceActivityScheduleService {
         // Уведомление о начале
         let startTrigger = UNCalendarNotificationTrigger(dateMatching: startComponents, repeats: false)
         let startContent = UNMutableNotificationContent()
-        startContent.title = "Screen Break"
+        startContent.title = "Phone Jail"
         startContent.body = "You've entered Restriction Mode! Good Luck!"
         startContent.categoryIdentifier = "customIdentifier"
         startContent.userInfo = ["customData": "fizzbuzz"]
@@ -50,7 +50,7 @@ class DeviceActivityScheduleService {
         // Уведомление о конце
         let endTrigger = UNCalendarNotificationTrigger(dateMatching: DateComponents(year: year, month: month, day: day, hour: endHour, minute: endMins), repeats: false)
         let endContent = UNMutableNotificationContent()
-        endContent.title = "Screen Break"
+        endContent.title = "Phone Jail"
         endContent.body = "Congrats! You've reached the end of Restriction Mode"
         endContent.categoryIdentifier = "customIdentifier"
         endContent.userInfo = ["customData": "fizzbuzz"]
@@ -126,7 +126,7 @@ class DeviceActivityScheduleService {
 //        
 //        let startTrigger = UNCalendarNotificationTrigger(dateMatching: DateComponents(year: year, month: month, day: day, hour: curHour, minute: nextMin), repeats: false)
 //        let startContent = UNMutableNotificationContent()
-//        startContent.title = "Screen Break"
+//        startContent.title = "Phone Jail"
 //        startContent.body = "You've entered Restriction Mode! Good Luck!"
 //        startContent.categoryIdentifier = "customIdentifier"
 //        startContent.userInfo = ["customData": "fizzbuzz"]
@@ -141,7 +141,7 @@ class DeviceActivityScheduleService {
 //        /*let center = UNUserNotificationCenter.current()
 //        let halfTrigger = UNCalendarNotificationTrigger(dateMatching: DateComponents(hour: endHour, minute: endMins), repeats: true)
 //        let halfContent = UNMutableNotificationContent()
-//        halfContent.title = "Screen Break - Restriction Mode"
+//        halfContent.title = "Phone Jail - Restriction Mode"
 //        halfContent.body = "You're halfway done with Restriction Mode. You've got this!"
 //        halfContent.categoryIdentifier = "customIdentifier"
 //        halfContent.userInfo = ["customData": "fizzbuzz"]
@@ -151,7 +151,7 @@ class DeviceActivityScheduleService {
 //        
 //        let endTrigger = UNCalendarNotificationTrigger(dateMatching: DateComponents(year: year, month: month, day: day, hour: endHour, minute: endMins), repeats: false)
 //        let endContent = UNMutableNotificationContent()
-//        endContent.title = "Screen Break"
+//        endContent.title = "Phone Jail"
 //        endContent.body = "Congrats! You've reached the end of Restriction Mode"
 //        endContent.categoryIdentifier = "customIdentifier"
 //        endContent.userInfo = ["customData": "fizzbuzz"]
