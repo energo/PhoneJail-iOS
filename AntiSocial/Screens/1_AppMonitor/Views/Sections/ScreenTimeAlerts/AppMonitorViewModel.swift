@@ -4,32 +4,6 @@ import FamilyControls
 import ManagedSettings
 import DeviceActivity
 
-// Расширения для SharedData
-extension SharedData.Keys {
-  static let disabledApps = "DisabledApps"
-  static let allSelectedApps = "AllSelectedApps"
-}
-
-extension SharedData {
-  static var disabledFamilyActivity: FamilyActivitySelection? {
-    get {
-      guard let data = defaultsGroup?.data(forKey: Keys.disabledApps) else { return nil }
-      return try? JSONDecoder().decode(FamilyActivitySelection.self, from: data)
-    } set {
-      defaultsGroup?.set(try? JSONEncoder().encode(newValue), forKey: Keys.disabledApps)
-    }
-  }
-  
-  static var allSelectedFamilyActivity: FamilyActivitySelection? {
-    get {
-      guard let data = defaultsGroup?.data(forKey: Keys.allSelectedApps) else { return nil }
-      return try? JSONDecoder().decode(FamilyActivitySelection.self, from: data)
-    } set {
-      defaultsGroup?.set(try? JSONEncoder().encode(newValue), forKey: Keys.allSelectedApps)
-    }
-  }
-}
-
 class AppMonitorViewModel: ObservableObject {
   @Published var isAlertEnabled = false {
       didSet {
@@ -226,6 +200,7 @@ class AppMonitorViewModel: ObservableObject {
     // Создаем новый список приложений для отображения
     monitoredApps = allApps.map { token in
       // Приложение включено, если оно не в списке выключенных
+      
       let isEnabled = !disabledApps.contains(token)
       return MonitoredApp(token: token, isMonitored: isEnabled)
     }

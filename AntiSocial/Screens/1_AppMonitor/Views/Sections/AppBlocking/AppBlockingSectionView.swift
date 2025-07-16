@@ -30,37 +30,7 @@ struct AppBlockingSectionView: View {
   
   //MARK: - Views
   var body: some View {
-    VStack(alignment: .leading, spacing: 16) {
-      if deviceActivityService.unlockDate != nil && (deviceActivityService.unlockDate ?? Date()) > Date() {
-        timeRemainingView
-      } else {
-        headerView
-        separatorView
-
-        durationSection
-        separatorView
-        
-        whatToBlockView
-        separatorView
-        
-        strictBlockView
-        separatorView
-      }
-      
-      swipeBlockView
-        .padding(.bottom, 8)
-      
-      if deviceActivityService.unlockDate != nil && (deviceActivityService.unlockDate ?? Date()) > Date() {
-        HStack(alignment: .top, spacing: 12) {
-          savedBlockedView
-            .frame(maxHeight: .infinity)
-
-          appsBlockedView
-            .frame(maxHeight: .infinity)
-        }
-        .frame(minHeight: 0, alignment: .top)
-      }
-    }
+    contentView
     .padding()
     .blurBackground()
     .onChangeWithOldValue(of: isBlocked) { oldValue, newValue in
@@ -116,6 +86,39 @@ struct AppBlockingSectionView: View {
   }
   
   //MARK: - Views
+  private var contentView: some View {
+    VStack(alignment: .leading, spacing: 16) {
+      if deviceActivityService.unlockDate != nil && (deviceActivityService.unlockDate ?? Date()) > Date() {
+        timeRemainingView
+      } else {
+        headerView
+        separatorView
+
+        durationSection
+        separatorView
+        
+        whatToBlockView
+        separatorView
+        
+        strictBlockView
+        separatorView
+      }
+      
+      swipeBlockView
+        .padding(.bottom, 8)
+      
+      if deviceActivityService.unlockDate != nil && (deviceActivityService.unlockDate ?? Date()) > Date() {
+        HStack(alignment: .top, spacing: 12) {
+          savedBlockedView
+            .frame(maxHeight: .infinity)
+
+          appsBlockedView
+            .frame(maxHeight: .infinity)
+        }
+        .frame(minHeight: 0, alignment: .top)
+      }
+    }
+  }
   private var savedBlockedView: some View {
     VStack(alignment: .leading, spacing: 6) {
       Text(timeBlockedString)
@@ -253,9 +256,10 @@ struct AppBlockingSectionView: View {
         .background(Color.white.opacity(0.07))
         .clipShape(RoundedRectangle(cornerRadius: 30))
       }
-      .sheet(isPresented: $isDiscouragedPresented) {
-        FamilyPickerView(model: deviceActivityService, isDiscouragedPresented: $isDiscouragedPresented)
-      }
+      .familyActivityPicker(
+        isPresented: $isDiscouragedPresented,
+        selection: $deviceActivityService.selectionToDiscourage
+      )
     }
   }
   

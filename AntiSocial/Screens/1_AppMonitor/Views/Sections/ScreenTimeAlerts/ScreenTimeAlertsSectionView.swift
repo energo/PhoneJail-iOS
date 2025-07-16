@@ -6,20 +6,15 @@
 //
 
 import SwiftUI
+import FamilyControls
+import ManagedSettings
 
 struct ScreenTimeAlertsSectionView: View {
   @StateObject var viewModel: AppMonitorViewModel
   
   //  @Binding var notifyInterval: TimeInterval
   //  @Binding var isAlertEnabled: Bool
-  
-  let columns = [
-    GridItem(.flexible()),
-    GridItem(.flexible()),
-    GridItem(.flexible()),
-    GridItem(.flexible()),
-  ]
-  
+    
   init() {
     self._viewModel = StateObject(wrappedValue: AppMonitorViewModel(model: SelectAppsModel()))
   }
@@ -36,13 +31,13 @@ struct ScreenTimeAlertsSectionView: View {
   
   private var contentView: some View {
     VStack {
-      whatToBlockView
+      whatToMonitorView
     }
     .padding()
     .blurBackground()
   }
   
-  private var whatToBlockView: some View {
+  private var whatToMonitorView: some View {
     VStack(alignment: .leading, spacing: 16) {
       HStack {
         Text("Screen Time Alerts")
