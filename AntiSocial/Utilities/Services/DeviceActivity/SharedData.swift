@@ -11,7 +11,7 @@ import FamilyControls
 
 
 class SharedData {
-  static let defaultsGroup: UserDefaults? = UserDefaults(suiteName: "group.ScreenTimeTestApp.sharedData")
+  static let defaultsGroup: UserDefaults? = UserDefaults(suiteName: "group.com.app.antisocial.sharedData")
   //  let userDefaultsKey = "FamilyActivitySelection"
   
   enum Keys: String {
