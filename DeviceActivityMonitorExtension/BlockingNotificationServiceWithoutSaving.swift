@@ -53,8 +53,7 @@ final class BlockingNotificationServiceWithoutSaving: ObservableObject {
     // Set schedule
 //    DeviceActivityScheduleService.setSchedule(endHour: endHour, endMins: endMin)
 
-//    DeviceActivityService.shared.setShieldRestrictions()
-    DeviceActivityService.shared.startAppRestrictions()
+    DeviceActivityService.shared.setShieldRestrictions()
     
     // Log blocking sessions for each app
 //    let plannedDuration = TimeInterval(hours * 3600 + minutes * 60)
