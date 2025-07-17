@@ -73,6 +73,7 @@ struct AppBlockingSectionView: View {
         timeBlockedString = deviceActivityService.timeBlockedString
 
         if unlockDate <= Date() {
+          isBlocked = false
           BlockingNotificationService.shared.stopBlocking(selection: deviceActivityService.selectionToDiscourage)
         }
       }
@@ -308,7 +309,8 @@ struct AppBlockingSectionView: View {
   }
   
   private var swipeBlockView: some View {
-    SlideToTurnOnView(isBlocked: $isBlocked, isStrictBlock: $isStrictBlock)
+    SlideToTurnOnView(isBlocked: $isBlocked,
+                      isStrictBlock: $isStrictBlock)
       .disabled(isBlockButtonDisabled)
   }
   

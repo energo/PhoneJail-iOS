@@ -116,6 +116,7 @@
 				Screens/1_AppMonitor/Views/Sections/AppBlocking/MyRestrictionModel.swift,
 				Utilities/Constants/SharedDataConstants.swift,
 				"Utilities/Extensions/Color+Constants.swift",
+				Utilities/Services/DarwinNotificationManager.swift,
 				Utilities/Services/DeviceActivity/DeviceActivityScheduleService.swift,
 				Utilities/Services/DeviceActivity/DeviceActivityService.swift,
 				Utilities/Services/DeviceActivity/SharedData.swift,

@@ -12,18 +12,23 @@ import UserNotifications
 
 extension DeviceActivityName {
   static let daily = Self("daily")
+  static let appMonitoring = Self("Monitoring App")
 }
+
 extension DeviceActivityEvent.Name {
   static let Shield = Self("Shield.Discouraged")
+  static let Interruption = Self("Interruption App")
+  static let ScreenAlert = Self("Screen Alert")
 }
 
 class DeviceActivityScheduleService {
-  static public func setSchedule(endHour: Int, endMins: Int) {
+  static let center = DeviceActivityCenter()
+  
+  static func setSchedule(endHour: Int, endMins: Int) {
     let now = Date()
     let calendar = Calendar.current
     
     let startDate = now
-    
     let startComponents = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: startDate)
     let curHour = startComponents.hour ?? 0
     let curMins = startComponents.minute ?? 0
@@ -32,7 +37,6 @@ class DeviceActivityScheduleService {
     let month = startComponents.month ?? 1
     let day = startComponents.day ?? 1
     
-    // Вычисляем длительность блокировки в минутах
     let endDate = calendar.date(from: DateComponents(year: year, month: month, day: day, hour: endHour, minute: endMins))!
     let diffMinutes = Int(endDate.timeIntervalSince(startDate) / 60)
     let duration = DateComponents(minute: diffMinutes)
@@ -40,39 +44,23 @@ class DeviceActivityScheduleService {
     print("DeviceActivityScheduleService: Start time: \(startDate)")
     print("DeviceActivityScheduleService: End time: \(endDate)")
     print("DeviceActivityScheduleService: Duration in minutes: \(diffMinutes)")
-    print("DeviceActivityScheduleService: Duration components: \(duration)")
-
-    let notifCenter = UNUserNotificationCenter.current()
     
-    // Уведомление о начале
-    let startTrigger = UNCalendarNotificationTrigger(dateMatching: startComponents, repeats: false)
-    let startContent = UNMutableNotificationContent()
-    startContent.title = "Phone Jail"
-    startContent.body = "You've entered Restriction Mode! Good Luck!"
-    startContent.categoryIdentifier = "customIdentifier"
-    startContent.userInfo = ["customData": "fizzbuzz"]
-    startContent.sound = .default
-    let startRequest = UNNotificationRequest(identifier: UUID().uuidString, content: startContent, trigger: startTrigger)
-    notifCenter.add(startRequest) { error in
-      if let error = error { print("Start notification error:", error) }
-    }
+    // Schedule notifications
+    scheduleNotification(
+      title: "Phone Jail",
+      body: "You've entered Restriction Mode! Good Luck!",
+      dateComponents: startComponents
+    )
     
-    // Уведомление о конце
-    let endTrigger = UNCalendarNotificationTrigger(dateMatching: DateComponents(year: year, month: month, day: day, hour: endHour, minute: endMins), repeats: false)
-    let endContent = UNMutableNotificationContent()
-    endContent.title = "Phone Jail"
-    endContent.body = "Congrats! You've reached the end of Restriction Mode"
-    endContent.categoryIdentifier = "customIdentifier"
-    endContent.userInfo = ["customData": "fizzbuzz"]
-    endContent.sound = .default
-    let endRequest = UNNotificationRequest(identifier: UUID().uuidString, content: endContent, trigger: endTrigger)
-    notifCenter.add(endRequest) { error in
-      if let error = error { print("End notification error:", error) }
-    }
+    scheduleNotification(
+      title: "Phone Jail",
+      body: "Congrats! You've reached the end of Restriction Mode",
+      dateComponents: DateComponents(year: year, month: month, day: day, hour: endHour, minute: endMins)
+    )
     
     print("END TIME: \(endHour):\(endMins)")
     
-    // Применяем ограничения
+    // Apply restrictions
     DeviceActivityService.shared.setShieldRestrictions()
     
     let schedule = DeviceActivitySchedule(
@@ -81,6 +69,8 @@ class DeviceActivityScheduleService {
       repeats: false
     )
     
+    print("DeviceActivityScheduleService: Schedule: \(schedule)")
+    
     let events: [DeviceActivityEvent.Name: DeviceActivityEvent] = [
       .Shield: DeviceActivityEvent(
         applications: DeviceActivityService.shared.selectionToDiscourage.applicationTokens,
@@ -88,7 +78,6 @@ class DeviceActivityScheduleService {
       )
     ]
     
-    let center = DeviceActivityCenter()
     do {
       print("Try to start monitoring...")
       try center.startMonitoring(.daily, during: schedule, events: events)
@@ -98,7 +87,26 @@ class DeviceActivityScheduleService {
   }
   
   static func stopSchedule() {
-    let center = DeviceActivityCenter()
     center.stopMonitoring([.daily])
   }
+  
+  //MARK: - Notifications
+  private static func scheduleNotification(title: String, body: String, dateComponents: DateComponents) {
+    let content = UNMutableNotificationContent()
+    content.title = title
+    content.body = body
+    content.categoryIdentifier = "customIdentifier"
+    content.userInfo = ["customData": "fizzbuzz"]
+    content.sound = .default
+    
+    let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: false)
+    let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
+    
+    UNUserNotificationCenter.current().add(request) { error in
+      if let error = error {
+        print("Notification scheduling error: \(error)")
+      }
+    }
+  }
 }
+

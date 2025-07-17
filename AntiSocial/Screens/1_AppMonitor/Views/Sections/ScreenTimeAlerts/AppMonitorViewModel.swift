@@ -28,39 +28,16 @@ class AppMonitorViewModel: ObservableObject {
   @Published var pickerIsPresented = false
   @Published var showSocialMediaHint = false
   @Published var monitoredApps: [MonitoredApp] = []
-//  @Published var isAuthorized = false
+
   @Published var model: SelectAppsModel
-  @Published var stats: StatsData = StatsData(totalDuration: 0,
-                                              chartData: [],
-                                              focusedDuration: 0,
-                                              distractedDuration: 0,
-                                              appUsages: [])
-  
-//  private let isAuthorizedKey = "IsAuthorized"
-  
+  let center = DeviceActivityScheduleService.center
+
   init(model: SelectAppsModel) {
     self.model = model
   }
   
   @MainActor
   func onAppear() async {
-    // Загружаем статус авторизации
-//    isAuthorized = SharedData.defaultsGroup?.bool(forKey: isAuthorizedKey) ?? false
-//    
-//    // Проверяем, была ли уже дана авторизация
-//    if !isAuthorized {
-//      do {
-//        // Запрашиваем авторизацию, если её нет
-//        try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
-//        
-//        // Сохраняем статус авторизации
-//        isAuthorized = true
-//        SharedData.defaultsGroup?.set(true, forKey: isAuthorizedKey)
-//      } catch {
-//        print("Ошибка авторизации: \(error.localizedDescription)")
-//      }
-//    }
-    
     // Восстанавливаем все сохраненные приложения
     let allSelectedApps = SharedData.allSelectedFamilyActivity?.applicationTokens ?? Set<ApplicationToken>()
     let disabledApps = SharedData.disabledFamilyActivity?.applicationTokens ?? Set<ApplicationToken>()
@@ -95,7 +72,6 @@ class AppMonitorViewModel: ObservableObject {
       print("Нет приложений, показываем подсказку")
       showPickerWithInstructions()
     }
-    await loadStats()
   }
   
   func showSelectApps() {
@@ -142,16 +118,15 @@ class AppMonitorViewModel: ObservableObject {
       webDomains: model.activitySelection.webDomainTokens,
       threshold: DateComponents(minute: timeLimitMinutes))
     
-    let center = DeviceActivityCenter()
-    let activity = DeviceActivityName("MyApp.ScreenTime")
-    let eventName = DeviceActivityEvent.Name("MyApp.SomeEventName")
-    let schedule = getScheduleDeviceActivity()
+    let activity = DeviceActivityName.appMonitoring
+    let eventName = isInterruptionsEnabled ? DeviceActivityEvent.Name.Interruption : DeviceActivityEvent.Name.ScreenAlert
+    let schedule = schedule24h()
     
     DispatchQueue.main.async {
       do {
         print("startMonitoring \(activity)")
         
-        try center.startMonitoring(activity,
+        try self.center.startMonitoring(activity,
                                    during: schedule,
                                    events: [eventName: event])
       } catch let error {
@@ -161,7 +136,7 @@ class AppMonitorViewModel: ObservableObject {
   }
   
   func stopMonitoring() {
-    let activity = DeviceActivityName("MyApp.ScreenTime")
+    let activity = DeviceActivityName.appMonitoring
     let center = DeviceActivityCenter()
     center.stopMonitoring([activity])
     
@@ -177,8 +152,7 @@ class AppMonitorViewModel: ObservableObject {
     //      }
   }
   
-  
-  func getScheduleDeviceActivity() -> DeviceActivitySchedule {
+  func schedule24h() -> DeviceActivitySchedule {
     return DeviceActivitySchedule(
       intervalStart: DateComponents(hour: 0, minute: 0, second: 0),
       intervalEnd: DateComponents(hour: 23, minute: 59, second: 59),
@@ -244,12 +218,5 @@ class AppMonitorViewModel: ObservableObject {
     var enabledSelection = FamilyActivitySelection()
     enabledSelection.applicationTokens = enabledApps
     SharedData.selectedFamilyActivity = enabledSelection
-  }
-  
-  @MainActor
-  func loadStats() async {
-    // TODO: Реализовать сбор usage-данных через DeviceActivity API
-    // Здесь должна быть реальная агрегация usage, сейчас просто пустые значения
-    // stats = ...
   }
 }
