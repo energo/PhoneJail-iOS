@@ -51,7 +51,9 @@ final class BlockingNotificationServiceWithoutSaving: ObservableObject {
     WidgetCenter.shared.reloadAllTimelines()
 
     // Set schedule
-    DeviceActivityScheduleService.setSchedule(endHour: endHour, endMins: endMin)
+//    DeviceActivityScheduleService.setSchedule(endHour: endHour, endMins: endMin)
+
+    DeviceActivityService.shared.setShieldRestrictions()
 
     // Log blocking sessions for each app
     let plannedDuration = TimeInterval(hours * 3600 + minutes * 60)
@@ -106,14 +108,16 @@ final class BlockingNotificationServiceWithoutSaving: ObservableObject {
 //    }
 
     // Save real usage duration (legacy support)
-    if let startTimestamp = UserDefaults(suiteName: "group.ScreenTimeTestApp.sharedData")?.double(forKey: "restrictionStartTime") {
-      let duration = Date().timeIntervalSince1970 - startTimestamp
-      let today = Date()
-      for app in selection.applications {
-        FocusedTimeStatsStore.shared.saveUsage(for: app.localizedDisplayName ?? "App", date: today, duration: duration)
-      }
-      UserDefaults(suiteName: "group.ScreenTimeTestApp.sharedData")?.removeObject(forKey: "restrictionStartTime")
-    }
+//    if let startTimestamp = UserDefaults(suiteName: "group.ScreenTimeTestApp.sharedData")?.double(forKey: "restrictionStartTime") {
+//      let duration = Date().timeIntervalSince1970 - startTimestamp
+//      let today = Date()
+//      for app in selection.applications {
+//        FocusedTimeStatsStore.shared.saveUsage(for: app.localizedDisplayName ?? "App", date: today, duration: duration)
+//      }
+//      UserDefaults(suiteName: "group.ScreenTimeTestApp.sharedData")?.removeObject(forKey: "restrictionStartTime")
+//    }
+    
+    resetBlockingState()
   }
 
   func resetBlockingState() {
@@ -144,6 +148,9 @@ final class BlockingNotificationServiceWithoutSaving: ObservableObject {
     let calendar = Calendar.current
     if let endDate = calendar.date(byAdding: .minute, value: hourDuration * 60 + minuteDuration, to: now) {
       let comps = calendar.dateComponents([.hour, .minute], from: endDate)
+      print("BlockingNotificationServiceWithoutSaving: Start time: \(now)")
+      print("BlockingNotificationServiceWithoutSaving: End time: \(endDate)")
+      print("BlockingNotificationServiceWithoutSaving: End hour: \(comps.hour ?? 0), minute: \(comps.minute ?? 0)")
       return (comps.hour ?? 0, comps.minute ?? 0)
     }
     return (0, 0)

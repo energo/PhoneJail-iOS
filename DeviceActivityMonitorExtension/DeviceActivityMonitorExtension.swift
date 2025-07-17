@@ -71,13 +71,14 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     // Получаем сохранённые данные о выбранных приложениях
     if let selection = SharedData.selectedFamilyActivity {
 //      DarwinNotificationManager.shared.postNotification(name: "com.antisocial.Broadcast.eventDidReachThreshold")
-
-      BlockingNotificationServiceWithoutSaving.shared.startBlocking(
-        hours: 0 ,
-        minutes: 2,
-        selection: selection,
-        restrictionModel:  MyRestrictionModel()
-      )
+      if event.rawValue == DeviceActivityEvent.Name.Shield.rawValue {
+        BlockingNotificationServiceWithoutSaving.shared.startBlocking(
+          hours: 0 ,
+          minutes: 2,
+          selection: selection,
+          restrictionModel:  MyRestrictionModel()
+        )
+      }
       
       for application in selection.applications {
           // Проверим, доступно ли отображаемое имя (если система предоставляет)

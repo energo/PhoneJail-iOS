@@ -45,7 +45,7 @@ struct AppBlockingSectionView: View {
         BlockingNotificationService.shared.stopBlocking(selection: deviceActivityService.selectionToDiscourage)
         hours = 0
         minutes = 0
-        BlockingNotificationService.shared.resetBlockingState()
+//        BlockingNotificationService.shared.resetBlockingState()
       }
     }
     .onAppear {
@@ -73,7 +73,7 @@ struct AppBlockingSectionView: View {
         timeBlockedString = deviceActivityService.timeBlockedString
 
         if unlockDate <= Date() {
-          BlockingNotificationService.shared.resetBlockingState()
+          BlockingNotificationService.shared.stopBlocking(selection: deviceActivityService.selectionToDiscourage)
         }
       }
     }

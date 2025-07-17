@@ -107,14 +107,16 @@ final class BlockingNotificationService: ObservableObject {
     }
 
     // Save real usage duration (legacy support)
-    if let startTimestamp = UserDefaults(suiteName: "group.ScreenTimeTestApp.sharedData")?.double(forKey: "restrictionStartTime") {
-      let duration = Date().timeIntervalSince1970 - startTimestamp
-      let today = Date()
-      for app in selection.applications {
-        FocusedTimeStatsStore.shared.saveUsage(for: app.localizedDisplayName ?? "App", date: today, duration: duration)
-      }
-      UserDefaults(suiteName: "group.ScreenTimeTestApp.sharedData")?.removeObject(forKey: "restrictionStartTime")
-    }
+//    if let startTimestamp = UserDefaults(suiteName: "group.ScreenTimeTestApp.sharedData")?.double(forKey: "restrictionStartTime") {
+//      let duration = Date().timeIntervalSince1970 - startTimestamp
+//      let today = Date()
+//      for app in selection.applications {
+//        FocusedTimeStatsStore.shared.saveUsage(for: app.localizedDisplayName ?? "App", date: today, duration: duration)
+//      }
+//      UserDefaults(suiteName: "group.ScreenTimeTestApp.sharedData")?.removeObject(forKey: "restrictionStartTime")
+//    }
+    
+    resetBlockingState()
   }
 
   func resetBlockingState() {
