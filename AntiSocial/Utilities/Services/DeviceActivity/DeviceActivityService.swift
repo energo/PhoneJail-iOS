@@ -66,11 +66,20 @@ class DeviceActivityService: ObservableObject {
     }
   }
   
+  static var logDateFormat = "HH:mm:ss.SSS"
+  static var logDateFormatter: DateFormatter {
+      let formatter = DateFormatter()
+      formatter.dateFormat = logDateFormat
+      formatter.locale = Locale.autoupdatingCurrent
+      formatter.timeZone = TimeZone.autoupdatingCurrent
+      return formatter
+  }
+  
   var timeRemainingString: String {
     guard let unlockDate = unlockDate else { return "--:--:--" }
     
-    let dateFormatted = AppLogger.logDateFormatter.string(from: unlockDate)
-    AppLogger.notice("\n[MyModel] timeRemainingString: \(dateFormatted)")
+    let dateFormatted = DeviceActivityService.logDateFormatter.string(from: unlockDate)
+//    AppLogger.notice("\n[MyModel] timeRemainingString: \(dateFormatted)")
     
     let remaining = Int(unlockDate.timeIntervalSinceNow)
     if remaining <= 0 { return "00:00:00" }

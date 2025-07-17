@@ -1,5 +1,5 @@
 //
-//  ScreenTimeAlertsSectionView.swift
+//  AppInterruptionsSectionView.swift
 //  AntiSocial
 //
 //  Created by D C on 26.06.2025.
@@ -9,9 +9,9 @@ import SwiftUI
 import FamilyControls
 import ManagedSettings
 
-struct ScreenTimeAlertsSectionView: View {
+struct AppInterruptionsSectionView: View {
   @StateObject var viewModel: AppMonitorViewModel
-      
+    
   init() {
     self._viewModel = StateObject(wrappedValue: AppMonitorViewModel(model: SelectAppsModel()))
   }
@@ -19,7 +19,7 @@ struct ScreenTimeAlertsSectionView: View {
   var body: some View {
     contentView
       .task {
-        await viewModel.onAppear()        
+        await viewModel.onAppear()
       }
       .onChangeWithOldValue(of: viewModel.model.activitySelection, perform: { _, _ in
         viewModel.onActivitySelectionChange()
@@ -37,7 +37,7 @@ struct ScreenTimeAlertsSectionView: View {
   private var whatToMonitorView: some View {
     VStack(alignment: .leading, spacing: 16) {
       HStack {
-        Text("Screen Time Alerts")
+        Text("App interruptions")
           .foregroundColor(.white)
           .font(.headline)
         
@@ -47,7 +47,6 @@ struct ScreenTimeAlertsSectionView: View {
       }
       
       Button(action: {
-        //        isDiscouragedPresented = true
         viewModel.showSelectApps()
       }) {
         VStack(alignment: .leading, spacing: 8) {
@@ -137,7 +136,7 @@ struct ScreenTimeAlertsSectionView: View {
     }
     .frame(width: CGFloat(20 + (tokens.count - 1) * 12), height: 20)
   }
-  
+    
   private var bgBlur: some View {
     ZStack {
       BackdropBlurView(isBlack: false, radius: 10)
@@ -149,8 +148,46 @@ struct ScreenTimeAlertsSectionView: View {
   }
   
   private var startMonitorButton: some View {
-    Toggle("", isOn: $viewModel.isAlertEnabled)
+    Toggle("", isOn: $viewModel.isInterruptionsEnabled)
       .foregroundStyle(Color.white)
       .toggleStyle(SwitchToggleStyle(tint: .purple))
   }
+  
+//  private var monitoredAppsListView: some View {
+//    VStack(alignment: .leading, spacing: 8) {
+//      Text("Tracking apps")
+//        .font(.headline)
+//      
+//      ForEach(0..<viewModel.monitoredApps.count, id: \.self) { index in
+//        monitoredAppRow(app: viewModel.monitoredApps[index])
+//      }
+//      
+//      Button("Add more apps") {
+//        viewModel.showSelectApps()
+//      }
+//      .padding(.top, 8)
+//    }
+//    .padding()
+//    .background(Color.gray.opacity(0.1))
+//    .cornerRadius(10)
+//  }
+//  
+//  private func monitoredAppRow(app: MonitoredApp) -> some View {
+//    HStack {
+//      Label(app.token)
+//        .lineLimit(1)
+//        .truncationMode(.tail)
+//      
+//      Spacer()
+//      
+//      Toggle("", isOn: Binding(
+//        get: { app.isMonitored },
+//        set: { _ in
+//          viewModel.toggleAppMonitoring(app: app)
+//        }
+//      ))
+//      .labelsHidden()
+//    }
+//    .padding(.vertical, 4)
+//  }
 }

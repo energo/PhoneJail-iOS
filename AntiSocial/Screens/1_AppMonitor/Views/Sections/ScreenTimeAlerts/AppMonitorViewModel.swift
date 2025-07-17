@@ -15,6 +15,16 @@ class AppMonitorViewModel: ObservableObject {
       }
   }
   
+  @Published var isInterruptionsEnabled = false {
+      didSet {
+          if oldValue == false && isInterruptionsEnabled == true {
+              startMonitoring()
+          } else if oldValue == true && isInterruptionsEnabled == false {
+              stopMonitoring()
+          }
+      }
+  }
+
   @Published var pickerIsPresented = false
   @Published var showSocialMediaHint = false
   @Published var monitoredApps: [MonitoredApp] = []

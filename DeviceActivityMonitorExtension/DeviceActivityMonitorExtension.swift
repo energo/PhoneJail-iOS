@@ -48,8 +48,9 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     
     // Handle the start of the interval.
     print("intervalDidStart \n\(activity)")
-    DarwinNotificationManager.shared.postNotification(name: "com.yourapp.BroadcastStarted")
-    scheduleNotification(with: "The monitor is now running", details: "\(activity)")
+//    DarwinNotificationManager.shared.postNotification(name: "com.yourapp.BroadcastStarted")
+    
+    scheduleNotification(with: "The monitor is now running", details: "\(activity.rawValue)")
   }
   
   override func intervalDidEnd(for activity: DeviceActivityName) {
@@ -57,8 +58,8 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     
     // Handle the end of the interval.
     print("intervalDidEnd \n\(activity)")
-    DarwinNotificationManager.shared.postNotification(name: "com.yourapp.BroadcastStopped")
-    scheduleNotification(with: "The monitoring session has finished", details: "\(activity)")
+//    DarwinNotificationManager.shared.postNotification(name: "com.yourapp.BroadcastStopped")
+    scheduleNotification(with: "The monitoring session has finished", details: "\(activity.rawValue)")
   }
   
   override func eventDidReachThreshold(_ event: DeviceActivityEvent.Name, activity: DeviceActivityName) {
@@ -66,10 +67,18 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     
     // Handle the event reaching its threshold.
     print("eventDidReachThreshold \n\(activity)")
-    
-    
+
     // Получаем сохранённые данные о выбранных приложениях
     if let selection = SharedData.selectedFamilyActivity {
+//      DarwinNotificationManager.shared.postNotification(name: "com.antisocial.Broadcast.eventDidReachThreshold")
+
+      BlockingNotificationServiceWithoutSaving.shared.startBlocking(
+        hours: 0 ,
+        minutes: 2,
+        selection: selection,
+        restrictionModel:  MyRestrictionModel()
+      )
+      
       for application in selection.applications {
           // Проверим, доступно ли отображаемое имя (если система предоставляет)
         print("Приложение выбранные: \(application.localizedDisplayName)")

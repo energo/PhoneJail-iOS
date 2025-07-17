@@ -113,9 +113,13 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Models/AppUsage.swift,
+				Screens/1_AppMonitor/Views/Sections/AppBlocking/MyRestrictionModel.swift,
 				Utilities/Constants/SharedDataConstants.swift,
 				"Utilities/Extensions/Color+Constants.swift",
+				Utilities/Services/DeviceActivity/DeviceActivityScheduleService.swift,
+				Utilities/Services/DeviceActivity/DeviceActivityService.swift,
 				Utilities/Services/DeviceActivity/SharedData.swift,
+				Utilities/Services/Storage/Local/FocusedTimeStatsStore.swift,
 			);
 			target = 478055D52D5BE259003988E7 /* DeviceActivityMonitorExtension */;
 		};

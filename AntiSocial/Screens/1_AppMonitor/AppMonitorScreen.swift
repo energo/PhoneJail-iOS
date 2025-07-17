@@ -110,7 +110,11 @@ struct AppMonitorScreen: View {
   }
   
   private var screentimeAlertsSection: some View {
-    ScreenTimeAlertsSectionView()
+    VStack {
+      ScreenTimeAlertsSectionView()
+      
+      AppInterruptionsSectionView()
+    }
 //    VStack {
 //      ScreenTimeAlertsSectionView(
 //        viewModel: viewModel,
