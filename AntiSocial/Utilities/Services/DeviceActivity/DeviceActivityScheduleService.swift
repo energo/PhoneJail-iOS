@@ -16,9 +16,9 @@ extension DeviceActivityName {
 }
 
 extension DeviceActivityEvent.Name {
-  static let Block = Self("Block Apps")
-  static let Interruption = Self("Interruption App")
-  static let ScreenAlert = Self("Screen Alert")
+  static let block = Self("Block Apps")
+  static let interruption = Self("Interruption App")
+  static let screenAlert = Self("Screen Alert")
 }
 
 class DeviceActivityScheduleService {
@@ -57,9 +57,7 @@ class DeviceActivityScheduleService {
       body: "Congrats! You've reached the end of Restriction Mode",
       dateComponents: DateComponents(year: year, month: month, day: day, hour: endHour, minute: endMins)
     )
-    
-    print("END TIME: \(endHour):\(endMins)")
-    
+        
     // Apply restrictions
     DeviceActivityService.shared.setShieldRestrictions()
     
@@ -69,18 +67,31 @@ class DeviceActivityScheduleService {
       repeats: false
     )
     
+    let activity = DeviceActivityName.appBlocking
+    let eventName = DeviceActivityEvent.Name.block
+
+    
     print("DeviceActivityScheduleService: Schedule: \(schedule)")
     
-    let events: [DeviceActivityEvent.Name: DeviceActivityEvent] = [
-      .Block: DeviceActivityEvent(
-        applications: DeviceActivityService.shared.selectionToDiscourage.applicationTokens,
-        threshold: duration
-      )
-    ]
+//    let events: [DeviceActivityEvent.Name: DeviceActivityEvent] = [
+//      .Block: DeviceActivityEvent(
+//        applications: DeviceActivityService.shared.selectionToDiscourage.applicationTokens,
+//        threshold: duration
+//      )
+//    ]
+    let enabledTokens = DeviceActivityService.shared.selectionToDiscourage.applicationTokens
     
+    let event = DeviceActivityEvent(
+      applications: enabledTokens,
+      categories: DeviceActivityService.shared.selectionToDiscourage.categoryTokens,
+      webDomains: DeviceActivityService.shared.selectionToDiscourage.webDomainTokens,
+      threshold: duration)
+
     do {
       print("Try to start monitoring...")
-      try center.startMonitoring(.appBlocking, during: schedule, events: events)
+      try center.startMonitoring(activity,
+                                 during: schedule,
+                                 events: [eventName: event])
     } catch {
       print("Error monitoring schedule: ", error)
     }

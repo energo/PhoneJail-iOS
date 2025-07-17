@@ -47,10 +47,15 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     // Handle the event reaching its threshold.
     print("eventDidReachThreshold \n\(activity)")
     
+    if event.rawValue == DeviceActivityEvent.Name.block.rawValue {
+      DeviceActivityService.shared.stopAppRestrictions()
+      scheduleNotification(with: "Phone Jail", details: "Congrats! You've reached the end of Restriction Mode (eventDidReachThreshold)")
+    }
+
     // Получаем сохранённые данные о выбранных приложениях
     if let selection = SharedData.selectedFamilyActivity {
       //      DarwinNotificationManager.shared.postNotification(name: "com.antisocial.Broadcast.eventDidReachThreshold")
-      if event.rawValue == DeviceActivityEvent.Name.Interruption.rawValue {
+      if event.rawValue == DeviceActivityEvent.Name.interruption.rawValue {
         BlockingNotificationServiceWithoutSaving.shared.startBlocking(
           hours: 0 ,
           minutes: 2,
@@ -59,7 +64,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         )
       }
       
-      for application in selection.applications {        
+      for application in selection.applications {
         if let displayName = application.localizedDisplayName {
           print("Приложение достигло лимита: \(displayName)")
           scheduleNotification(with: "Hey! Time to take a break from this app", details: displayName)
