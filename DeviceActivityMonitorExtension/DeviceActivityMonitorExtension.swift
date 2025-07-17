@@ -30,9 +30,11 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     
     // Handle the end of the interval.
     print("intervalDidEnd \n\(activity)")
-    if activity.rawValue == DeviceActivityName.daily.rawValue {
-      DeviceActivityService.shared.stopAppRestrictions()
-    }
+//    if activity.rawValue == DeviceActivityName.daily.rawValue {
+//      DeviceActivityService.shared.stopAppRestrictions()
+//    }
+    
+    DeviceActivityService.shared.stopAppRestrictions()
     
     //    DarwinNotificationManager.shared.postNotification(name: "com.yourapp.BroadcastStopped")
     scheduleNotification(with: "The monitoring session has finished",
@@ -57,10 +59,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         )
       }
       
-      for application in selection.applications {
-        // Проверим, доступно ли отображаемое имя (если система предоставляет)
-        print("Приложение выбранные: \(application.localizedDisplayName)")
-        
+      for application in selection.applications {        
         if let displayName = application.localizedDisplayName {
           print("Приложение достигло лимита: \(displayName)")
           scheduleNotification(with: "Hey! Time to take a break from this app", details: displayName)

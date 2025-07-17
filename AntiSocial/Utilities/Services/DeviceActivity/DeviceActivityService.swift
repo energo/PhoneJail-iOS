@@ -164,6 +164,7 @@ class DeviceActivityService: ObservableObject {
   }
   
   func startAppRestrictions() {
+    stopAppRestrictions()
     setShieldRestrictions()
     store.media.denyExplicitContent = true
     store.application.denyAppRemoval = true

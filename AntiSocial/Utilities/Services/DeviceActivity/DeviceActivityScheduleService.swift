@@ -11,12 +11,12 @@ import DeviceActivity
 import UserNotifications
 
 extension DeviceActivityName {
-  static let daily = Self("daily")
+  static let appBlocking = Self("Block Apps")
   static let appMonitoring = Self("Monitoring App")
 }
 
 extension DeviceActivityEvent.Name {
-  static let Shield = Self("Shield.Discouraged")
+  static let Block = Self("Block Apps")
   static let Interruption = Self("Interruption App")
   static let ScreenAlert = Self("Screen Alert")
 }
@@ -72,7 +72,7 @@ class DeviceActivityScheduleService {
     print("DeviceActivityScheduleService: Schedule: \(schedule)")
     
     let events: [DeviceActivityEvent.Name: DeviceActivityEvent] = [
-      .Shield: DeviceActivityEvent(
+      .Block: DeviceActivityEvent(
         applications: DeviceActivityService.shared.selectionToDiscourage.applicationTokens,
         threshold: duration
       )
@@ -80,14 +80,14 @@ class DeviceActivityScheduleService {
     
     do {
       print("Try to start monitoring...")
-      try center.startMonitoring(.daily, during: schedule, events: events)
+      try center.startMonitoring(.appBlocking, during: schedule, events: events)
     } catch {
       print("Error monitoring schedule: ", error)
     }
   }
   
   static func stopSchedule() {
-    center.stopMonitoring([.daily])
+    center.stopMonitoring([.appBlocking])
   }
   
   //MARK: - Notifications
