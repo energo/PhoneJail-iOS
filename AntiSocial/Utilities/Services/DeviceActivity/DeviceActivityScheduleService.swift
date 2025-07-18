@@ -57,44 +57,67 @@ class DeviceActivityScheduleService {
       body: "Congrats! You've reached the end of Restriction Mode",
       dateComponents: DateComponents(year: year, month: month, day: day, hour: endHour, minute: endMins)
     )
-        
-    // Apply restrictions
-    DeviceActivityService.shared.setShieldRestrictions()
-    
-    let schedule = DeviceActivitySchedule(
-      intervalStart: DateComponents(hour: curHour, minute: curMins),
-      intervalEnd: DateComponents(hour: endHour, minute: endMins),
-      repeats: false
+          
+    let intervalEnd = Calendar.current.dateComponents(
+        [.hour, .minute, .second],
+        from: Calendar.current.date(byAdding: .minute, value: diffMinutes, to: Date.now) ?? Date.now
     )
     
+    let schedule = DeviceActivitySchedule(
+        intervalStart: DateComponents(hour: 0, minute: 0),
+        intervalEnd: intervalEnd,
+        repeats: false
+    )
+     
     let activity = DeviceActivityName.appBlocking
     let eventName = DeviceActivityEvent.Name.block
-
     
-    print("DeviceActivityScheduleService: Schedule: \(schedule)")
-    
-//    let events: [DeviceActivityEvent.Name: DeviceActivityEvent] = [
-//      .Block: DeviceActivityEvent(
-//        applications: DeviceActivityService.shared.selectionToDiscourage.applicationTokens,
-//        threshold: duration
-//      )
-//    ]
     let enabledTokens = DeviceActivityService.shared.selectionToDiscourage.applicationTokens
-    
-    let event = DeviceActivityEvent(
-      applications: enabledTokens,
-      categories: DeviceActivityService.shared.selectionToDiscourage.categoryTokens,
-      webDomains: DeviceActivityService.shared.selectionToDiscourage.webDomainTokens,
-      threshold: duration)
 
-    do {
-      print("Try to start monitoring...")
-      try center.startMonitoring(activity,
-                                 during: schedule,
-                                 events: [eventName: event])
-    } catch {
-      print("Error monitoring schedule: ", error)
+    let event: [DeviceActivityEvent.Name: DeviceActivityEvent] = [ eventName : DeviceActivityEvent(applications: enabledTokens, threshold: DateComponents(minute: diffMinutes))
+    ]
+         
+    DispatchQueue.main.async {
+      do {
+        DeviceActivityService.shared.setShieldRestrictions()
+        
+        try center.startMonitoring(activity,
+                                   during: schedule,
+                                   events: event)
+      } catch {
+        print("Error monitoring schedule: \(error)")
+      }
     }
+//    // Apply restrictions
+//    DeviceActivityService.shared.setShieldRestrictions()
+//    
+//    let schedule = DeviceActivitySchedule(
+//      intervalStart: DateComponents(hour: curHour, minute: curMins),
+//      intervalEnd: DateComponents(hour: endHour, minute: endMins),
+//      repeats: false
+//    )
+//    
+//    let activity = DeviceActivityName.appBlocking
+//    let eventName = DeviceActivityEvent.Name.block
+//    
+//    print("DeviceActivityScheduleService: Schedule: \(schedule)")
+//
+//    let enabledTokens = DeviceActivityService.shared.selectionToDiscourage.applicationTokens
+//    
+//    let event = DeviceActivityEvent(
+//      applications: enabledTokens,
+//      categories: DeviceActivityService.shared.selectionToDiscourage.categoryTokens,
+//      webDomains: DeviceActivityService.shared.selectionToDiscourage.webDomainTokens,
+//      threshold: duration)
+//
+//    do {
+//      print("Try to start monitoring...")
+//      try center.startMonitoring(activity,
+//                                 during: schedule,
+//                                 events: [eventName: event])
+//    } catch {
+//      print("Error monitoring schedule: ", error)
+//    }
   }
   
   static func stopSchedule() {

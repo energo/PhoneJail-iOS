@@ -51,9 +51,9 @@ final class BlockingNotificationServiceWithoutSaving: ObservableObject {
     WidgetCenter.shared.reloadAllTimelines()
 
     // Set schedule
-//    DeviceActivityScheduleService.setSchedule(endHour: endHour, endMins: endMin)
+    DeviceActivityScheduleService.setSchedule(endHour: endHour, endMins: endMin)
 
-    DeviceActivityService.shared.setShieldRestrictions()
+//    DeviceActivityService.shared.setShieldRestrictions()
     
     // Log blocking sessions for each app
 //    let plannedDuration = TimeInterval(hours * 3600 + minutes * 60)

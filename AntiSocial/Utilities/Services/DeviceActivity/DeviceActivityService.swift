@@ -9,11 +9,16 @@ struct AppEntity: Codable, Identifiable {
   var name: String
 }
 
+
+extension ManagedSettingsStore.Name {
+  static let mySettingStore = Self("mySettingStore")
+}
+
 class DeviceActivityService: ObservableObject {
   // MARK: - Settings Store
   let store = ManagedSettingsStore(named: .mySettingStore)
   static let shared = DeviceActivityService()
-  
+
   // MARK: - Published Properties
   @Published var selectionToDiscourage: FamilyActivitySelection
   @Published var selectionToEncourage: FamilyActivitySelection
@@ -44,7 +49,7 @@ class DeviceActivityService: ObservableObject {
   }
   
   // MARK: - Init
-  init() {
+ private init() {
     selectionToDiscourage = FamilyActivitySelection()
     selectionToEncourage = FamilyActivitySelection()
     loadApps()
@@ -78,7 +83,7 @@ class DeviceActivityService: ObservableObject {
   var timeRemainingString: String {
     guard let unlockDate = unlockDate else { return "--:--:--" }
     
-    let dateFormatted = DeviceActivityService.logDateFormatter.string(from: unlockDate)
+//    let dateFormatted = DeviceActivityService.logDateFormatter.string(from: unlockDate)
 //    AppLogger.notice("\n[MyModel] timeRemainingString: \(dateFormatted)")
     
     let remaining = Int(unlockDate.timeIntervalSinceNow)
@@ -180,14 +185,8 @@ class DeviceActivityService: ObservableObject {
   func countSelectedAppCategory() -> Int {
     return selectionToDiscourage.categoryTokens.count
   }
+  
   func countSelectedApp() -> Int {
     return selectionToDiscourage.applicationTokens.count
   }
-  
-  // MARK: - Singleton
-  class var sharedInstance: DeviceActivityService { shared }
-}
-
-extension ManagedSettingsStore.Name {
-  static let mySettingStore = Self("mySettingStore")
 }
