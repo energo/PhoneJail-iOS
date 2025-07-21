@@ -66,6 +66,6 @@ workflows:
             else
               echo "✅ Found dSYM: $dsymPath"
               $HOME/Library/Developer/Xcode/DerivedData/**/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/upload-symbols \
-                -gsp "$CM_BUILD_DIR/ios/DoThisNow/GoogleService-Info.plist" \
+                -gsp "$CM_BUILD_DIR/GoogleService-Info.plist" \
                 -p ios "$dsymPath"
             fi
