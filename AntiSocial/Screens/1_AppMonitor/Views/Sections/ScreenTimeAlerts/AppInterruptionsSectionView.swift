@@ -12,6 +12,8 @@ import ManagedSettings
 struct AppInterruptionsSectionView: View {
   @StateObject var viewModel: AppMonitorViewModel
   
+  @State private var isExpanded: Bool = true
+
   init() {
     self._viewModel = StateObject(wrappedValue: AppMonitorViewModel(model: SelectAppsModel()))
   }
@@ -53,22 +55,43 @@ struct AppInterruptionsSectionView: View {
   private var whatToMonitorView: some View {
     VStack(alignment: .leading, spacing: 16) {
       HStack {
-        Text("App interruptions")
-          .foregroundColor(.white)
-          .font(.system(size: 16, weight: .regular))
+        Button(action: {
+          withAnimation(.easeInOut(duration: 0.3)) {
+            isExpanded.toggle()
+          }
+        }) {
+          HStack(spacing: 4) {
+            Text("App Interruptions")
+              .foregroundColor(.white)
+              .font(.system(size: 16, weight: .regular))
+            
+            Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+              .foregroundColor(.white.opacity(0.6))
+              .font(.system(size: 12, weight: .semibold))
+          }
+        }
         
         Spacer()
         
         startMonitorButton
       }
       
-      frequencyView
-      
-      selectorAppsView
-      bottomTextView
+      if isExpanded {
+        Group {
+          frequencyView
+          selectorAppsView
+          bottomTextView
+        }
+        .transition(
+          .asymmetric(
+            insertion: .opacity.combined(with: .scale(scale: 0.95, anchor: .top)),
+            removal: .opacity.combined(with: .scale(scale: 0.95, anchor: .top))
+          )
+        )
+      }
     }
   }
-  
+
   private var selectorAppsView: some View {
     Button(action: {
       viewModel.showSelectApps()

@@ -11,7 +11,8 @@ import ManagedSettings
 
 struct ScreenTimeAlertsSectionView: View {
   @StateObject var viewModel: AppMonitorViewModel
-      
+  @State private var isExpanded: Bool = true
+
   init() {
     self._viewModel = StateObject(wrappedValue: AppMonitorViewModel(model: SelectAppsModel()))
   }
@@ -47,20 +48,40 @@ struct ScreenTimeAlertsSectionView: View {
   private var whatToMonitorView: some View {
     VStack(alignment: .leading, spacing: 16) {
       HStack {
-        Text("Screen Time Alerts")
-          .foregroundColor(.white)
-          .font(.system(size: 16, weight: .regular))
-
+        Button(action: {
+          withAnimation(.easeInOut(duration: 0.3)) {
+            isExpanded.toggle()
+          }
+        }) {
+          HStack(spacing: 4) {
+            Text("Screen Time Alerts")
+              .foregroundColor(.white)
+              .font(.system(size: 16, weight: .regular))
+            
+            Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+              .foregroundColor(.white.opacity(0.6))
+              .font(.system(size: 12, weight: .semibold))
+          }
+        }
+        
         Spacer()
         
         startMonitorButton
       }
       
-      selectAppView
-      
-      bottomTextView
-      
-      notifyView
+      if isExpanded {
+        Group {
+          selectAppView
+          bottomTextView
+          notifyView
+        }
+        .transition(
+          .asymmetric(
+            insertion: .opacity.combined(with: .scale(scale: 0.95, anchor: .top)),
+            removal: .opacity.combined(with: .scale(scale: 0.95, anchor: .top))
+          )
+        )
+      }
     }
   }
   

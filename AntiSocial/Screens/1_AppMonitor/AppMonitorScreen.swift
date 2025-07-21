@@ -98,10 +98,11 @@ struct AppMonitorScreen: View {
   
   private var screentimeAlertsSection: some View {
     VStack {
-      ScreenTimeAlertsSectionView()
-      separatorView
-        .padding(.horizontal, 20)
       AppInterruptionsSectionView()
+
+      separatorView.padding(.horizontal, 20)
+      
+      ScreenTimeAlertsSectionView()
     }
 //    .padding()
     .blurBackground()
