@@ -31,14 +31,29 @@ class AppMonitorViewModel: ObservableObject {
 
   @Published var model: SelectAppsModel
   
-  @Published var selectedFrequency: FrequencyOption
+  @Published var selectedFrequency: FrequencyOption {
+    didSet {
+      SharedData.selectedInterraptedTimePeriods = selectedFrequency.minutes
+    }
+  }
   @Published var selectedTime: TimeIntervalOption
 
   let center = DeviceActivityScheduleService.center
 
+  //MARK: - Init Method
   init(model: SelectAppsModel) {
     self.model = model
-    self.selectedFrequency = FrequencyOption.frequencyOptions[1]
+//    self.selectedFrequency = FrequencyOption.frequencyOptions[1]
+    // Загружаем saved minutes из SharedData
+    let savedMinutes = SharedData.selectedInterraptedTimePeriods
+
+    // Ищем FrequencyOption с таким же числом минут
+    if let matched = FrequencyOption.frequencyOptions.first(where: { $0.minutes == savedMinutes }) {
+      self.selectedFrequency = matched
+    } else {
+      self.selectedFrequency = FrequencyOption.frequencyOptions[1] // default (e.g., Often)
+    }
+
     self.selectedTime = TimeIntervalOption.timeOptions[1]
   }
   
@@ -83,17 +98,7 @@ class AppMonitorViewModel: ObservableObject {
   func showSelectApps() {
     self.pickerIsPresented = true
   }
-  
-//  func showPickerWithInstructions() {
-//    // Показываем подсказку
-//    showSocialMediaHint = true
-//    
-//    // Показываем picker для выбора приложений
-//    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-//      self.pickerIsPresented = true
-//    }
-//  }
-  
+
   func onActivitySelectionChange() {
     print("Изменился выбор приложений в модели")
     updateMonitoredAppsList()
@@ -108,7 +113,7 @@ class AppMonitorViewModel: ObservableObject {
   }
   
   func startMonitoring() {
-    let timeLimitMinutes = 2
+    let timeLimitMinutes = selectedTime.minutes
     
     print("startMonitoring timeLimitMinutes: \(timeLimitMinutes)")
     

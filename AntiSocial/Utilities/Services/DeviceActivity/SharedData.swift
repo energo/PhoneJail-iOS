@@ -18,6 +18,17 @@ class SharedData {
     
     static let selectedFamilyActivity = "FamilyActivitySelection"
     static let tokenToDisplayName = "AppTokenDisplayNames"
+    
+    static let selectedInterraptedTimePeriods = "SelectedInterraptedTimePeriods"
+  }
+  
+  static var selectedInterraptedTimePeriods: Int {
+    get {
+      defaultsGroup?.integer(forKey: Keys.selectedInterraptedTimePeriods) ?? 0
+    }
+    set {
+      defaultsGroup?.set(newValue, forKey: Keys.selectedInterraptedTimePeriods)
+    }
   }
   
   static var selectedFamilyActivity: FamilyActivitySelection? {

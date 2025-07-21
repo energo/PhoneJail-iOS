@@ -11,13 +11,14 @@ import SwiftUI
 struct FrequencyOption: Identifiable, Hashable {
   let id = UUID()
   let label: String
+  let minutes: Int
 }
 
 extension FrequencyOption {
   static  let frequencyOptions = [
-    FrequencyOption(label: "Rarely"),
-    FrequencyOption(label: "Often"),
-    FrequencyOption(label: "Always")
+    FrequencyOption(label: "Rarely", minutes: 90),
+    FrequencyOption(label: "Often", minutes: 30),
+    FrequencyOption(label: "Very Often", minutes: 10)
   ]
 }
 

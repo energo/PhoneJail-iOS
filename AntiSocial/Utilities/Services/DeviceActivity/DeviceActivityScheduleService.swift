@@ -30,8 +30,8 @@ class DeviceActivityScheduleService {
     
     let startDate = now
     let startComponents = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: startDate)
-    let curHour = startComponents.hour ?? 0
-    let curMins = startComponents.minute ?? 0
+//    let curHour = startComponents.hour ?? 0
+//    let curMins = startComponents.minute ?? 0
     
     let year = startComponents.year ?? 1
     let month = startComponents.month ?? 1
@@ -39,7 +39,7 @@ class DeviceActivityScheduleService {
     
     let endDate = calendar.date(from: DateComponents(year: year, month: month, day: day, hour: endHour, minute: endMins))!
     let diffMinutes = Int(endDate.timeIntervalSince(startDate) / 60)
-    let duration = DateComponents(minute: diffMinutes)
+//    let duration = DateComponents(minute: diffMinutes)
     
     print("DeviceActivityScheduleService: Start time: \(startDate)")
     print("DeviceActivityScheduleService: End time: \(endDate)")
