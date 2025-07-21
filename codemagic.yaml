@@ -14,7 +14,7 @@ workflows:
         XCODE_WORKSPACE: "AntiSocial.xcodeproj"
         XCODE_SCHEME: "AntiSocial"
         APP_STORE_APPLE_ID: 6747712365
-      xcode: 16.2
+      xcode: 16.4
       cocoapods: default
     scripts:
       - name: Set up provisioning profiles
