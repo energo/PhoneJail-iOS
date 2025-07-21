@@ -30,6 +30,8 @@ struct TimeIntervalOption: Identifiable, Hashable {
 
 extension TimeIntervalOption {
   static let timeOptions = [
+    TimeIntervalOption(minutes: 5),
+    TimeIntervalOption(minutes: 10),
     TimeIntervalOption(minutes: 15),
     TimeIntervalOption(minutes: 30),
     TimeIntervalOption(minutes: 60)

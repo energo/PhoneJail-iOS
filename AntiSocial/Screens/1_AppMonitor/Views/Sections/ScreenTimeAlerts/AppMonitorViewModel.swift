@@ -6,29 +6,29 @@ import DeviceActivity
 
 class AppMonitorViewModel: ObservableObject {
   @Published var isAlertEnabled = false {
-      didSet {
-          if oldValue == false && isAlertEnabled == true {
-              startMonitoring()
-          } else if oldValue == true && isAlertEnabled == false {
-              stopMonitoring()
-          }
+    didSet {
+      if oldValue == false && isAlertEnabled == true {
+        startMonitoring()
+      } else if oldValue == true && isAlertEnabled == false {
+        stopMonitoring()
       }
+    }
   }
   
   @Published var isInterruptionsEnabled = false {
-      didSet {
-          if oldValue == false && isInterruptionsEnabled == true {
-              startMonitoring()
-          } else if oldValue == true && isInterruptionsEnabled == false {
-              stopMonitoring()
-          }
+    didSet {
+      if oldValue == false && isInterruptionsEnabled == true {
+        startMonitoring()
+      } else if oldValue == true && isInterruptionsEnabled == false {
+        stopMonitoring()
       }
+    }
   }
-
+  
   @Published var pickerIsPresented = false
   @Published var showSocialMediaHint = false
   @Published var monitoredApps: [MonitoredApp] = []
-
+  
   @Published var model: SelectAppsModel
   
   @Published var selectedFrequency: FrequencyOption {
@@ -36,25 +36,35 @@ class AppMonitorViewModel: ObservableObject {
       SharedData.selectedInterraptedTimePeriods = selectedFrequency.minutes
     }
   }
-  @Published var selectedTime: TimeIntervalOption
-
+  
+  @Published var selectedTime: TimeIntervalOption {
+    didSet {
+      SharedData.selectedScreenAlertTimePeriods = selectedTime.minutes
+    }
+  }
+  
   let center = DeviceActivityScheduleService.center
-
+  
   //MARK: - Init Method
   init(model: SelectAppsModel) {
     self.model = model
-//    self.selectedFrequency = FrequencyOption.frequencyOptions[1]
-    // Загружаем saved minutes из SharedData
-    let savedMinutes = SharedData.selectedInterraptedTimePeriods
-
+    let saveInterraptedTimePeriods = SharedData.selectedInterraptedTimePeriods
+    
     // Ищем FrequencyOption с таким же числом минут
-    if let matched = FrequencyOption.frequencyOptions.first(where: { $0.minutes == savedMinutes }) {
+    if let matched = TimeIntervalOption.timeOptions.first(where: { $0.minutes == saveInterraptedTimePeriods }) {
+      self.selectedTime = matched
+    } else {
+      self.selectedTime = TimeIntervalOption.timeOptions[1] // default (e.g., Often)
+    }
+    
+    let selectedScreenAlertTimePeriods = SharedData.selectedScreenAlertTimePeriods
+    
+    // Ищем FrequencyOption с таким же числом минут
+    if let matched = FrequencyOption.frequencyOptions.first(where: { $0.minutes == selectedScreenAlertTimePeriods }) {
       self.selectedFrequency = matched
     } else {
       self.selectedFrequency = FrequencyOption.frequencyOptions[1] // default (e.g., Often)
     }
-
-    self.selectedTime = TimeIntervalOption.timeOptions[1]
   }
   
   @MainActor
@@ -91,14 +101,14 @@ class AppMonitorViewModel: ObservableObject {
     } else {
       // Если нет приложений, показываем пикер
       print("Нет приложений, показываем подсказку")
-//      showPickerWithInstructions()
+      //      showPickerWithInstructions()
     }
   }
   
   func showSelectApps() {
     self.pickerIsPresented = true
   }
-
+  
   func onActivitySelectionChange() {
     print("Изменился выбор приложений в модели")
     updateMonitoredAppsList()
@@ -113,7 +123,7 @@ class AppMonitorViewModel: ObservableObject {
   }
   
   func startMonitoring() {
-    let timeLimitMinutes = selectedTime.minutes
+    let timeLimitMinutes = isInterruptionsEnabled ? selectedFrequency.minutes : selectedTime.minutes
     
     print("startMonitoring timeLimitMinutes: \(timeLimitMinutes)")
     
@@ -138,8 +148,8 @@ class AppMonitorViewModel: ObservableObject {
         print("startMonitoring \(activity)")
         
         try self.center.startMonitoring(activity,
-                                   during: schedule,
-                                   events: [eventName: event])
+                                        during: schedule,
+                                        events: [eventName: event])
       } catch let error {
         print("center.startMonitoring error \(error.localizedDescription)")
       }

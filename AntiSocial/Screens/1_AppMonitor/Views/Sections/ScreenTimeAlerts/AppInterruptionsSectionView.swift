@@ -47,7 +47,7 @@ struct AppInterruptionsSectionView: View {
   }
   
   private var bottomTextView: some View {
-    Text("During use, chosen apps will be blocked for 30 seconds at random intervals.")
+    Text("During use, chosen apps will be blocked for 60 seconds at random intervals.")
       .foregroundColor(Color.as_light_blue)
       .font(.system(size: 10, weight: .regular))
   }

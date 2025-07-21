@@ -21,7 +21,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     print("intervalDidStart \n\(activity)")
     //    DarwinNotificationManager.shared.postNotification(name: "com.yourapp.BroadcastStarted")
     
-    scheduleNotification(with: "The monitor is now running",
+    scheduleNotification(with: "The monitoring session has started",
                          details: "\(activity.rawValue)")
   }
   
@@ -56,6 +56,9 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     if let selection = SharedData.selectedFamilyActivity {
       //      DarwinNotificationManager.shared.postNotification(name: "com.antisocial.Broadcast.eventDidReachThreshold")
       if event.rawValue == DeviceActivityEvent.Name.interruption.rawValue {
+        
+        scheduleNotification(with: "Phone Jail", details: "Interruption has started! Time to take a break from this app!")
+
         BlockingNotificationServiceWithoutSaving.shared.startBlocking(
           hours: 0 ,
           minutes: 2,
