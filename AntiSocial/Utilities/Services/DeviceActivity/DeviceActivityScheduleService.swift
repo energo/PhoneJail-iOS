@@ -55,7 +55,11 @@ class DeviceActivityScheduleService {
     scheduleNotification(
       title: "Phone Jail",
       body: "Congrats! You've reached the end of Restriction Mode",
-      dateComponents: DateComponents(year: year, month: month, day: day, hour: endHour, minute: endMins)
+      dateComponents: DateComponents(year: year,
+                                     month: month,
+                                     day: day,
+                                     hour: endHour,
+                                     minute: endMins)
     )
           
     let intervalEnd = Calendar.current.dateComponents(
