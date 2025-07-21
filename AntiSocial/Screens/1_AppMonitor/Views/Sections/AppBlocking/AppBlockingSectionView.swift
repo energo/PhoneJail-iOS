@@ -187,8 +187,8 @@ struct AppBlockingSectionView: View {
   
   private var headerView: some View {
     Text("App Blocking")
-      .font(.headline)
-      .foregroundStyle(Color.white)
+      .foregroundColor(.white)
+      .font(.system(size: 16, weight: .regular))
   }
   
   private var durationSection: some View {
@@ -207,8 +207,8 @@ struct AppBlockingSectionView: View {
     VStack(alignment: .leading, spacing: 16) {
       Text("What to Block")
         .foregroundColor(.white)
-        .font(.headline)
-      
+        .font(.system(size: 16, weight: .regular))
+
       Button(action: {
         isDiscouragedPresented = true
       }) {

@@ -31,8 +31,8 @@ struct ActivityReportView: View {
       
       HStack {
         Text("Stats")
-          .font(.title2).bold()
-          .foregroundStyle(.white)
+          .foregroundColor(.white)
+          .font(.system(size: 16, weight: .regular))
         Spacer()
       }
       .padding(.bottom, 16)

@@ -60,14 +60,14 @@ struct AppInterruptionsSectionView: View {
             isExpanded.toggle()
           }
         }) {
-          HStack(spacing: 4) {
+          HStack(spacing: 8) {
             Text("App Interruptions")
               .foregroundColor(.white)
               .font(.system(size: 16, weight: .regular))
             
             Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-              .foregroundColor(.white.opacity(0.6))
-              .font(.system(size: 12, weight: .semibold))
+              .foregroundColor(.white)
+              .font(.system(size: 16, weight: .semibold))
           }
         }
         
