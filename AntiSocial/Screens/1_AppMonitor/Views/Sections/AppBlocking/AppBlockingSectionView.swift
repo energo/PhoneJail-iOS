@@ -188,7 +188,7 @@ struct AppBlockingSectionView: View {
   private var headerView: some View {
     Text("App Blocking")
       .foregroundColor(.white)
-      .font(.system(size: 16, weight: .regular))
+      .font(.system(size: 19, weight: .medium))
   }
   
   private var durationSection: some View {
