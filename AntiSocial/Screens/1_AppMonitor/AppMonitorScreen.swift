@@ -18,6 +18,7 @@ import RevenueCat
 
 struct AppMonitorScreen: View {
   @EnvironmentObject var subscriptionManager: SubscriptionManager
+  @EnvironmentObject var familyControlsManager: FamilyControlsManager
   @StateObject private var restrictionModel = MyRestrictionModel()
   
   @State private var isShowingProfile: Bool = false
@@ -48,6 +49,10 @@ struct AppMonitorScreen: View {
     })
     .task {
       await AppBlockingLogger.shared.refreshAllData()
+      
+      await MainActor.run {
+          familyControlsManager.requestAuthorization()
+      }
     }
     .presentPaywallIfNeeded(
       requiredEntitlementIdentifier: SubscriptionManager.Constants.entitlementID,

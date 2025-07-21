@@ -37,6 +37,7 @@ struct AntiSocialApp: App {
   @StateObject private var authVM = AuthenticationViewModel(subscriptionManager: SubscriptionManager.shared)
   @StateObject private var subscriptionManager = SubscriptionManager.shared
   @StateObject private var deviceActivityService = DeviceActivityService.shared
+  @StateObject private var familyControlsManager = FamilyControlsManager.shared
 
     var body: some Scene {
         WindowGroup {
@@ -45,6 +46,7 @@ struct AntiSocialApp: App {
             .environmentObject(authVM)
             .environmentObject(subscriptionManager)
             .environmentObject(deviceActivityService)
+            .environmentObject(familyControlsManager)
 //            .task {
 //              LocalNotificationManager.shared.requestAuthorization { isNotificationAuthed in
 //                AppLogger.trace("isNotificationAuthed \(isNotificationAuthed)")
