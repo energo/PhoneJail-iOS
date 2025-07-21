@@ -56,12 +56,15 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     if let selection = SharedData.selectedFamilyActivity {
       //      DarwinNotificationManager.shared.postNotification(name: "com.antisocial.Broadcast.eventDidReachThreshold")
       if event.rawValue == DeviceActivityEvent.Name.interruption.rawValue {
+        let interruptionMinutes = 2
+        let interruptionHours = 0
         
-        scheduleNotification(with: "Phone Jail", details: "Interruption has started! Time to take a break from this app!")
+        scheduleNotification(with: "Phone Jail",
+                             details: "Interruption has started! Time to take a break from this app!")
 
         BlockingNotificationServiceWithoutSaving.shared.startBlocking(
-          hours: 0 ,
-          minutes: 2,
+          hours: interruptionHours,
+          minutes: interruptionMinutes,
           selection: selection,
           restrictionModel:  MyRestrictionModel()
         )
