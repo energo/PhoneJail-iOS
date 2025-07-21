@@ -37,8 +37,8 @@ struct AppMonitorScreen: View {
           VStack(spacing: 16) {
             Spacer().frame(height: UIScreen.main.bounds.height * 0.3)
             appBlockingSection
-            screentimeAlertsSection
             statsSection
+            screentimeAlertsSection
           }
         }
         .padding(.horizontal, 20)
