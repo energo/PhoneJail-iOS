@@ -51,7 +51,7 @@ struct OnboardingPage<MainContent: View>: View {
         .foregroundColor(.white)
     }
     .padding(.horizontal, 24)
-    .padding(.bottom, 16)
+    .padding(.bottom, 64)
     .opacity(showText ? 1 : 0)
   }
   
