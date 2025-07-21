@@ -65,7 +65,7 @@ struct AppInterruptionsSectionView: View {
               .foregroundColor(.white)
               .font(.system(size: 16, weight: .regular))
             
-            Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+            Image(systemName: isExpanded ? "chevron.down" : "chevron.up")
               .foregroundColor(.white)
               .font(.system(size: 16, weight: .semibold))
           }
