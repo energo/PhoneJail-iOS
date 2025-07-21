@@ -30,10 +30,16 @@ class AppMonitorViewModel: ObservableObject {
   @Published var monitoredApps: [MonitoredApp] = []
 
   @Published var model: SelectAppsModel
+  
+  @Published var selectedFrequency: FrequencyOption
+  @Published var selectedTime: TimeIntervalOption
+
   let center = DeviceActivityScheduleService.center
 
   init(model: SelectAppsModel) {
     self.model = model
+    self.selectedFrequency = FrequencyOption.frequencyOptions[1]
+    self.selectedTime = TimeIntervalOption.timeOptions[1]
   }
   
   @MainActor
@@ -70,7 +76,7 @@ class AppMonitorViewModel: ObservableObject {
     } else {
       // Если нет приложений, показываем пикер
       print("Нет приложений, показываем подсказку")
-      showPickerWithInstructions()
+//      showPickerWithInstructions()
     }
   }
   
@@ -78,15 +84,15 @@ class AppMonitorViewModel: ObservableObject {
     self.pickerIsPresented = true
   }
   
-  func showPickerWithInstructions() {
-    // Показываем подсказку
-    showSocialMediaHint = true
-    
-    // Показываем picker для выбора приложений
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-      self.pickerIsPresented = true
-    }
-  }
+//  func showPickerWithInstructions() {
+//    // Показываем подсказку
+//    showSocialMediaHint = true
+//    
+//    // Показываем picker для выбора приложений
+//    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+//      self.pickerIsPresented = true
+//    }
+//  }
   
   func onActivitySelectionChange() {
     print("Изменился выбор приложений в модели")

@@ -19,9 +19,9 @@ import RevenueCat
 struct AppMonitorScreen: View {
   @EnvironmentObject var subscriptionManager: SubscriptionManager
   @StateObject private var restrictionModel = MyRestrictionModel()
-
+  
   @State private var isShowingProfile: Bool = false
-    
+  
   //MARK: - Views
   var body: some View {
     BGView(imageRsc: .bgMain) {
@@ -99,9 +99,16 @@ struct AppMonitorScreen: View {
   private var screentimeAlertsSection: some View {
     VStack {
       ScreenTimeAlertsSectionView()
-      
+      separatorView
+        .padding(.horizontal, 20)
       AppInterruptionsSectionView()
     }
+//    .padding()
+    .blurBackground()
+  }
+  
+  private var separatorView: some View {
+    SeparatorView()
   }
   
   private var statsSection: some View {

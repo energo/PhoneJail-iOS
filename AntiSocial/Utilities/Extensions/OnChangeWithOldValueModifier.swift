@@ -10,6 +10,7 @@ import SwiftUI
 private struct OnChangeWithOldValueModifier<Value: Equatable>: ViewModifier {
   let value: Value
   let action: (Value, Value) -> Void
+
   @State private var oldValue: Value?
 
   func body(content: Content) -> some View {

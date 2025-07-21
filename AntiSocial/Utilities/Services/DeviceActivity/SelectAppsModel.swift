@@ -9,7 +9,7 @@ import SwiftUI
 import FamilyControls
 
 class SelectAppsModel: ObservableObject {
-  @Published var activitySelection = FamilyActivitySelection.init(includeEntireCategory: true) {
+  @Published var activitySelection = FamilyActivitySelection.init(includeEntireCategory: false) {
     didSet {
       print("activitySelection \(activitySelection)")
       print("activitySelection applications \(activitySelection.applications.first?.localizedDisplayName ?? "activitySelection applications !!! empty")")
@@ -18,7 +18,7 @@ class SelectAppsModel: ObservableObject {
     }
   }
   
-  init(activitySelection: FamilyActivitySelection = FamilyActivitySelection.init(includeEntireCategory: true)) {
+  init(activitySelection: FamilyActivitySelection = FamilyActivitySelection.init(includeEntireCategory: false)) {
     self.activitySelection = SharedData.selectedFamilyActivity ?? activitySelection
   }
 }

@@ -9,6 +9,7 @@ extension Color {
   static let as_white_light = Color(hex: "CFD3E6")
   static let as_gray_light = Color(hex: "E7EAFF").opacity(0.5)
   static let as_white = Color(hex: "E7EAFF")
+  static let as_light_blue = Color(hex: "919BC7")
 
   //MARK: - Other Colors
   static let ri_gray = Color(red: 138/255, green: 138/255, blue: 139/255)

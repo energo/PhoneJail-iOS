@@ -11,7 +11,7 @@ import ManagedSettings
 
 struct AppInterruptionsSectionView: View {
   @StateObject var viewModel: AppMonitorViewModel
-    
+  
   init() {
     self._viewModel = StateObject(wrappedValue: AppMonitorViewModel(model: SelectAppsModel()))
   }
@@ -21,7 +21,7 @@ struct AppInterruptionsSectionView: View {
       .task {
         await viewModel.onAppear()
       }
-      .onChangeWithOldValue(of: viewModel.model.activitySelection, perform: { _, _ in
+      .onChangeWithOldValue(of: viewModel.model.activitySelection, perform: { _, newValue in
         viewModel.onActivitySelectionChange()
       })
   }
@@ -30,8 +30,24 @@ struct AppInterruptionsSectionView: View {
     VStack {
       whatToMonitorView
     }
-    .padding()
-    .blurBackground()
+    .padding(20)
+    //    .padding()
+    //    .blurBackground()
+  }
+  
+  private var frequencyView: some View {
+    RoundedPicker(
+      title: "Frequency",
+      options: FrequencyOption.frequencyOptions,
+      selected: $viewModel.selectedFrequency,
+      labelProvider: { $0.label }
+    )
+  }
+  
+  private var bottomTextView: some View {
+    Text("During use, chosen apps will be blocked for 30 seconds at random intervals.")
+      .foregroundColor(Color.as_light_blue)
+      .font(.system(size: 10, weight: .regular))
   }
   
   private var whatToMonitorView: some View {
@@ -39,66 +55,73 @@ struct AppInterruptionsSectionView: View {
       HStack {
         Text("App interruptions")
           .foregroundColor(.white)
-          .font(.headline)
+          .font(.system(size: 16, weight: .regular))
         
         Spacer()
         
         startMonitorButton
       }
       
-      Button(action: {
-        viewModel.showSelectApps()
-      }) {
-        VStack(alignment: .leading, spacing: 8) {
+      frequencyView
+      
+      selectorAppsView
+      bottomTextView
+    }
+  }
+  
+  private var selectorAppsView: some View {
+    Button(action: {
+      viewModel.showSelectApps()
+    }) {
+      VStack(alignment: .leading, spacing: 8) {
+        
+        // Основной блок — Select Apps (всегда отображается)
+        HStack(spacing: 12) {
+          Text("Apps")
+            .foregroundColor(.white)
+            .font(.system(size: 15, weight: .regular))
           
-          // Основной блок — Select Apps (всегда отображается)
+          Spacer()
+          
+          Text("\(viewModel.model.activitySelection.applicationTokens.count)")
+            .foregroundColor(Color.as_white_light)
+            .font(.system(size: 15, weight: .regular))
+          
+          stackedAppIcons
+          
+          Image(systemName: "chevron.right")
+            .foregroundColor(Color.as_white_light)
+        }
+        
+        // Показываем категории, только если они выбраны
+        if !viewModel.model.activitySelection.categoryTokens.isEmpty {
           HStack(spacing: 12) {
-            Text("Apps")
+            Text("Categories")
               .foregroundColor(.white)
               .font(.system(size: 15, weight: .regular))
             
             Spacer()
             
-            Text("\(viewModel.model.activitySelection.applicationTokens.count)")
+            Text("\(viewModel.model.activitySelection.categoryTokens.count)")
               .foregroundColor(Color.as_white_light)
               .font(.system(size: 15, weight: .regular))
             
-            stackedAppIcons
+            stackedCategoryIcons
             
             Image(systemName: "chevron.right")
               .foregroundColor(Color.as_white_light)
           }
-          
-          // Показываем категории, только если они выбраны
-          if !viewModel.model.activitySelection.categoryTokens.isEmpty {
-            HStack(spacing: 12) {
-              Text("Categories")
-                .foregroundColor(.white)
-                .font(.system(size: 15, weight: .regular))
-              
-              Spacer()
-              
-              Text("\(viewModel.model.activitySelection.categoryTokens.count)")
-                .foregroundColor(Color.as_white_light)
-                .font(.system(size: 15, weight: .regular))
-              
-              stackedCategoryIcons
-              
-              Image(systemName: "chevron.right")
-                .foregroundColor(Color.as_white_light)
-            }
-          }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(Color.white.opacity(0.07))
-        .clipShape(RoundedRectangle(cornerRadius: 30))
       }
-      .familyActivityPicker(
-        isPresented: $viewModel.pickerIsPresented,
-        selection: $viewModel.model.activitySelection
-      )
+      .padding(.horizontal, 16)
+      .padding(.vertical, 12)
+      .background(Color.white.opacity(0.07))
+      .clipShape(RoundedRectangle(cornerRadius: 30))
     }
+    .familyActivityPicker(
+      isPresented: $viewModel.pickerIsPresented,
+      selection: $viewModel.model.activitySelection
+    )
   }
   
   private var stackedCategoryIcons: some View {
@@ -136,7 +159,7 @@ struct AppInterruptionsSectionView: View {
     }
     .frame(width: CGFloat(20 + (tokens.count - 1) * 12), height: 20)
   }
-    
+  
   private var bgBlur: some View {
     ZStack {
       BackdropBlurView(isBlack: false, radius: 10)
@@ -153,41 +176,47 @@ struct AppInterruptionsSectionView: View {
       .toggleStyle(SwitchToggleStyle(tint: .purple))
   }
   
-//  private var monitoredAppsListView: some View {
-//    VStack(alignment: .leading, spacing: 8) {
-//      Text("Tracking apps")
-//        .font(.headline)
-//      
-//      ForEach(0..<viewModel.monitoredApps.count, id: \.self) { index in
-//        monitoredAppRow(app: viewModel.monitoredApps[index])
-//      }
-//      
-//      Button("Add more apps") {
-//        viewModel.showSelectApps()
-//      }
-//      .padding(.top, 8)
-//    }
-//    .padding()
-//    .background(Color.gray.opacity(0.1))
-//    .cornerRadius(10)
-//  }
-//  
-//  private func monitoredAppRow(app: MonitoredApp) -> some View {
-//    HStack {
-//      Label(app.token)
-//        .lineLimit(1)
-//        .truncationMode(.tail)
-//      
-//      Spacer()
-//      
-//      Toggle("", isOn: Binding(
-//        get: { app.isMonitored },
-//        set: { _ in
-//          viewModel.toggleAppMonitoring(app: app)
-//        }
-//      ))
-//      .labelsHidden()
-//    }
-//    .padding(.vertical, 4)
-//  }
+  //  private var monitoredAppsListView: some View {
+  //    VStack(alignment: .leading, spacing: 8) {
+  //      Text("Tracking apps")
+  //        .font(.headline)
+  //
+  //      ForEach(0..<viewModel.monitoredApps.count, id: \.self) { index in
+  //        monitoredAppRow(app: viewModel.monitoredApps[index])
+  //      }
+  //
+  //      Button("Add more apps") {
+  //        viewModel.showSelectApps()
+  //      }
+  //      .padding(.top, 8)
+  //    }
+  //    .padding()
+  //    .background(Color.gray.opacity(0.1))
+  //    .cornerRadius(10)
+  //  }
+  //
+  //  private func monitoredAppRow(app: MonitoredApp) -> some View {
+  //    HStack {
+  //      Label(app.token)
+  //        .lineLimit(1)
+  //        .truncationMode(.tail)
+  //
+  //      Spacer()
+  //
+  //      Toggle("", isOn: Binding(
+  //        get: { app.isMonitored },
+  //        set: { _ in
+  //          viewModel.toggleAppMonitoring(app: app)
+  //        }
+  //      ))
+  //      .labelsHidden()
+  //    }
+  //    .padding(.vertical, 4)
+  //  }
+}
+
+#Preview {
+  BGView(imageRsc: .bgMain) {
+    AppInterruptionsSectionView()
+  }
 }

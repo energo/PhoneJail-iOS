@@ -30,76 +30,99 @@ struct ScreenTimeAlertsSectionView: View {
     VStack {
       whatToMonitorView
     }
-    .padding()
-    .blurBackground()
+    .padding(20)
+//    .padding()
+//    .blurBackground()
   }
   
+  private var notifyView: some View {
+    RoundedPicker(
+        title: "Notify me every",
+        options: TimeIntervalOption.timeOptions,
+        selected: $viewModel.selectedTime,
+        labelProvider: { $0.label }
+    )
+  }
+
   private var whatToMonitorView: some View {
     VStack(alignment: .leading, spacing: 16) {
       HStack {
         Text("Screen Time Alerts")
           .foregroundColor(.white)
-          .font(.headline)
-        
+          .font(.system(size: 16, weight: .regular))
+
         Spacer()
         
         startMonitorButton
       }
       
-      Button(action: {
-        //        isDiscouragedPresented = true
-        viewModel.showSelectApps()
-      }) {
-        VStack(alignment: .leading, spacing: 8) {
+      selectAppView
+      
+      bottomTextView
+      
+      notifyView
+    }
+  }
+  
+  private var bottomTextView: some View {
+    Text("The app will send a reminder after you've used a selected app for a set up period of time time.")
+      .foregroundColor(Color.as_light_blue)
+      .font(.system(size: 10, weight: .regular))
+  }
+  
+  private var selectAppView: some View {
+    Button(action: {
+      viewModel.showSelectApps()
+    }) {
+      VStack(alignment: .leading, spacing: 8) {
+        
+        // Основной блок — Select Apps (всегда отображается)
+        HStack(spacing: 12) {
+          Text("Apps")
+            .foregroundColor(.white)
+            .font(.system(size: 15, weight: .regular))
           
-          // Основной блок — Select Apps (всегда отображается)
+          Spacer()
+          
+          Text("\(viewModel.model.activitySelection.applicationTokens.count)")
+            .foregroundColor(Color.as_white_light)
+            .font(.system(size: 15, weight: .regular))
+          
+          stackedAppIcons
+          
+          Image(systemName: "chevron.right")
+            .foregroundColor(Color.as_white_light)
+        }
+        
+        // Показываем категории, только если они выбраны
+        if !viewModel.model.activitySelection.categoryTokens.isEmpty {
           HStack(spacing: 12) {
-            Text("Apps")
+            Text("Categories")
               .foregroundColor(.white)
               .font(.system(size: 15, weight: .regular))
             
             Spacer()
             
-            Text("\(viewModel.model.activitySelection.applicationTokens.count)")
+            Text("\(viewModel.model.activitySelection.categoryTokens.count)")
               .foregroundColor(Color.as_white_light)
               .font(.system(size: 15, weight: .regular))
             
-            stackedAppIcons
+            stackedCategoryIcons
             
             Image(systemName: "chevron.right")
               .foregroundColor(Color.as_white_light)
           }
-          
-          // Показываем категории, только если они выбраны
-          if !viewModel.model.activitySelection.categoryTokens.isEmpty {
-            HStack(spacing: 12) {
-              Text("Categories")
-                .foregroundColor(.white)
-                .font(.system(size: 15, weight: .regular))
-              
-              Spacer()
-              
-              Text("\(viewModel.model.activitySelection.categoryTokens.count)")
-                .foregroundColor(Color.as_white_light)
-                .font(.system(size: 15, weight: .regular))
-              
-              stackedCategoryIcons
-              
-              Image(systemName: "chevron.right")
-                .foregroundColor(Color.as_white_light)
-            }
-          }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(Color.white.opacity(0.07))
-        .clipShape(RoundedRectangle(cornerRadius: 30))
       }
-      .familyActivityPicker(
-        isPresented: $viewModel.pickerIsPresented,
-        selection: $viewModel.model.activitySelection
-      )
+      .padding(.horizontal, 16)
+      .padding(.vertical, 12)
+      .background(Color.white.opacity(0.07))
+      .clipShape(RoundedRectangle(cornerRadius: 30))
     }
+    .familyActivityPicker(
+      isPresented: $viewModel.pickerIsPresented,
+      selection: $viewModel.model.activitySelection
+    )
   }
   
   private var stackedCategoryIcons: some View {
@@ -152,5 +175,12 @@ struct ScreenTimeAlertsSectionView: View {
     Toggle("", isOn: $viewModel.isAlertEnabled)
       .foregroundStyle(Color.white)
       .toggleStyle(SwitchToggleStyle(tint: .purple))
+  }
+}
+
+//MARK: - Preview
+#Preview {
+  BGView(imageRsc: .bgMain) {
+    ScreenTimeAlertsSectionView()
   }
 }
