@@ -30,8 +30,8 @@ class DeviceActivityScheduleService {
     
     let startDate = now
     let startComponents = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: startDate)
-//    let curHour = startComponents.hour ?? 0
-//    let curMins = startComponents.minute ?? 0
+    let curHour = startComponents.hour ?? 0
+    let curMins = startComponents.minute ?? 0
     
     let year = startComponents.year ?? 1
     let month = startComponents.month ?? 1
@@ -39,7 +39,7 @@ class DeviceActivityScheduleService {
     
     let endDate = calendar.date(from: DateComponents(year: year, month: month, day: day, hour: endHour, minute: endMins))!
     let diffMinutes = Int(endDate.timeIntervalSince(startDate) / 60)
-//    let duration = DateComponents(minute: diffMinutes)
+    let duration = DateComponents(minute: diffMinutes)
     
     print("DeviceActivityScheduleService: Start time: \(startDate)")
     print("DeviceActivityScheduleService: End time: \(endDate)")
@@ -55,11 +55,7 @@ class DeviceActivityScheduleService {
     scheduleNotification(
       title: "Phone Jail",
       body: "Congrats! You've reached the end of Restriction Mode",
-      dateComponents: DateComponents(year: year,
-                                     month: month,
-                                     day: day,
-                                     hour: endHour,
-                                     minute: endMins)
+      dateComponents: DateComponents(year: year, month: month, day: day, hour: endHour, minute: endMins)
     )
           
     let intervalEnd = Calendar.current.dateComponents(
@@ -92,36 +88,6 @@ class DeviceActivityScheduleService {
         print("Error monitoring schedule: \(error)")
       }
     }
-//    // Apply restrictions
-//    DeviceActivityService.shared.setShieldRestrictions()
-//    
-//    let schedule = DeviceActivitySchedule(
-//      intervalStart: DateComponents(hour: curHour, minute: curMins),
-//      intervalEnd: DateComponents(hour: endHour, minute: endMins),
-//      repeats: false
-//    )
-//    
-//    let activity = DeviceActivityName.appBlocking
-//    let eventName = DeviceActivityEvent.Name.block
-//    
-//    print("DeviceActivityScheduleService: Schedule: \(schedule)")
-//
-//    let enabledTokens = DeviceActivityService.shared.selectionToDiscourage.applicationTokens
-//    
-//    let event = DeviceActivityEvent(
-//      applications: enabledTokens,
-//      categories: DeviceActivityService.shared.selectionToDiscourage.categoryTokens,
-//      webDomains: DeviceActivityService.shared.selectionToDiscourage.webDomainTokens,
-//      threshold: duration)
-//
-//    do {
-//      print("Try to start monitoring...")
-//      try center.startMonitoring(activity,
-//                                 during: schedule,
-//                                 events: [eventName: event])
-//    } catch {
-//      print("Error monitoring schedule: ", error)
-//    }
   }
   
   static func stopSchedule() {
