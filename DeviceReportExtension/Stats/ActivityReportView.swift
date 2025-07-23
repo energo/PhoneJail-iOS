@@ -37,7 +37,6 @@ struct ActivityReportView: View {
       }
 
       separatorView
-        .padding(.horizontal, 20)
         .padding(.vertical, 16)
 
       datePicker
