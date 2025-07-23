@@ -13,13 +13,16 @@ struct StatsActivityReport: DeviceActivityReportScene {
     
     var (chartData, focusedDuration, distractedDuration, _, appUsageDict, _) = await processDeviceActivityData(data)
     calculateOfflineMinutes(for: &chartData)
-    let appUsages = Array(appUsageDict.values).sorted { $0.usage > $1.usage }
+    let top3AppUsages = Array(appUsageDict.values
+      .sorted { $0.usage > $1.usage }
+      .prefix(3))
+
     return StatsData(
       totalDuration: totalDuration, // Используем корректное значение
       chartData: chartData,
       focusedDuration: focusedDuration,
       distractedDuration: distractedDuration,
-      appUsages: appUsages
+      appUsages: top3AppUsages
     )
   }
   
@@ -35,7 +38,8 @@ struct StatsActivityReport: DeviceActivityReportScene {
     var chartDataRaw = (0..<24).map { _ in (focused: 0.0, distracted: 0.0) }
     var distractedDuration: TimeInterval = 0
     var focusedDuration: TimeInterval = 0
-    var totalDuration: TimeInterval = 0 // Оставляем для совместимости, но не используем
+    let totalDuration: TimeInterval = 0 // Оставляем для совместимости, но не используем
+    
     var appUsageDict: [String: AppUsage] = [:]
     var perAppHourlyUsage: [String: [Int: TimeInterval]] = [:]
     
@@ -97,13 +101,19 @@ struct StatsActivityReport: DeviceActivityReportScene {
     
     // Округление только на финальном этапе
     var chartData: [ChartBar] = []
+    
     for hour in 0..<24 {
       let focused = Int(chartDataRaw[hour].focused.rounded())
       let distracted = Int(chartDataRaw[hour].distracted.rounded())
       chartData.append(ChartBar(hour: hour, focusedMinutes: focused, distractedMinutes: distracted))
     }
     
-    return (chartData, focusedDuration, distractedDuration, totalDuration, appUsageDict, perAppHourlyUsage)
+    return (chartData,
+            focusedDuration,
+            distractedDuration,
+            totalDuration,
+            appUsageDict,
+            perAppHourlyUsage)
   }
   
   private func randomFocusedMinutes() -> Int {
@@ -122,88 +132,3 @@ struct StatsActivityReport: DeviceActivityReportScene {
     }
   }
 }
-
-
-
-
-//struct StatsActivityReport: DeviceActivityReportScene {
-//  let context: DeviceActivityReport.Context = .statsActivity
-//  let content: (StatsData) -> StatsSectionView
-//
-//  func makeConfiguration(representing data: DeviceActivityResults<DeviceActivityData>) async -> StatsData {
-//    var chartData = (0..<24).map { ChartBar(hour: $0, focusedMinutes: 0, distractedMinutes: 0) }
-//    var distractedDuration: TimeInterval = 0
-//    var focusedDuration: TimeInterval = 0
-//    var totalDuration: TimeInterval = 0
-//    var appUsageDict: [String: AppUsage] = [:]
-//
-//    func appIsFocused() -> Int {
-//      // Рандомно возвращает число от 0 до 10 включительно
-//      return Int.random(in: 0...10)
-//    }
-//
-//    for await d in data {
-//      for await segment in d.activitySegments {
-//        let hour = Calendar.current.component(.hour, from: segment.dateInterval.start)
-//
-//        for await category in segment.categories {
-//          for await app in category.applications {
-//
-//            let duration = app.totalActivityDuration
-//
-//            let minutes = Int(duration / 60)
-//            let focusedMinutes = appIsFocused()
-//
-//            if hour >= 0 && hour < 24 {
-//              chartData[hour].distractedMinutes += minutes
-//              chartData[hour].focusedMinutes += focusedMinutes
-//              distractedDuration += duration
-//              // Для корректности статистики можно добавить:
-//              focusedDuration += TimeInterval(focusedMinutes * 60)
-//            }
-//
-//            totalDuration += duration
-//
-//            let key = app.application.bundleIdentifier ?? "Unknown"
-//            let appName = app.application.localizedDisplayName ?? "App"
-//            let token = app.application.token!
-//
-//            guard duration >= 60 else {
-//              continue
-//            }
-//
-//            if let existing = appUsageDict[key] {
-//              appUsageDict[key] = AppUsage(name: appName, token: token, usage: existing.usage + duration)
-//            } else {
-//              appUsageDict[key] = AppUsage(name: appName, token: token, usage: duration)
-//            }
-//          }
-//        }
-//      }
-//    }
-//
-//    // Расчёт offlineMinutes для каждого часа
-//    for hour in 0..<24 {
-//      let hourSeconds = 60.0 * 60.0
-//      let distracted = TimeInterval(chartData[hour].distractedMinutes * 60)
-//      let focused = TimeInterval(chartData[hour].focusedMinutes * 60)
-//      let totalOnline = focused + distracted
-//      let offline = max(0, hourSeconds - totalOnline)
-//      chartData[hour].offlineMinutes = Int(offline / 60)
-//    }
-//
-//    let appUsages = Array(appUsageDict.values).sorted { $0.usage > $1.usage }
-//
-//    for usage in appUsages {
-//      print("  \(usage.name): \(Int(usage.usage/60)) мин")
-//    }
-//
-//    return StatsData(
-//      totalDuration: totalDuration,
-//      chartData: chartData,
-//      focusedDuration: focusedDuration,
-//      distractedDuration: distractedDuration,
-//      appUsages: appUsages
-//    )
-//  }
-//}

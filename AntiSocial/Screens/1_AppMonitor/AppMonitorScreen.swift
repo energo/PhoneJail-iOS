@@ -136,7 +136,7 @@ struct AppMonitorScreen: View {
   private var statsSection: some View {
     ActivityReportView()
       .frame(maxWidth: .infinity)
-      .frame(minHeight: 600)
+      .frame(minHeight: 500)
       .frame(maxHeight: .infinity)
   }
 }
