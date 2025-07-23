@@ -35,8 +35,11 @@ struct ActivityReportView: View {
           .font(.system(size: 19, weight: .medium))
         Spacer()
       }
-      .padding(.bottom, 16)
-      separatorView.padding(.horizontal, 20)
+
+      separatorView
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+
       datePicker
       
       // Сам отчёт

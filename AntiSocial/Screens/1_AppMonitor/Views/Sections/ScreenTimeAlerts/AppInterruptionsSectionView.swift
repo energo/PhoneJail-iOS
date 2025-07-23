@@ -32,7 +32,8 @@ struct AppInterruptionsSectionView: View {
     VStack {
       whatToMonitorView
     }
-    .padding(20)
+    .padding(.horizontal, 20)
+    .padding(.vertical, 16)
     //    .padding()
     //    .blurBackground()
   }
@@ -78,9 +79,9 @@ struct AppInterruptionsSectionView: View {
       
       if isExpanded {
         Group {
-          frequencyView
           selectorAppsView
           bottomTextView
+          frequencyView
         }
         .transition(
           .asymmetric(

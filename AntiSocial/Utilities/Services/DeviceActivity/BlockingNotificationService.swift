@@ -54,6 +54,10 @@ final class BlockingNotificationService: ObservableObject {
     // Set schedule
     DeviceActivityScheduleService.setSchedule(endHour: endHour, endMins: endMin)
 
+    // Ensure shield restrictions are set
+    DeviceActivityService.shared.setShieldRestrictions()
+    AppLogger.notice("Shield restrictions set for blocking session")
+
     // Log blocking sessions for each app
     let plannedDuration = TimeInterval(hours * 3600 + minutes * 60)
     Task { @MainActor in

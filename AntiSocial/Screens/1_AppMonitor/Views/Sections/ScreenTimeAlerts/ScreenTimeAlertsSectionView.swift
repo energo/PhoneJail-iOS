@@ -31,7 +31,8 @@ struct ScreenTimeAlertsSectionView: View {
     VStack {
       whatToMonitorView
     }
-    .padding(20)
+    .padding(.horizontal, 20)
+    .padding(.vertical, 16)
 //    .padding()
 //    .blurBackground()
   }
