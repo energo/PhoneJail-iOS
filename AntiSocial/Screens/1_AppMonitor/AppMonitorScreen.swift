@@ -1,18 +1,16 @@
 //
-//  ContentView.swift
+//  AppMonitorScreen.swift
 //  ScreenTimeTestApp
 //
 //  Created by D C on 11.02.2025.
 //
 
 import SwiftUI
-import Foundation
 import ScreenTime
 import FamilyControls
 import ManagedSettings
 import ManagedSettingsUI
 import DeviceActivity
-
 import RevenueCatUI
 import RevenueCat
 
@@ -22,45 +20,60 @@ struct AppMonitorScreen: View {
   @StateObject private var restrictionModel = MyRestrictionModel()
   
   @State private var isShowingProfile: Bool = false
+  @State private var offsetY: CGFloat = .zero
+  @State private var headerHeight: CGFloat = UIScreen.main.bounds.height * 0.35
   
-  //MARK: - Views
   var body: some View {
     BGView(imageRsc: .bgMain) {
-      ZStack(alignment: .top) {
-        VStack(spacing: 8) {
-          headerView
-          screenTimeSection
-          //          Spacer()
-        }
-        
-        ScrollView(showsIndicators: false) {
-          VStack(spacing: 16) {
-            Spacer().frame(height: UIScreen.main.bounds.height * 0.3)
-            appBlockingSection
-            statsSection
-            focusBreaksSection
+      GeometryReader { screenGeometry in
+        ZStack(alignment: .top) {
+          
+          Color.clear.ignoresSafeArea()
+          
+          ScrollView(showsIndicators: false) {
+            VStack(spacing: 0) {
+              // Spacer-заполнитель под header
+              Color.clear
+                .frame(height: headerHeight)
+                .overlay() {
+                  headerOverlayView(screenGeometry: screenGeometry)
+                }
+              
+              VStack(spacing: 16) {
+                appBlockingSection
+                statsSection
+                focusBreaksSection
+              }
+              .padding(.horizontal, 20)
+            }
+            .background(
+              GeometryReader { proxy in
+                Color.clear
+                  .onChange(of: proxy.frame(in: .global).minY) { newValue in
+                    offsetY = newValue
+                  }
+              }
+            )
+            //            .padding(.horizontal, 20)
           }
+          
         }
-        .padding(.horizontal, 20)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
       }
     }
-    .fullScreenCover(isPresented: $isShowingProfile, content: {
+    .fullScreenCover(isPresented: $isShowingProfile) {
       ProfileScreen()
-    })
+    }
     .task {
       await AppBlockingLogger.shared.refreshAllData()
-      
       await MainActor.run {
-          familyControlsManager.requestAuthorization()
+        familyControlsManager.requestAuthorization()
       }
     }
     .presentPaywallIfNeeded(
       requiredEntitlementIdentifier: SubscriptionManager.Constants.entitlementID,
-      purchaseCompleted: { customerInfo in
-        // Paywall will be dismissed automatically if "pro" is now active.
-      },
-      restoreCompleted: { customerInfo in
-        // Handle restored purchases
+      purchaseCompleted: { _ in },
+      restoreCompleted: { _ in
         Task {
           try? await subscriptionManager.restorePurchases()
         }
@@ -68,6 +81,25 @@ struct AppMonitorScreen: View {
     )
   }
   
+  // MARK: - Header View (Floating)
+  @ViewBuilder
+  private func headerOverlayView(screenGeometry: GeometryProxy) -> some View {
+    VStack(spacing: 8) {
+      headerView
+      screenTimeSection
+    }
+    .background(
+      GeometryReader { proxy in
+        Color.clear.onAppear {
+          headerHeight = proxy.size.height
+        }
+      }
+    )
+    //    .offset(y: max(0, headerHeight + screenGeometry.safeAreaInsets.top - offsetY))
+    .offset(y: max(0,screenGeometry.safeAreaInsets.top - offsetY))
+  }
+  
+  // MARK: - Header (Top-right profile)
   private var headerView: some View {
     HStack {
       Spacer()
@@ -77,30 +109,29 @@ struct AppMonitorScreen: View {
   }
   
   private var profileButton: some View {
-    Button(action: { isShowingProfile = true },
-           label: {
+    Button(action: { isShowingProfile = true }) {
       Image(systemName: "person.fill")
         .font(.system(size: 18))
         .foregroundStyle(Color.white)
+        .padding()
         .contentShape(Rectangle())
-        .overlay {
-          Circle()
-            .fill(Color.clear)
-            .frame(width: 32, height: 32)
-        }
-    })
+    }
+    .background(Color.red)
   }
   
+  // MARK: - ScreenTime Today Section
   private var screenTimeSection: some View {
     ScreenTimeTodayView()
   }
   
+  // MARK: - App Blocking
   private var appBlockingSection: some View {
     VStack {
       AppBlockingSectionView(restrictionModel: restrictionModel)
     }
   }
   
+  // MARK: - Focus Breaks Section
   private var focusBreaksSectionHeaderView: some View {
     HStack {
       Text("Focus Breaks")
@@ -115,17 +146,15 @@ struct AppMonitorScreen: View {
       focusBreaksSectionHeaderView
         .padding(.top)
         .padding(.horizontal)
-
-//      .padding(.bottom, 16)
+      
       separatorView.padding(.horizontal, 20)
-
+      
       AppInterruptionsSectionView()
-
+      
       separatorView.padding(.horizontal, 20)
       
       ScreenTimeAlertsSectionView()
     }
-//    .padding()
     .blurBackground()
   }
   
@@ -133,6 +162,7 @@ struct AppMonitorScreen: View {
     SeparatorView()
   }
   
+  // MARK: - Stats Section
   private var statsSection: some View {
     ActivityReportView()
       .frame(maxWidth: .infinity)
@@ -141,7 +171,6 @@ struct AppMonitorScreen: View {
   }
 }
 
-//MARK: - Preview
 #Preview {
   AppMonitorScreen()
 }
