@@ -32,13 +32,12 @@ struct AppMonitorScreen: View {
           
           ScrollView(showsIndicators: false) {
             VStack(spacing: 0) {
-              // Spacer-заполнитель под header
               Color.clear
                 .frame(height: headerHeight)
-                .overlay() {
+                .overlay {
                   headerOverlayView(screenGeometry: screenGeometry)
                 }
-              
+
               VStack(spacing: 16) {
                 appBlockingSection
                 statsSection
@@ -49,14 +48,14 @@ struct AppMonitorScreen: View {
             .background(
               GeometryReader { proxy in
                 Color.clear
-                  .onChange(of: proxy.frame(in: .global).minY) { newValue in
-                    offsetY = newValue
-                  }
+                  .preference(key: OffsetKey.self, value: proxy.frame(in: .named("scroll")).minY)
               }
             )
-            //            .padding(.horizontal, 20)
           }
-          
+          .coordinateSpace(name: "scroll")
+          .onPreferenceChange(OffsetKey.self) { value in
+            offsetY = value
+          }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
       }
@@ -96,8 +95,17 @@ struct AppMonitorScreen: View {
       }
     )
     //    .offset(y: max(0, headerHeight + screenGeometry.safeAreaInsets.top - offsetY))
-    .offset(y: max(0,screenGeometry.safeAreaInsets.top - offsetY))
+//    .offset(y: max(0,screenGeometry.safeAreaInsets.top - offsetY))
+    .offset(y: max(0, screenGeometry.safeAreaInsets.top - offsetY - 20))
   }
+  
+  private struct OffsetKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+      value = nextValue()
+    }
+  }
+
   
   // MARK: - Header (Top-right profile)
   private var headerView: some View {
