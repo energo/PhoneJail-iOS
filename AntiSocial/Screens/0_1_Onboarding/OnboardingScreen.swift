@@ -49,15 +49,15 @@ struct OnboardingScreen: View {
   private var tabView: some View {
     VStack {
       TabView(selection: $currentPage) {
-        OnboardingPage(
-          title: "We classify our users’ data as private data.",
-        ) {
-          PrivacyConsentView(
-            agreedToStorage: $agreedToStorage,
-            agreedToProcessing: $agreedToProcessing
-          )
-        }
-        .tag(0)
+//        OnboardingPage(
+//          title: "We classify our users’ data as private data.",
+//        ) {
+//          PrivacyConsentView(
+//            agreedToStorage: $agreedToStorage,
+//            agreedToProcessing: $agreedToProcessing
+//          )
+//        }
+//        .tag(0)
         
         OnboardingPage(
           title: "Help us tailor your screen time journey by telling us your main goal...",
