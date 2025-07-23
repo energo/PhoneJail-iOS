@@ -36,6 +36,7 @@ struct ActivityReportView: View {
         Spacer()
       }
       .padding(.bottom, 16)
+      separatorView.padding(.horizontal, 20)
       datePicker
       
       // Сам отчёт
@@ -45,6 +46,10 @@ struct ActivityReportView: View {
     .background(bgBlur)
   }
   
+  private var separatorView: some View {
+    SeparatorView()
+  }
+
   private var datePicker: some View {
     HStack {
       Button(action: {

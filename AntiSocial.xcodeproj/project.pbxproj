@@ -161,6 +161,7 @@
 				"Utilities/Extensions/Color+Constants.swift",
 				Utilities/Services/Storage/Local/FocusedTimeStatsStore.swift,
 				Views/Blur/BackdropBlurView.swift,
+				Views/SeparatorView.swift,
 			);
 			target = 47412DF42E143FFE0099F20A /* DeviceReportExtension */;
 		};

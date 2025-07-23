@@ -38,7 +38,7 @@ struct AppMonitorScreen: View {
             Spacer().frame(height: UIScreen.main.bounds.height * 0.3)
             appBlockingSection
             statsSection
-            screentimeAlertsSection
+            focusBreaksSection
           }
         }
         .padding(.horizontal, 20)
@@ -101,8 +101,24 @@ struct AppMonitorScreen: View {
     }
   }
   
-  private var screentimeAlertsSection: some View {
+  private var focusBreaksSectionHeaderView: some View {
+    HStack {
+      Text("Focus Breaks")
+        .foregroundColor(.white)
+        .font(.system(size: 19, weight: .medium))
+      Spacer()
+    }
+  }
+  
+  private var focusBreaksSection: some View {
     VStack {
+      focusBreaksSectionHeaderView
+        .padding(.top)
+        .padding(.horizontal)
+
+//      .padding(.bottom, 16)
+      separatorView.padding(.horizontal, 20)
+
       AppInterruptionsSectionView()
 
       separatorView.padding(.horizontal, 20)
