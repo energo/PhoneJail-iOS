@@ -43,9 +43,9 @@ class DeviceActivityService: ObservableObject {
       let elapsed = Date().timeIntervalSince1970 - startTimestamp
       let hours = Int(elapsed) / 3600
       let minutes = (Int(elapsed) % 3600) / 60
-      return String(format: "%02dh %02dm", hours, minutes)
+      return String(format: "%dh %02dm", hours, minutes)
     }
-    return "00h 00m"
+    return "0h 00m"
   }
   
   // MARK: - Init
@@ -81,17 +81,18 @@ class DeviceActivityService: ObservableObject {
   }
   
   var timeRemainingString: String {
-    guard let unlockDate = unlockDate else { return "--:--:--" }
+    guard let unlockDate = unlockDate else { return "0:00:00" }
     
 //    let dateFormatted = DeviceActivityService.logDateFormatter.string(from: unlockDate)
 //    AppLogger.notice("\n[MyModel] timeRemainingString: \(dateFormatted)")
     
     let remaining = Int(unlockDate.timeIntervalSinceNow)
-    if remaining <= 0 { return "00:00:00" }
+    if remaining <= 0 { return "0:00:00" }
     let hours = remaining / 3600
     let minutes = (remaining % 3600) / 60
     let seconds = remaining % 60
-    return String(format: "%02d:%02d:%02d", hours, minutes, seconds)
+    
+    return String(format: "%d:%02d:%02d", hours, minutes, seconds)
   }
   
   private func saveUnlockDate() {

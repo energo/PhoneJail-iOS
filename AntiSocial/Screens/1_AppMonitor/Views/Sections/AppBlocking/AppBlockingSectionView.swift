@@ -69,7 +69,7 @@ struct AppBlockingSectionView: View {
     }
     .onReceive(timer) { _ in
       if let unlockDate = deviceActivityService.unlockDate {
-        timeRemainingString = unlockDate > Date() ? deviceActivityService.timeRemainingString : "00:00:00"
+        timeRemainingString = unlockDate > Date() ? deviceActivityService.timeRemainingString : "0:00:00"
         timeBlockedString = deviceActivityService.timeBlockedString
 
         if unlockDate <= Date() {
