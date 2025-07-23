@@ -98,7 +98,12 @@ struct AntiSocialApp: App {
 //MARK: - Extensions
 extension UIApplication {
     func addTapGestureRecognizer() {
-        guard let window = windows.first else { return }
+        // Find the first foreground active UIWindowScene
+        guard let windowScene = self.connectedScenes
+                .compactMap({ $0 as? UIWindowScene })
+                .first(where: { $0.activationState == .foregroundActive }),
+              let window = windowScene.windows.first else { return }
+        
         let tapGesture = UITapGestureRecognizer(target: window, action: #selector(UIView.endEditing))
         tapGesture.requiresExclusiveTouchType = false
         tapGesture.cancelsTouchesInView = false

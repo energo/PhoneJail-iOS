@@ -18,27 +18,28 @@ struct AppMonitorScreen: View {
   @EnvironmentObject var subscriptionManager: SubscriptionManager
   @EnvironmentObject var familyControlsManager: FamilyControlsManager
   @StateObject private var restrictionModel = MyRestrictionModel()
-  
+
   @State private var isShowingProfile: Bool = false
   @State private var offsetY: CGFloat = .zero
   @State private var headerHeight: CGFloat = UIScreen.main.bounds.height * 0.35
-  
+
   var body: some View {
     BGView(imageRsc: .bgMain) {
       GeometryReader { screenGeometry in
         ZStack(alignment: .top) {
-          
-          Color.clear.ignoresSafeArea()
-          
+
+//          Color.clear
+
           ScrollView(showsIndicators: false) {
-            VStack(spacing: 0) {
+            VStack(spacing: 16) {
+              // Spacer-заполнитель под header
               Color.clear
                 .frame(height: headerHeight)
-                .overlay {
+                .overlay() {
                   headerOverlayView(screenGeometry: screenGeometry)
                 }
 
-              VStack(spacing: 16) {
+              VStack {
                 appBlockingSection
                 statsSection
                 focusBreaksSection
@@ -48,14 +49,20 @@ struct AppMonitorScreen: View {
             .background(
               GeometryReader { proxy in
                 Color.clear
-                  .preference(key: OffsetKey.self, value: proxy.frame(in: .named("scroll")).minY)
+                  .onAppear {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
+                      offsetY = screenGeometry.safeAreaInsets.top
+                    }
+                  }
+                  .onChange(of: proxy.frame(in: .global).minY) { newValue in
+                    offsetY = newValue
+                  }
+                
               }
             )
+//            .padding(.horizontal, 20)
           }
-          .coordinateSpace(name: "scroll")
-          .onPreferenceChange(OffsetKey.self) { value in
-            offsetY = value
-          }
+
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
       }
@@ -79,7 +86,7 @@ struct AppMonitorScreen: View {
       }
     )
   }
-  
+
   // MARK: - Header View (Floating)
   @ViewBuilder
   private func headerOverlayView(screenGeometry: GeometryProxy) -> some View {
@@ -94,19 +101,9 @@ struct AppMonitorScreen: View {
         }
       }
     )
-    //    .offset(y: max(0, headerHeight + screenGeometry.safeAreaInsets.top - offsetY))
-//    .offset(y: max(0,screenGeometry.safeAreaInsets.top - offsetY))
-    .offset(y: max(0, screenGeometry.safeAreaInsets.top - offsetY - 20))
-  }
-  
-  private struct OffsetKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-      value = nextValue()
-    }
+    .offset(y: max(0, screenGeometry.safeAreaInsets.top - offsetY))
   }
 
-  
   // MARK: - Header (Top-right profile)
   private var headerView: some View {
     HStack {
@@ -115,7 +112,7 @@ struct AppMonitorScreen: View {
     }
     .padding(.horizontal)
   }
-  
+
   private var profileButton: some View {
     Button(action: { isShowingProfile = true }) {
       Image(systemName: "person.fill")
@@ -124,21 +121,20 @@ struct AppMonitorScreen: View {
         .padding()
         .contentShape(Rectangle())
     }
-    .background(Color.red)
   }
-  
+
   // MARK: - ScreenTime Today Section
   private var screenTimeSection: some View {
     ScreenTimeTodayView()
   }
-  
+
   // MARK: - App Blocking
   private var appBlockingSection: some View {
     VStack {
       AppBlockingSectionView(restrictionModel: restrictionModel)
     }
   }
-  
+
   // MARK: - Focus Breaks Section
   private var focusBreaksSectionHeaderView: some View {
     HStack {
@@ -148,28 +144,28 @@ struct AppMonitorScreen: View {
       Spacer()
     }
   }
-  
+
   private var focusBreaksSection: some View {
     VStack {
       focusBreaksSectionHeaderView
         .padding(.top)
         .padding(.horizontal)
-      
+
       separatorView.padding(.horizontal, 20)
-      
+
       AppInterruptionsSectionView()
-      
+
       separatorView.padding(.horizontal, 20)
-      
+
       ScreenTimeAlertsSectionView()
     }
     .blurBackground()
   }
-  
+
   private var separatorView: some View {
     SeparatorView()
   }
-  
+
   // MARK: - Stats Section
   private var statsSection: some View {
     ActivityReportView()
