@@ -69,27 +69,27 @@ struct StatsActivityReport: DeviceActivityReportScene {
           let t2 = session.end
 
           while t1 < t2 {
-              // Получаем локальный час
+              // Получаем локальный час начала текущего фрагмента
               let hour = calendar.dateComponents(in: TimeZone.current, from: t1).hour ?? 0
-              guard hour >= 0 && hour < 24 else { break }
 
               // Граница текущего часа
               guard let hourStart = calendar.dateInterval(of: .hour, for: t1) else { break }
               let hourEnd = hourStart.end
 
-              // Насколько usage залезает в этот час
+              // Обрезаем usage, если он уходит за этот час
               let intervalEnd = min(hourEnd, t2)
               let secondsInThisHour = intervalEnd.timeIntervalSince(t1)
 
-              // Записываем usage
-              hourly[hour].distracted += secondsInThisHour / 60.0
+              // Кладём в текущий бар
+              if hour >= 0 && hour < 24 {
+                  hourly[hour].distracted += secondsInThisHour / 60.0
+              }
 
-              // Продвигаем time pointer
+              // Двигаемся дальше
               t1 = intervalEnd
           }
       }
 
-      // Конвертируем в ChartBar
       return (0..<24).map { hour in
           ChartBar(
               hour: hour,
@@ -98,67 +98,6 @@ struct StatsActivityReport: DeviceActivityReportScene {
           )
       }
   }
-
-//  func generateChartBars(from sessions: [AppUsageSession]) -> [ChartBar] {
-//      var hourly = Array(repeating: (focused: 0.0, distracted: 0.0), count: 24)
-//      let calendar = Calendar.current
-//
-//      for session in sessions {
-//          var t1 = session.start
-//          let t2 = session.end
-//
-//          while t1 < t2 {
-//              let hour = calendar.component(.hour, from: t1)
-//              guard hour >= 0 && hour < 24 else { break }
-//
-//              guard let hourStart = calendar.dateInterval(of: .hour, for: t1) else { break }
-//              let hourEnd = hourStart.end
-//              let intervalEnd = min(hourEnd, t2)
-//              let secondsInThisHour = intervalEnd.timeIntervalSince(t1)
-//
-//              hourly[hour].distracted += secondsInThisHour / 60.0
-//              t1 = intervalEnd
-//          }
-//      }
-//
-//      return (0..<24).map { hour in
-//          ChartBar(
-//              hour: hour,
-//              focusedMinutes: Int(hourly[hour].focused.rounded()),
-//              distractedMinutes: Int(hourly[hour].distracted.rounded())
-//          )
-//      }
-//  }
-  
-  /// Генерация баров по usage по часам (локальное время)
-  //    func generateChartBars(from sessions: [AppUsageSession]) -> [ChartBar] {
-  //        var hourly = Array(repeating: (focused: 0.0, distracted: 0.0), count: 24)
-  //        let calendar = Calendar.current
-  //
-  //        for session in sessions {
-  //            var t1 = session.start
-  //            let t2 = session.end
-  //
-  //            while t1 < t2 {
-  //                let hour = calendar.dateComponents(in: TimeZone.current, from: t1).hour ?? 0
-  //                guard let hourStart = calendar.dateInterval(of: .hour, for: t1) else { break }
-  //                let nextHour = hourStart.end
-  //                let intervalEnd = min(nextHour, t2)
-  //                let secondsInThisHour = intervalEnd.timeIntervalSince(t1)
-  //
-  //                hourly[hour].distracted += secondsInThisHour / 60.0
-  //                t1 = intervalEnd
-  //            }
-  //        }
-  //
-  //        return (0..<24).map { hour in
-  //            ChartBar(
-  //                hour: hour,
-  //                focusedMinutes: Int(hourly[hour].focused.rounded()),
-  //                distractedMinutes: Int(hourly[hour].distracted.rounded())
-  //            )
-  //        }
-  //    }
   
   /// Top-N приложений по usage
   func topAppUsages(from sessions: [AppUsageSession], count: Int = 3) -> [AppUsage] {
