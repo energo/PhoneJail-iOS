@@ -18,18 +18,20 @@ struct AppMonitorScreen: View {
   @EnvironmentObject var subscriptionManager: SubscriptionManager
   @EnvironmentObject var familyControlsManager: FamilyControlsManager
   @StateObject private var restrictionModel = MyRestrictionModel()
-
+  
   @State private var isShowingProfile: Bool = false
   @State private var offsetY: CGFloat = .zero
   @State private var headerHeight: CGFloat = UIScreen.main.bounds.height * 0.35
-
+  
+  @State private var screenTimeID = UUID() // используется как .id
+  
   var body: some View {
     BGView(imageRsc: .bgMain) {
       GeometryReader { screenGeometry in
         ZStack(alignment: .top) {
-
-//          Color.clear
-
+          
+          //          Color.clear
+          
           ScrollView(showsIndicators: false) {
             VStack(spacing: 16) {
               // Spacer-заполнитель под header
@@ -38,7 +40,7 @@ struct AppMonitorScreen: View {
                 .overlay() {
                   headerOverlayView(screenGeometry: screenGeometry)
                 }
-
+              
               VStack {
                 appBlockingSection
                 statsSection
@@ -60,9 +62,12 @@ struct AppMonitorScreen: View {
                 
               }
             )
-//            .padding(.horizontal, 20)
+            //            .padding(.horizontal, 20)
           }
-
+          .refreshable {
+            refreshScreenTime()
+          }
+          
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
       }
@@ -86,7 +91,7 @@ struct AppMonitorScreen: View {
       }
     )
   }
-
+  
   // MARK: - Header View (Floating)
   @ViewBuilder
   private func headerOverlayView(screenGeometry: GeometryProxy) -> some View {
@@ -103,7 +108,7 @@ struct AppMonitorScreen: View {
     )
     .offset(y: max(0, screenGeometry.safeAreaInsets.top - offsetY))
   }
-
+  
   // MARK: - Header (Top-right profile)
   private var headerView: some View {
     HStack {
@@ -112,7 +117,7 @@ struct AppMonitorScreen: View {
     }
     .padding(.horizontal)
   }
-
+  
   private var profileButton: some View {
     Button(action: { isShowingProfile = true }) {
       Image(systemName: "person.fill")
@@ -122,19 +127,23 @@ struct AppMonitorScreen: View {
         .contentShape(Rectangle())
     }
   }
-
+  
   // MARK: - ScreenTime Today Section
   private var screenTimeSection: some View {
-    ScreenTimeTodayView()
+    ScreenTimeTodayView(id: screenTimeID)
   }
-
+  
+  private func refreshScreenTime() {
+    screenTimeID = UUID()
+  }
+  
   // MARK: - App Blocking
   private var appBlockingSection: some View {
     VStack {
       AppBlockingSectionView(restrictionModel: restrictionModel)
     }
   }
-
+  
   // MARK: - Focus Breaks Section
   private var focusBreaksSectionHeaderView: some View {
     HStack {
@@ -144,28 +153,28 @@ struct AppMonitorScreen: View {
       Spacer()
     }
   }
-
+  
   private var focusBreaksSection: some View {
     VStack {
       focusBreaksSectionHeaderView
         .padding(.top)
         .padding(.horizontal)
-
+      
       separatorView.padding(.horizontal, 20)
-
+      
       AppInterruptionsSectionView()
-
+      
       separatorView.padding(.horizontal, 20)
-
+      
       ScreenTimeAlertsSectionView()
     }
     .blurBackground()
   }
-
+  
   private var separatorView: some View {
     SeparatorView()
   }
-
+  
   // MARK: - Stats Section
   private var statsSection: some View {
     ActivityReportView()
