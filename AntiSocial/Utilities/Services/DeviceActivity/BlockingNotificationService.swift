@@ -69,18 +69,10 @@ final class BlockingNotificationService: ObservableObject {
             appDisplayName: app.localizedDisplayName ?? "Unknown App",
             plannedDuration: plannedDuration
           )
-                  } catch {
-            AppLogger.critical(error, details: "Failed to start blocking session for \(app.localizedDisplayName ?? "Unknown App")")
-          }
+        } catch {
+          AppLogger.critical(error, details: "Failed to start blocking session for \(app.localizedDisplayName ?? "Unknown App")")
+        }
       }
-    }
-
-    // Save usage forecast (legacy support)
-    let today = Date()
-    for app in selection.applications {
-      FocusedTimeStatsStore.shared.saveUsage(for: app.localizedDisplayName ?? "App",
-                                             date: today,
-                                             duration: TimeInterval(hours * 3600 + minutes * 60))
     }
 
     SharedDataConstants.userDefaults?.set(Date().timeIntervalSince1970, forKey: SharedDataConstants.AppBlocking.currentBlockingStartTimestamp)

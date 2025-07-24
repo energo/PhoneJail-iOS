@@ -60,7 +60,7 @@ struct StatsSectionView: View {
       }
     }
     .onAppear {
-      focusedTime = FocusedTimeStatsStore.shared.getTotalFocusedTime(for: Date())
+      focusedTime = AppBlockingLogger.shared.getTodayTotalBlockingTime()
     }
   }
 }
