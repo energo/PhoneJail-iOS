@@ -59,9 +59,9 @@ struct StatsSectionView: View {
         }
       }
     }
-    .onAppear {
-      focusedTime = AppBlockingLogger.shared.getTodayTotalBlockingTime()
-    }
+//    .onAppear {
+//      focusedTime = AppBlockingLogger.shared.getTodayTotalBlockingTime()
+//    }
   }
 }
 

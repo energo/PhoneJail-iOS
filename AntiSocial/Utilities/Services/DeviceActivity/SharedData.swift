@@ -21,6 +21,9 @@ class SharedData {
     
     static let selectedInterraptedTimePeriods = "SelectedInterraptedTimePeriods"
     static let SelectedScreenAlertTimePeriods = "SelectedScreenAlertTimePeriods"
+    
+    static let selectedAlertActivity = "SelectedAlertActivity"
+    static let selectedInterruptionsActivity = "SelectedInterruptionsActivity"
   }
   
   static var selectedInterraptedTimePeriods: Int {
@@ -89,6 +92,26 @@ class SharedData {
   
   static func appName(for token: String) -> String {
     tokenDisplayNameMap[token] ?? "Приложение"
+  }
+
+  static var selectedAlertActivity: FamilyActivitySelection? {
+    get {
+      guard let data = defaultsGroup?.data(forKey: Keys.selectedAlertActivity) else { return nil }
+      return try? JSONDecoder().decode(FamilyActivitySelection.self, from: data)
+    }
+    set {
+      defaultsGroup?.set(try? JSONEncoder().encode(newValue), forKey: Keys.selectedAlertActivity)
+    }
+  }
+
+  static var selectedInterruptionsActivity: FamilyActivitySelection? {
+    get {
+      guard let data = defaultsGroup?.data(forKey: Keys.selectedInterruptionsActivity) else { return nil }
+      return try? JSONDecoder().decode(FamilyActivitySelection.self, from: data)
+    }
+    set {
+      defaultsGroup?.set(try? JSONEncoder().encode(newValue), forKey: Keys.selectedInterruptionsActivity)
+    }
   }
 }
 

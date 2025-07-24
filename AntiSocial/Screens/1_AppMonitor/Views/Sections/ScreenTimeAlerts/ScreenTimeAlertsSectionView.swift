@@ -10,11 +10,12 @@ import FamilyControls
 import ManagedSettings
 
 struct ScreenTimeAlertsSectionView: View {
+  @AppStorage("isAlertEnabled") private var isAlertEnabled: Bool = false
   @StateObject var viewModel: AppMonitorViewModel
   @State private var isExpanded: Bool = true
 
   init() {
-    self._viewModel = StateObject(wrappedValue: AppMonitorViewModel(model: SelectAppsModel()))
+    self._viewModel = StateObject(wrappedValue: AppMonitorViewModel(model: SelectAppsModel(mode: .alert)))
   }
   
   var body: some View {
@@ -25,6 +26,13 @@ struct ScreenTimeAlertsSectionView: View {
       .onChangeWithOldValue(of: viewModel.model.activitySelection, perform: { _, _ in
         viewModel.onActivitySelectionChange()
       })
+      .onChange(of: isAlertEnabled) { newValue in
+        if newValue {
+          viewModel.startMonitoring()
+        } else {
+          viewModel.stopMonitoring()
+        }
+      }
   }
   
   private var contentView: some View {
@@ -194,7 +202,7 @@ struct ScreenTimeAlertsSectionView: View {
   }
   
   private var startMonitorButton: some View {
-    Toggle("", isOn: $viewModel.isAlertEnabled)
+    Toggle("", isOn: $isAlertEnabled)
       .foregroundStyle(Color.white)
       .toggleStyle(SwitchToggleStyle(tint: .purple))
   }
