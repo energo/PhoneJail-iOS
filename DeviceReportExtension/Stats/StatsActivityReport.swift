@@ -6,121 +6,177 @@ struct StatsActivityReport: DeviceActivityReportScene {
   let content: (StatsData) -> StatsSectionView
   
   func makeConfiguration(representing data: DeviceActivityResults<DeviceActivityData>) async -> StatsData {
-    // Используем тот же корректный алгоритм что и в TotalActivityReport
-    let totalDuration = await data.flatMap { $0.activitySegments }.reduce(0, {
-      $0 + $1.totalActivityDuration
-    })
-    
-    var (chartData, focusedDuration, distractedDuration, _, appUsageDict, _) = await processDeviceActivityData(data)
-    calculateOfflineMinutes(for: &chartData)
-    let top3AppUsages = Array(appUsageDict.values
-      .sorted { $0.usage > $1.usage }
-      .prefix(3))
-
-    return StatsData(
-      totalDuration: totalDuration, // Используем корректное значение
-      chartData: chartData,
-      focusedDuration: focusedDuration,
-      distractedDuration: distractedDuration,
-      appUsages: top3AppUsages
-    )
-  }
-  
-  // MARK: - Device Activity Data Processing
-  private func processDeviceActivityData(_ data: DeviceActivityResults<DeviceActivityData>) async -> (
-    chartData: [ChartBar],
-    focusedDuration: TimeInterval,
-    distractedDuration: TimeInterval,
-    totalDuration: TimeInterval,
-    appUsageDict: [String: AppUsage],
-    perAppHourlyUsage: [String: [Int: TimeInterval]]
-  ) {
-    var chartDataRaw = (0..<24).map { _ in (focused: 0.0, distracted: 0.0) }
-    var distractedDuration: TimeInterval = 0
-    var focusedDuration: TimeInterval = 0
-    let totalDuration: TimeInterval = 0 // Оставляем для совместимости, но не используем
-    
-    var appUsageDict: [String: AppUsage] = [:]
-    var perAppHourlyUsage: [String: [Int: TimeInterval]] = [:]
+    var sessions: [AppUsageSession] = []
     
     for await d in data {
       for await segment in d.activitySegments {
-        let segmentStart = segment.dateInterval.start
-        let segmentEnd = segment.dateInterval.end
-        let segmentDuration = segmentEnd.timeIntervalSince(segmentStart)
-        guard segmentDuration > 0 else { continue }
+        guard let baseStart = segment.longestActivity?.start else { continue }
         
         for await category in segment.categories {
           for await app in category.applications {
-            let appDuration = app.totalActivityDuration
-            
-            let key = app.application.bundleIdentifier ?? "Unknown"
+            let duration = app.totalActivityDuration
+            guard duration > 0 else { continue }
+            guard let token = app.application.token else { continue }
             let appName = app.application.localizedDisplayName ?? "App"
-            let token = app.application.token!
             
-            // Пропорциональное распределение по часам
-            var current = segmentStart
-            let appDurationPerSecond = appDuration / segmentDuration
+            let start = baseStart
+            let end = start.addingTimeInterval(duration)
             
-            while current < segmentEnd {
-              guard let hourStart = Calendar.current.dateInterval(of: .hour, for: current)?.start else { break }
-              let hour = Calendar.current.component(.hour, from: hourStart)
-              let nextHour = Calendar.current.date(byAdding: .hour, value: 1, to: hourStart)!
-              let intervalEnd = min(nextHour, segmentEnd)
-              let secondsInThisHour = intervalEnd.timeIntervalSince(current)
-              let usageInThisHour = appDurationPerSecond * secondsInThisHour
-              
-              // Здесь можно добавить свою логику для focused/distracted
-              let distractedMinutes = usageInThisHour / 60.0
-              let focusedMinutes = 0.0 // или randomFocusedMinutes()
-              
-              if hour >= 0 && hour < 24 {
-                chartDataRaw[hour].distracted += distractedMinutes
-                chartDataRaw[hour].focused += focusedMinutes
-                
-                distractedDuration += usageInThisHour
-                focusedDuration += focusedMinutes * 60.0
-                
-                perAppHourlyUsage[key, default: [:]][hour, default: 0] += usageInThisHour
-              }
-              current = intervalEnd
-            }
+            let session = AppUsageSession(
+              token: token,
+              appName: appName,
+              start: start,
+              end: end,
+              duration: duration
+            )
             
-            // Убираем неправильное суммирование - теперь используем segment-based подход
-            // totalDuration += appDuration // ❌ УДАЛЕНО - это вызывало двойной подсчет
-            
-            if let existing = appUsageDict[key] {
-              appUsageDict[key] = AppUsage(name: appName, token: token, usage: existing.usage + appDuration)
-            } else {
-              appUsageDict[key] = AppUsage(name: appName, token: token, usage: appDuration)
-            }
+            print("\(session.appName): \(session.start.formatted()) → \(session.end.formatted()), duration: \(session.duration / 60) min")
+
+            sessions.append(session)
           }
         }
       }
     }
     
-    // Округление только на финальном этапе
-    var chartData: [ChartBar] = []
+    let chartData = generateChartBars(from: sessions)
+    let totalDuration = sessions.reduce(0) { $0 + $1.duration }
     
-    for hour in 0..<24 {
-      let focused = Int(chartDataRaw[hour].focused.rounded())
-      let distracted = Int(chartDataRaw[hour].distracted.rounded())
-      chartData.append(ChartBar(hour: hour, focusedMinutes: focused, distractedMinutes: distracted))
+    let (focusedDuration, distractedDuration) = (0.0, totalDuration)
+    let top3AppUsages = topAppUsages(from: sessions, count: 3)
+    
+    var filledChartData = chartData
+    for hour in 0..<filledChartData.count {
+      let total = filledChartData[hour].totalMinutes
+      filledChartData[hour].offlineMinutes = max(0, 60 - total)
     }
     
-    return (chartData,
-            focusedDuration,
-            distractedDuration,
-            totalDuration,
-            appUsageDict,
-            perAppHourlyUsage)
+    return StatsData(
+      totalDuration: totalDuration,
+      chartData: filledChartData,
+      focusedDuration: focusedDuration,
+      distractedDuration: distractedDuration,
+      appUsages: top3AppUsages,
+      appSessions: sessions
+    )
   }
   
-  private func randomFocusedMinutes() -> Int {
-    Int.random(in: 0...1)
+  func generateChartBars(from sessions: [AppUsageSession]) -> [ChartBar] {
+      var hourly = Array(repeating: (focused: 0.0, distracted: 0.0), count: 24)
+      let calendar = Calendar.current
+
+      for session in sessions {
+          var t1 = session.start
+          let t2 = session.end
+
+          while t1 < t2 {
+              // Получаем локальный час
+              let hour = calendar.dateComponents(in: TimeZone.current, from: t1).hour ?? 0
+              guard hour >= 0 && hour < 24 else { break }
+
+              // Граница текущего часа
+              guard let hourStart = calendar.dateInterval(of: .hour, for: t1) else { break }
+              let hourEnd = hourStart.end
+
+              // Насколько usage залезает в этот час
+              let intervalEnd = min(hourEnd, t2)
+              let secondsInThisHour = intervalEnd.timeIntervalSince(t1)
+
+              // Записываем usage
+              hourly[hour].distracted += secondsInThisHour / 60.0
+
+              // Продвигаем time pointer
+              t1 = intervalEnd
+          }
+      }
+
+      // Конвертируем в ChartBar
+      return (0..<24).map { hour in
+          ChartBar(
+              hour: hour,
+              focusedMinutes: Int(hourly[hour].focused.rounded()),
+              distractedMinutes: Int(hourly[hour].distracted.rounded())
+          )
+      }
+  }
+
+//  func generateChartBars(from sessions: [AppUsageSession]) -> [ChartBar] {
+//      var hourly = Array(repeating: (focused: 0.0, distracted: 0.0), count: 24)
+//      let calendar = Calendar.current
+//
+//      for session in sessions {
+//          var t1 = session.start
+//          let t2 = session.end
+//
+//          while t1 < t2 {
+//              let hour = calendar.component(.hour, from: t1)
+//              guard hour >= 0 && hour < 24 else { break }
+//
+//              guard let hourStart = calendar.dateInterval(of: .hour, for: t1) else { break }
+//              let hourEnd = hourStart.end
+//              let intervalEnd = min(hourEnd, t2)
+//              let secondsInThisHour = intervalEnd.timeIntervalSince(t1)
+//
+//              hourly[hour].distracted += secondsInThisHour / 60.0
+//              t1 = intervalEnd
+//          }
+//      }
+//
+//      return (0..<24).map { hour in
+//          ChartBar(
+//              hour: hour,
+//              focusedMinutes: Int(hourly[hour].focused.rounded()),
+//              distractedMinutes: Int(hourly[hour].distracted.rounded())
+//          )
+//      }
+//  }
+  
+  /// Генерация баров по usage по часам (локальное время)
+  //    func generateChartBars(from sessions: [AppUsageSession]) -> [ChartBar] {
+  //        var hourly = Array(repeating: (focused: 0.0, distracted: 0.0), count: 24)
+  //        let calendar = Calendar.current
+  //
+  //        for session in sessions {
+  //            var t1 = session.start
+  //            let t2 = session.end
+  //
+  //            while t1 < t2 {
+  //                let hour = calendar.dateComponents(in: TimeZone.current, from: t1).hour ?? 0
+  //                guard let hourStart = calendar.dateInterval(of: .hour, for: t1) else { break }
+  //                let nextHour = hourStart.end
+  //                let intervalEnd = min(nextHour, t2)
+  //                let secondsInThisHour = intervalEnd.timeIntervalSince(t1)
+  //
+  //                hourly[hour].distracted += secondsInThisHour / 60.0
+  //                t1 = intervalEnd
+  //            }
+  //        }
+  //
+  //        return (0..<24).map { hour in
+  //            ChartBar(
+  //                hour: hour,
+  //                focusedMinutes: Int(hourly[hour].focused.rounded()),
+  //                distractedMinutes: Int(hourly[hour].distracted.rounded())
+  //            )
+  //        }
+  //    }
+  
+  /// Top-N приложений по usage
+  func topAppUsages(from sessions: [AppUsageSession], count: Int = 3) -> [AppUsage] {
+    let grouped = Dictionary(grouping: sessions, by: { $0.token })
+    return grouped
+      .map { (token, sess) in
+        AppUsage(
+          name: sess.first?.appName ?? "App",
+          token: token,
+          usage: sess.reduce(0) { $0 + $1.duration }
+        )
+      }
+      .sorted { $0.usage > $1.usage }
+      .prefix(count)
+      .map { $0 }
   }
   
-  // MARK: - Offline Minutes Calculation
+  /// Расчёт offline минут (если вдруг понадобится отдельно)
   private func calculateOfflineMinutes(for chartData: inout [ChartBar]) {
     for hour in 0..<24 {
       let hourSeconds = 60.0 * 60.0
@@ -132,3 +188,4 @@ struct StatsActivityReport: DeviceActivityReportScene {
     }
   }
 }
+

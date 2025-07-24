@@ -8,10 +8,14 @@
 import Foundation
 
 struct ChartBar: Identifiable {
-  var id: Int { hour } // <-- фикс
-  let hour: Int
-  var focusedMinutes: Int
-  var distractedMinutes: Int
-  var offlineMinutes: Int = 0
+    var id: Int { hour }
+    let hour: Int
+    var focusedMinutes: Int
+    var distractedMinutes: Int
+    var offlineMinutes: Int = 0
+
+    var totalMinutes: Int {
+        focusedMinutes + distractedMinutes
+    }
 }
 

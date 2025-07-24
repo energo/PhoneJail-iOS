@@ -9,6 +9,25 @@ import Foundation
 import DeviceActivity
 import ManagedSettings
 
+struct AppUsageSession: Identifiable {
+  let id = UUID()
+  let token: ApplicationToken
+  let appName: String
+  let start: Date
+  let end: Date
+  let duration: TimeInterval
+  
+  var durationString: String {
+    let hours = Int(duration) / 3600
+    let minutes = (Int(duration) % 3600) / 60
+    if hours > 0 {
+      return "\(hours)h \(minutes)m"
+    } else {
+      return "\(minutes)m"
+    }
+  }
+}
+
 struct AppUsage: Identifiable {
   let id = UUID()
   let name: String
@@ -25,3 +44,6 @@ struct AppUsage: Identifiable {
     }
   }
 }
+
+
+
