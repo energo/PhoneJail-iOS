@@ -66,10 +66,7 @@ class AppMonitorViewModel: ObservableObject {
   }
   
   func startMonitoring() {
-    var timeLimitMinutes = isInterruptionsEnabled ? selectedFrequency.minutes : selectedTime.minutes
-    if timeLimitMinutes <= 2 {
-      timeLimitMinutes = 5
-    }
+    let timeLimitMinutes = isInterruptionsEnabled ? selectedFrequency.minutes : selectedTime.minutes
     
     print("startMonitoring timeLimitMinutes: \(timeLimitMinutes)")
     updateMonitoringState()

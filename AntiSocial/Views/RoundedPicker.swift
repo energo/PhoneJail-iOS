@@ -18,7 +18,7 @@ extension FrequencyOption {
     static let frequencyOptions = [
         FrequencyOption(label: "Rarely", minutes: 60),
         FrequencyOption(label: "Often", minutes: 15),
-        FrequencyOption(label: "Very Often", minutes: 5)
+        FrequencyOption(label: "Very Often", minutes: 2)
     ]
     
     static func option(for minutes: Int) -> FrequencyOption {

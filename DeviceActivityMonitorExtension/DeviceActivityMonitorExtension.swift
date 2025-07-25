@@ -36,13 +36,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   override func eventDidReachThreshold(_ event: DeviceActivityEvent.Name, activity: DeviceActivityName) {
     super.eventDidReachThreshold(event, activity: activity)
     
-//    if event.rawValue == DeviceActivityEvent.Name.block.rawValue {
-//      DeviceActivityService.shared.stopAppRestrictions()
-//      scheduleNotification(with: "Phone Jail",
-//                           details: "Congrats! You've reached the end of Restriction Mode (eventDidReachThreshold)")
-//    }
-
-    if let selection = SharedData.selectedFamilyActivity {
+    if let selection = SharedData.selectedInterruptionsActivity {
       
       //Schedule Interruption for 2 minutes
       if event.rawValue == DeviceActivityEvent.Name.interruption.rawValue {
@@ -53,12 +47,16 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
           restrictionModel:  MyRestrictionModel()
         )
       }
-      
-      for application in selection.applications {
-        if let displayName = application.localizedDisplayName {
-          scheduleNotification(with: "Hey! Time to take a break from this app", details: displayName)
-        } else {
-          scheduleNotification(with: "Phone Jail", details: "Hey! Time to take a break from this app")
+    }
+    
+    if let selection = SharedData.selectedAlertActivity {
+      if event.rawValue == DeviceActivityEvent.Name.screenAlert.rawValue {
+        for application in selection.applications {
+          if let displayName = application.localizedDisplayName {
+            scheduleNotification(with: "Hey! Time to take a break from this app", details: displayName)
+          } else {
+            scheduleNotification(with: "Phone Jail", details: "Hey! Time to take a break from this app")
+          }
         }
       }
     }
