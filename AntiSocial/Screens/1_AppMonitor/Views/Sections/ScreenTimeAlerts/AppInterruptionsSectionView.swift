@@ -10,13 +10,8 @@ import FamilyControls
 import ManagedSettings
 
 struct AppInterruptionsSectionView: View {
-  @AppStorage("isInterruptionsEnabled") private var isInterruptionsEnabled: Bool = false
-  @StateObject var viewModel: AppMonitorViewModel
+  @ObservedObject var viewModel: AppMonitorViewModel
   @State private var isExpanded: Bool = true
-
-  init() {
-    self._viewModel = StateObject(wrappedValue: AppMonitorViewModel(model: SelectAppsModel(mode: .interruptions)))
-  }
   
   var body: some View {
     contentView
@@ -26,7 +21,7 @@ struct AppInterruptionsSectionView: View {
       .onChangeWithOldValue(of: viewModel.model.activitySelection, perform: { _, newValue in
         viewModel.onActivitySelectionChange()
       })
-      .onChange(of: isInterruptionsEnabled) { newValue in
+      .onChange(of: viewModel.isInterruptionsEnabled) { newValue in
         if newValue {
           viewModel.startMonitoring()
         } else {
@@ -41,8 +36,6 @@ struct AppInterruptionsSectionView: View {
     }
     .padding(.horizontal, 20)
     .padding(.vertical, 16)
-    //    .padding()
-    //    .blurBackground()
   }
   
   private var frequencyView: some View {
@@ -202,7 +195,7 @@ struct AppInterruptionsSectionView: View {
   }
   
   private var startMonitorButton: some View {
-    Toggle("", isOn: $isInterruptionsEnabled)
+    Toggle("", isOn: $viewModel.isInterruptionsEnabled)
       .foregroundStyle(Color.white)
       .toggleStyle(SwitchToggleStyle(tint: .purple))
   }
@@ -248,6 +241,6 @@ struct AppInterruptionsSectionView: View {
 
 #Preview {
   BGView(imageRsc: .bgMain) {
-    AppInterruptionsSectionView()
+    AppInterruptionsSectionView(viewModel: AppMonitorViewModel(model: SelectAppsModel(mode: .interruptions)))
   }
 }

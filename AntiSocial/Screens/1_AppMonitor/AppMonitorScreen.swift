@@ -19,6 +19,9 @@ struct AppMonitorScreen: View {
   @EnvironmentObject var familyControlsManager: FamilyControlsManager
   @StateObject private var restrictionModel = MyRestrictionModel()
   
+  @StateObject var vmScreenInteraption: AppMonitorViewModel = AppMonitorViewModel(model: SelectAppsModel(mode: .interruptions))
+  @StateObject var vmScreenAlert: AppMonitorViewModel = AppMonitorViewModel(model: SelectAppsModel(mode: .alert))
+
   @State private var isShowingProfile: Bool = false
   @State private var offsetY: CGFloat = .zero
   @State private var headerHeight: CGFloat = UIScreen.main.bounds.height * 0.35
@@ -162,11 +165,11 @@ struct AppMonitorScreen: View {
       
       separatorView.padding(.horizontal, 20)
       
-      AppInterruptionsSectionView()
+      AppInterruptionsSectionView(viewModel: vmScreenInteraption)
       
       separatorView.padding(.horizontal, 20)
       
-      ScreenTimeAlertsSectionView()
+      ScreenTimeAlertsSectionView(viewModel: vmScreenAlert)
     }
     .blurBackground()
   }

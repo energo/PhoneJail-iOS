@@ -18,41 +18,11 @@ class SharedData {
     
     static let selectedFamilyActivity = "FamilyActivitySelection"
     static let tokenToDisplayName = "AppTokenDisplayNames"
-    
-    static let selectedInterraptedTimePeriods = "SelectedInterraptedTimePeriods"
-    static let SelectedScreenAlertTimePeriods = "SelectedScreenAlertTimePeriods"
-    
+        
     static let selectedAlertActivity = "SelectedAlertActivity"
     static let selectedInterruptionsActivity = "SelectedInterruptionsActivity"
   }
-  
-  static var selectedInterraptedTimePeriods: Int {
-    get {
-      let value = defaultsGroup?.integer(forKey: Keys.selectedInterraptedTimePeriods) ?? 0
-      print("get selectedInterraptedTimePeriods \(value)")
-      return value
-    }
     
-    set {
-      print("set selectedInterraptedTimePeriods \(newValue)")
-      defaultsGroup?.set(newValue, forKey: Keys.selectedInterraptedTimePeriods)
-    }
-  }
-  
-  static var selectedScreenAlertTimePeriods: Int {
-    get {
-      let value = defaultsGroup?.integer(forKey: Keys.SelectedScreenAlertTimePeriods) ?? 0
-      print("get selectedScreenAlertTimePeriods \(value)")
-      return value
-    }
-    
-    set {
-      print("set selectedScreenAlertTimePeriods \(newValue)")
-      defaultsGroup?.set(newValue, forKey: Keys.SelectedScreenAlertTimePeriods)
-    }
-  }
-
-  
   static var selectedFamilyActivity: FamilyActivitySelection? {
     get {
       guard let data = defaultsGroup?.data(forKey: Keys.selectedFamilyActivity) else { return nil }

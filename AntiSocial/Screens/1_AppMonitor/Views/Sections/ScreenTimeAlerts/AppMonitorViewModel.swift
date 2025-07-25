@@ -5,7 +5,17 @@ import ManagedSettings
 import DeviceActivity
 
 class AppMonitorViewModel: ObservableObject {
-  @Published var isAlertEnabled = false {
+  @AppStorage("isInterruptionsEnabled") var isInterruptionsEnabled: Bool = false {
+    didSet {
+        if oldValue == false && isInterruptionsEnabled == true {
+            startMonitoring()
+        } else if oldValue == true && isInterruptionsEnabled == false {
+            stopMonitoring()
+        }
+    }
+  }
+
+  @AppStorage("isAlertEnabled") var isAlertEnabled: Bool = false {
       didSet {
           if oldValue == false && isAlertEnabled == true {
               startMonitoring()
@@ -15,43 +25,20 @@ class AppMonitorViewModel: ObservableObject {
       }
   }
   
-  @Published var isInterruptionsEnabled = false {
-      didSet {
-          if oldValue == false && isInterruptionsEnabled == true {
-              startMonitoring()
-          } else if oldValue == true && isInterruptionsEnabled == false {
-              stopMonitoring()
-          }
-      }
-  }
+  @Published var model: SelectAppsModel
+  
+  @AppStorage("selectedFrequency") var selectedFrequency: FrequencyOption = FrequencyOption.frequencyOptions[0]
+  @AppStorage("selectedTime") var selectedTime: TimeIntervalOption = TimeIntervalOption.timeOptions[0]
 
   @Published var pickerIsPresented = false
   @Published var showSocialMediaHint = false
   @Published var monitoredApps: [MonitoredApp] = []
 
-  @Published var model: SelectAppsModel
-  
-  @Published var selectedFrequency: FrequencyOption
-  @Published var selectedTime: TimeIntervalOption
-
   let center = DeviceActivityScheduleService.center
 
+  //MARK: - Init
   init(model: SelectAppsModel) {
     self.model = model
-    let saveInterraptedTimePeriods = SharedData.selectedInterraptedTimePeriods
-    
-    if let matched = TimeIntervalOption.timeOptions.first(where: { $0.minutes == saveInterraptedTimePeriods }) {
-      self.selectedTime = matched
-    } else {
-      self.selectedTime = TimeIntervalOption.timeOptions[1]
-    }
-    
-    let selectedScreenAlertTimePeriods = SharedData.selectedScreenAlertTimePeriods
-    if let matched = FrequencyOption.frequencyOptions.first(where: { $0.minutes == selectedScreenAlertTimePeriods }) {
-      self.selectedFrequency = matched
-    } else {
-      self.selectedFrequency = FrequencyOption.frequencyOptions[1]
-    }
   }
   
   @MainActor
