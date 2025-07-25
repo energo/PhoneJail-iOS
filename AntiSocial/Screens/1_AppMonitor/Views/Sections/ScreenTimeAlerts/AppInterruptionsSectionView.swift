@@ -21,13 +21,6 @@ struct AppInterruptionsSectionView: View {
       .onChangeWithOldValue(of: viewModel.model.activitySelection, perform: { _, newValue in
         viewModel.onActivitySelectionChange()
       })
-      .onChange(of: viewModel.isInterruptionsEnabled) { newValue in
-        if newValue {
-          viewModel.startMonitoring()
-        } else {
-          viewModel.stopMonitoring()
-        }
-      }
   }
   
   private var contentView: some View {

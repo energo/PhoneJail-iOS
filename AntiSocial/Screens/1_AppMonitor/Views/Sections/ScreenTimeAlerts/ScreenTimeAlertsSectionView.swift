@@ -21,13 +21,6 @@ struct ScreenTimeAlertsSectionView: View {
       .onChangeWithOldValue(of: viewModel.model.activitySelection, perform: { _, _ in
         viewModel.onActivitySelectionChange()
       })
-      .onChange(of: viewModel.isAlertEnabled) { newValue in
-        if newValue {
-          viewModel.startMonitoring()
-        } else {
-          viewModel.stopMonitoring()
-        }
-      }
   }
   
   private var contentView: some View {

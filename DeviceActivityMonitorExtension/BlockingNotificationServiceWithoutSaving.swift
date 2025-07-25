@@ -24,7 +24,7 @@ final class BlockingNotificationServiceWithoutSaving: ObservableObject {
     guard hours > 0 || minutes > 0 else { return }
 
     // Save restriction mode
-    SharedDataConstants.userDefaults?.set(true, forKey: SharedDataConstants.Widget.isBlocked)
+//    SharedDataConstants.userDefaults?.set(true, forKey: SharedDataConstants.Widget.isBlocked)
 
     // Save selection
     DeviceActivityService.shared.saveFamilyActivitySelection(selection)
@@ -45,32 +45,13 @@ final class BlockingNotificationServiceWithoutSaving: ObservableObject {
     }
 
     // Store for widgets
-    SharedDataConstants.userDefaults?.set(endHour, forKey: SharedDataConstants.Widget.endHour)
-    SharedDataConstants.userDefaults?.set(endMin, forKey: SharedDataConstants.Widget.endMinutes)
+//    SharedDataConstants.userDefaults?.set(endHour, forKey: SharedDataConstants.Widget.endHour)
+//    SharedDataConstants.userDefaults?.set(endMin, forKey: SharedDataConstants.Widget.endMinutes)
 
     WidgetCenter.shared.reloadAllTimelines()
 
     // Set schedule
     DeviceActivityScheduleService.setSchedule(endHour: endHour, endMins: endMin)
-
-//    DeviceActivityService.shared.setShieldRestrictions()
-    
-    // Log blocking sessions for each app
-//    let plannedDuration = TimeInterval(hours * 3600 + minutes * 60)
-//    Task { @MainActor in
-//      for app in selection.applications {
-//        guard let appToken = app.token else { continue }
-//        do {
-//          _ = try await AppBlockingLogger.shared.startBlockingSession(
-//            applicationToken: appToken,
-//            appDisplayName: app.localizedDisplayName ?? "Unknown App",
-//            plannedDuration: plannedDuration
-//          )
-//                  } catch {
-////            AppLogger.critical(error, details: "Failed to start blocking session for \(app.localizedDisplayName ?? "Unknown App")")
-//          }
-//      }
-//    }
 
     // Save start timestamp
     SharedDataConstants.userDefaults?.set(Date().timeIntervalSince1970, forKey: SharedDataConstants.AppBlocking.currentBlockingStartTimestamp)
@@ -86,29 +67,6 @@ final class BlockingNotificationServiceWithoutSaving: ObservableObject {
 
     WidgetCenter.shared.reloadAllTimelines()
 
-    // Complete blocking sessions for each app
-//    Task { @MainActor in
-//      for app in selection.applications {
-//        guard let appToken = app.token else { continue }
-//        if let activeSession = AppBlockingLogger.shared.findActiveSession(for: appToken) {
-//          do {
-//            try await AppBlockingLogger.shared.completeBlockingSession(activeSession.id)
-//          } catch {
-////            AppLogger.critical(error, details: "Failed to complete blocking session for \(app.localizedDisplayName ?? "Unknown App")")
-//          }
-//        }
-//      }
-//    }
-
-    // Save real usage duration (legacy support)
-//    if let startTimestamp = UserDefaults(suiteName: "group.ScreenTimeTestApp.sharedData")?.double(forKey: "restrictionStartTime") {
-//      let duration = Date().timeIntervalSince1970 - startTimestamp
-//      let today = Date()
-//      for app in selection.applications {
-//        FocusedTimeStatsStore.shared.saveUsage(for: app.localizedDisplayName ?? "App", date: today, duration: duration)
-//      }
-//      UserDefaults(suiteName: "group.ScreenTimeTestApp.sharedData")?.removeObject(forKey: "restrictionStartTime")
-//    }
     
     resetBlockingState()
   }
@@ -122,18 +80,6 @@ final class BlockingNotificationServiceWithoutSaving: ObservableObject {
     
     SharedDataConstants.userDefaults?.set(false, forKey: SharedDataConstants.Widget.isBlocked)
     service.stopAppRestrictions()
-    
-    // Interrupt all active blocking sessions
-//    Task { @MainActor in
-//      let activeSessions = AppBlockingLogger.shared.activeSessions
-//      for session in activeSessions {
-//        do {
-//          try await AppBlockingLogger.shared.interruptBlockingSession(session.id)
-//        } catch {
-////          AppLogger.critical(error, details: "Failed to interrupt blocking session for \(session.appDisplayName)")
-//        }
-//      }
-//    }
   }
 
   func getEndTime(hourDuration: Int, minuteDuration: Int) -> (Int, Int) {
@@ -141,11 +87,9 @@ final class BlockingNotificationServiceWithoutSaving: ObservableObject {
     let calendar = Calendar.current
     if let endDate = calendar.date(byAdding: .minute, value: hourDuration * 60 + minuteDuration, to: now) {
       let comps = calendar.dateComponents([.hour, .minute], from: endDate)
-      print("BlockingNotificationServiceWithoutSaving: Start time: \(now)")
-      print("BlockingNotificationServiceWithoutSaving: End time: \(endDate)")
-      print("BlockingNotificationServiceWithoutSaving: End hour: \(comps.hour ?? 0), minute: \(comps.minute ?? 0)")
       return (comps.hour ?? 0, comps.minute ?? 0)
     }
+    
     return (0, 0)
   }
 }
