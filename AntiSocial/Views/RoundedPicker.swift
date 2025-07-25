@@ -16,9 +16,9 @@ struct FrequencyOption: Identifiable, Hashable {
 
 extension FrequencyOption {
   static  let frequencyOptions = [
-    FrequencyOption(label: "Rarely", minutes: 90),
-    FrequencyOption(label: "Often", minutes: 30),
-    FrequencyOption(label: "Very Often", minutes: 3)
+    FrequencyOption(label: "Rarely", minutes: 60),
+    FrequencyOption(label: "Often", minutes: 15),
+    FrequencyOption(label: "Very Often", minutes: 5)
   ]
 }
 

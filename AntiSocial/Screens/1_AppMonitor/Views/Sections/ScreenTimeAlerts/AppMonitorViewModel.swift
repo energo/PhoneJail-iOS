@@ -79,7 +79,11 @@ class AppMonitorViewModel: ObservableObject {
   }
   
   func startMonitoring() {
-    let timeLimitMinutes = 2
+    var timeLimitMinutes = isInterruptionsEnabled ? selectedFrequency.minutes : selectedTime.minutes
+    if timeLimitMinutes <= 2 {
+      timeLimitMinutes = 5
+    }
+    
     print("startMonitoring timeLimitMinutes: \(timeLimitMinutes)")
     updateMonitoringState()
     let enabledTokens = Set(monitoredApps.filter { $0.isMonitored }.map { $0.token })
