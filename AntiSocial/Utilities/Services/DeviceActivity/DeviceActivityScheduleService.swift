@@ -12,7 +12,8 @@ import UserNotifications
 
 extension DeviceActivityName {
   static let appBlocking = Self("Block Apps")
-  static let appMonitoring = Self("Monitoring App")
+  static let appMonitoringAlert = Self("Monitoring Alert App")
+  static let appMonitoringInterruption = Self("Monitoring Interruption App")
 }
 
 extension DeviceActivityEvent.Name {

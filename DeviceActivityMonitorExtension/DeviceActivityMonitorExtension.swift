@@ -36,10 +36,10 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   override func eventDidReachThreshold(_ event: DeviceActivityEvent.Name, activity: DeviceActivityName) {
     super.eventDidReachThreshold(event, activity: activity)
     
-    if let selection = SharedData.selectedInterruptionsActivity {
       
       //Schedule Interruption for 2 minutes
       if event.rawValue == DeviceActivityEvent.Name.interruption.rawValue {
+        if let selection = SharedData.selectedInterruptionsActivity {
         BlockingNotificationServiceWithoutSaving.shared.startBlocking(
           hours: 0 ,
           minutes: 2,

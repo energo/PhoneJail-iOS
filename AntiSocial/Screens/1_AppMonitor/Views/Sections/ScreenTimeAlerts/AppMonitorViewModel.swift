@@ -76,9 +76,10 @@ class AppMonitorViewModel: ObservableObject {
       categories: model.activitySelection.categoryTokens,
       webDomains: model.activitySelection.webDomainTokens,
       threshold: DateComponents(minute: timeLimitMinutes))
-    let activity = DeviceActivityName.appMonitoring
+    let activity = isInterruptionsEnabled ? DeviceActivityName.appMonitoringInterruption : DeviceActivityName.appMonitoringAlert
     let eventName = isInterruptionsEnabled ? DeviceActivityEvent.Name.interruption : DeviceActivityEvent.Name.screenAlert
     let schedule = schedule24h()
+    
     DispatchQueue.main.async {
       do {
         print("startMonitoring \(activity)")
@@ -92,10 +93,9 @@ class AppMonitorViewModel: ObservableObject {
   }
   
   func stopMonitoring() {
-    let activity = DeviceActivityName.appMonitoring
+    let activity = isInterruptionsEnabled ? DeviceActivityName.appMonitoringInterruption : DeviceActivityName.appMonitoringAlert
     let center = DeviceActivityCenter()
     center.stopMonitoring([activity])
-    // Не трогаем SharedData.selectedFamilyActivity
   }
   
   func schedule24h() -> DeviceActivitySchedule {
