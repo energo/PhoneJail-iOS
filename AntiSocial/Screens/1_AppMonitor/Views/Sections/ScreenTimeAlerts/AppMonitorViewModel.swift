@@ -3,6 +3,7 @@ import SwiftUI
 import FamilyControls
 import ManagedSettings
 import DeviceActivity
+import WidgetKit
 
 class AppMonitorViewModel: ObservableObject {
   @AppStorage("isInterruptionsEnabled") var isInterruptionsEnabled: Bool = false {
@@ -10,7 +11,7 @@ class AppMonitorViewModel: ObservableObject {
         if oldValue == false && isInterruptionsEnabled == true {
             startMonitoring()
         } else if oldValue == true && isInterruptionsEnabled == false {
-            stopMonitoring()
+            stopInterruptionMonitoring()
         }
     }
   }
@@ -20,7 +21,7 @@ class AppMonitorViewModel: ObservableObject {
           if oldValue == false && isAlertEnabled == true {
               startMonitoring()
           } else if oldValue == true && isAlertEnabled == false {
-              stopMonitoring()
+              stopAlertMonitoring()
           }
       }
   }
@@ -107,10 +108,54 @@ class AppMonitorViewModel: ObservableObject {
     }
   }
   
-  func stopMonitoring() {
-    let activity = isInterruptionsEnabled ? DeviceActivityName.appMonitoringInterruption : DeviceActivityName.appMonitoringAlert
+  func stopInterruptionMonitoring() {
     let center = DeviceActivityCenter()
-    center.stopMonitoring([activity])
+    center.stopMonitoring([.appMonitoringInterruption])
+    
+    // Clear any active restrictions from interruptions
+    DeviceActivityService.shared.stopAppRestrictions()
+    
+    // Also stop any active blocking schedule
+    DeviceActivityScheduleService.stopSchedule()
+    
+    // Reset blocking state completely
+    resetInterruptionBlockingState()
+    
+    print("Stopped interruption monitoring and cleared all restrictions")
+  }
+  
+  func stopAlertMonitoring() {
+    let center = DeviceActivityCenter()
+    center.stopMonitoring([.appMonitoringAlert])
+    print("Stopped alert monitoring")
+  }
+  
+  func stopMonitoring() {
+    // Stop monitoring based on what's currently enabled
+    if isInterruptionsEnabled {
+      stopInterruptionMonitoring()
+    }
+    if isAlertEnabled {
+      stopAlertMonitoring()
+    }
+  }
+  
+  private func resetInterruptionBlockingState() {
+    // Clear all shared data related to interruption blocking
+    SharedDataConstants.userDefaults?.set(false, forKey: SharedDataConstants.Widget.isBlocked)
+    SharedDataConstants.userDefaults?.removeObject(forKey: SharedDataConstants.AppBlocking.currentBlockingStartTimestamp)
+    SharedDataConstants.userDefaults?.removeObject(forKey: SharedDataConstants.Widget.endHour)
+    SharedDataConstants.userDefaults?.removeObject(forKey: SharedDataConstants.Widget.endMinutes)
+    
+    // Clear device activity service state
+    let service = DeviceActivityService.shared
+    service.selectionToDiscourage = FamilyActivitySelection()
+    service.savedSelection.removeAll()
+    service.saveFamilyActivitySelection(service.selectionToDiscourage)
+    service.unlockDate = nil
+    
+    // Reload widgets
+    WidgetCenter.shared.reloadAllTimelines()
   }
   
   func schedule24h() -> DeviceActivitySchedule {

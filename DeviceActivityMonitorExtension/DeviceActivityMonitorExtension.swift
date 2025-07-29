@@ -33,6 +33,17 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     
     DeviceActivityService.shared.stopAppRestrictions()
     
+    // Clear blocking state when interruption blocking period ends
+    if activity == .appBlocking {
+      SharedDataConstants.userDefaults?.set(false, forKey: SharedDataConstants.Widget.isBlocked)
+      SharedDataConstants.userDefaults?.removeObject(forKey: SharedDataConstants.AppBlocking.currentBlockingStartTimestamp)
+      SharedDataConstants.userDefaults?.removeObject(forKey: SharedDataConstants.Widget.endHour)
+      SharedDataConstants.userDefaults?.removeObject(forKey: SharedDataConstants.Widget.endMinutes)
+      SharedDataConstants.userDefaults?.removeObject(forKey: "UnlockDate")
+      
+      print("Cleared blocking state after interval end")
+    }
+    
     scheduleNotification(with: "The monitoring session has finished",
                          details: "\(activity.rawValue)")
   }
@@ -43,6 +54,25 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     
     // Check if this is an interruption event (could be interruption_1, interruption_2, etc)
     if event.rawValue.contains(DeviceActivityEvent.Name.interruption.rawValue) {
+      // First check if any existing block has expired and clean it up
+      if let unlockTimestamp = SharedDataConstants.userDefaults?.object(forKey: "UnlockDate") as? Date,
+         unlockTimestamp <= Date() {
+        // Unlock date has passed, clear blocking state
+        SharedDataConstants.userDefaults?.set(false, forKey: SharedDataConstants.Widget.isBlocked)
+        SharedDataConstants.userDefaults?.removeObject(forKey: "UnlockDate")
+        SharedDataConstants.userDefaults?.removeObject(forKey: SharedDataConstants.AppBlocking.currentBlockingStartTimestamp)
+        SharedDataConstants.userDefaults?.removeObject(forKey: SharedDataConstants.Widget.endHour)
+        SharedDataConstants.userDefaults?.removeObject(forKey: SharedDataConstants.Widget.endMinutes)
+        print("Cleared expired blocking state")
+      }
+      
+      // Now check if we're in an active blocking state
+      let isCurrentlyBlocked = SharedDataConstants.userDefaults?.bool(forKey: SharedDataConstants.Widget.isBlocked) ?? false
+      if isCurrentlyBlocked {
+        print("Currently in blocking state, skipping interruption trigger")
+        return
+      }
+      
       // Check if enough time has passed since last trigger
       let now = Date()
       if let lastTrigger = lastInterruptionTrigger,

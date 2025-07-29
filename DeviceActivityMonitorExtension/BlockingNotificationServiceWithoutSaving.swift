@@ -24,7 +24,7 @@ final class BlockingNotificationServiceWithoutSaving: ObservableObject {
     guard hours > 0 || minutes > 0 else { return }
 
     // Save restriction mode
-//    SharedDataConstants.userDefaults?.set(true, forKey: SharedDataConstants.Widget.isBlocked)
+    SharedDataConstants.userDefaults?.set(true, forKey: SharedDataConstants.Widget.isBlocked)
 
     // Save selection
     DeviceActivityService.shared.saveFamilyActivitySelection(selection)
@@ -45,8 +45,8 @@ final class BlockingNotificationServiceWithoutSaving: ObservableObject {
     }
 
     // Store for widgets
-//    SharedDataConstants.userDefaults?.set(endHour, forKey: SharedDataConstants.Widget.endHour)
-//    SharedDataConstants.userDefaults?.set(endMin, forKey: SharedDataConstants.Widget.endMinutes)
+    SharedDataConstants.userDefaults?.set(endHour, forKey: SharedDataConstants.Widget.endHour)
+    SharedDataConstants.userDefaults?.set(endMin, forKey: SharedDataConstants.Widget.endMinutes)
 
     WidgetCenter.shared.reloadAllTimelines()
 
