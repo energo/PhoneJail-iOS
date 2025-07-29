@@ -14,6 +14,12 @@ xcodebuild -project AntiSocial.xcodeproj -scheme AntiSocial -configuration Relea
 
 # Build and create IPA (for distribution)
 xcode-project build-ipa --project "AntiSocial.xcodeproj" --scheme "AntiSocial"
+
+# Clean build folder
+xcodebuild clean -project AntiSocial.xcodeproj -scheme AntiSocial
+
+# Build specific target with destination
+xcodebuild -project AntiSocial.xcodeproj -scheme AntiSocial -destination 'platform=iOS Simulator,name=iPhone 15' build
 ```
 
 ### Running Tests
@@ -23,6 +29,9 @@ xcodebuild test -project AntiSocial.xcodeproj -scheme AntiSocialTests -destinati
 
 # Run UI tests
 xcodebuild test -project AntiSocial.xcodeproj -scheme AntiSocial -destination 'platform=iOS Simulator,name=iPhone 15' -only-testing:AntiSocialUITests
+
+# Run specific test
+xcodebuild test -project AntiSocial.xcodeproj -scheme AntiSocialTests -destination 'platform=iOS Simulator,name=iPhone 15' -only-testing:AntiSocialTests/TestClassName/testMethodName
 ```
 
 ### Managing Dependencies
@@ -30,59 +39,213 @@ xcodebuild test -project AntiSocial.xcodeproj -scheme AntiSocial -destination 'p
 # Resolve Swift Package Manager dependencies
 xcodebuild -resolvePackageDependencies -project AntiSocial.xcodeproj
 
-# Update package dependencies
-xcodebuild -project AntiSocial.xcodeproj -scheme AntiSocial -resolvePackageDependencies
+# Clean derived data (when experiencing build issues)
+rm -rf ~/Library/Developer/Xcode/DerivedData/AntiSocial-*
+
+# Reset package caches (in Xcode: File → Packages → Reset Package Caches)
+```
+
+### CI/CD (Codemagic)
+```bash
+# Increment build number (used in CI)
+LATEST_BUILD_NUMBER=$(app-store-connect get-latest-testflight-build-number "6747712365")
+NEW_BUILD_NUMBER=$(($LATEST_BUILD_NUMBER + 1))
+agvtool new-version -all $NEW_BUILD_NUMBER
 ```
 
 ## Architecture Overview
 
-### Project Structure
-This is a Screen Time/Digital Wellbeing iOS application built with SwiftUI and modern Swift concurrency. The app helps users monitor and control their app usage through Apple's Family Controls framework.
+### Core Architecture Pattern
+The app follows a **modular architecture with app extensions**, leveraging Apple's Screen Time and Family Controls frameworks. Key patterns:
+- **Main App**: SwiftUI with MVVM pattern
+- **Service Layer**: Singleton services for shared functionality
+- **App Extensions**: Three sandboxed extensions for Screen Time features
+- **Dual Storage**: Local-first (GRDB) with cloud sync (Firestore)
 
-### Key Components
+### SwiftUI Architecture Philosophy
 
-1. **Main App** (`AntiSocial/`)
-   - **App/**: Application entry point and configuration
-   - **Models/**: Data models for app blocking, device activity, and user data
-   - **Screens/**: Feature-based UI organization (Login, Onboarding, AppMonitor, Profile, Notifications)
-   - **Utilities/**: Core services, extensions, and managers
-   - **Views/**: Reusable UI components
+#### Singleton Services as Environment Objects
+The project uses singleton services injected through SwiftUI's environment system:
 
-2. **App Extensions**
-   - **DeviceActivityMonitorExtension**: Monitors device activity in the background
-   - **DeviceReportExtension**: Generates device activity reports
-   - **Shield**: Displays shield UI when blocked apps are accessed
+```swift
+// In AntiSocialApp.swift
+@StateObject private var authVM = AuthenticationViewModel(subscriptionManager: SubscriptionManager.shared)
+@StateObject private var subscriptionManager = SubscriptionManager.shared
+@StateObject private var deviceActivityService = DeviceActivityService.shared
+@StateObject private var familyControlsManager = FamilyControlsManager.shared
 
-3. **Core Services**
-   - **Authentication**: Google Sign-In and Apple Sign-In via `AuthenticationViewModel`
-   - **Device Activity**: App blocking and monitoring via `DeviceActivityService` and `FamilyControlsManager`
-   - **Storage**: Dual storage system using GRDB (local) and Firestore (cloud)
-   - **Subscriptions**: RevenueCat integration via `SubscriptionManager`
-   - **Notifications**: Local notifications and Darwin notifications for cross-extension communication
+// Injected via environment
+.environmentObject(authVM)
+.environmentObject(subscriptionManager)
+.environmentObject(deviceActivityService)
+.environmentObject(familyControlsManager)
+```
 
-### Data Flow
-1. User authentication through OAuth providers
-2. App usage data collected via DeviceActivityMonitor extension
-3. Data stored locally in GRDB and synced to Firestore
-4. Shield extension activated when user attempts to open blocked apps
-5. Darwin notifications used for real-time communication between app and extensions
+**Benefits of this approach:**
+- Centralized state management
+- Easy dependency injection
+- Consistent access across view hierarchy
+- Memory-efficient singleton pattern
 
-### Key Dependencies
-- **Firebase**: Authentication, Firestore, Analytics, Crashlytics
-- **RevenueCat**: Subscription management
-- **GRDB**: Local SQLite database
-- **Google Sign-In**: OAuth authentication
-- **Family Controls**: Apple's screen time management framework
+#### MVVM Architecture with ViewModels and Services
+This project follows a **MVVM (Model-View-ViewModel)** pattern, combining ViewModels for business logic with singleton services for shared functionality:
 
-### Development Notes
-- The app uses App Groups (`group.com.app.antisocial`) for data sharing between extensions
-- Firebase configuration is in `GoogleService-Info.plist`
-- CI/CD is configured via Codemagic (see `codemagic.yaml`)
-- No linting or formatting tools are currently configured
-- Test coverage is minimal - expand tests when adding new features
+**Core Principles:**
+- **ViewModels for Business Logic**: Each complex screen has its own ViewModel (e.g., `AuthenticationViewModel`, `AppMonitorViewModel`)
+- **Services as Singletons**: Shared functionality implemented as singleton services injected via @EnvironmentObject
+- **Separation of Concerns**: Views handle presentation, ViewModels manage state and business logic, Services provide reusable functionality
+- **Reactive Data Flow**: Using Combine publishers and @Published properties for state updates
 
-### Extension Communication
-Extensions communicate with the main app through:
-- App Groups shared container
-- Darwin notifications (see `DarwinNotificationManager`)
-- Shared GRDB database in the app group container
+**Architecture Layers:**
+1. **Views**: SwiftUI views that observe ViewModels and Services
+2. **ViewModels**: ObservableObject classes containing screen-specific business logic
+3. **Services**: Singleton instances for cross-cutting concerns (authentication, device activity, storage)
+4. **Models**: Data structures and domain objects
+
+**Example Implementation:**
+```swift
+// ViewModel with business logic
+class AuthenticationViewModel: ObservableObject {
+    @Published var user: User?
+    @Published var isAuthenticated = false
+    @Published var authState: AuthState = .unauthenticated
+    
+    private let subscriptionManager: SubscriptionManager
+    
+    init(subscriptionManager: SubscriptionManager) {
+        self.subscriptionManager = subscriptionManager
+    }
+    
+    func signInWithGoogle() async throws {
+        // Business logic implementation
+    }
+}
+
+// View using ViewModel and Services
+struct LoginScreen: View {
+    @StateObject private var viewModel = AuthenticationViewModel(
+        subscriptionManager: SubscriptionManager.shared
+    )
+    @EnvironmentObject private var deviceActivityService: DeviceActivityService
+    
+    var body: some View {
+        // UI implementation
+    }
+}
+```
+
+**Pattern Guidelines:**
+- Create ViewModels for screens with complex state management
+- Use @StateObject for ViewModel ownership in views
+- Inject services into ViewModels via constructor dependency injection
+- Keep services as @EnvironmentObject for global access
+- Use async/await for asynchronous operations in ViewModels
+
+### Inter-Process Communication Architecture
+```
+Main App ←→ App Groups (UserDefaults) ←→ Extensions
+    ↓              ↓                          ↓
+  GRDB        Darwin Notifications      Shield UI
+    ↓              ↓                          ↓
+Firestore    Real-time Events          User Feedback
+```
+
+### Key Architectural Components
+
+#### 1. **App Extensions Communication**
+- **DeviceActivityMonitorExtension**: Background monitoring of app usage
+  - Triggers via `DeviceActivitySchedule`
+  - Communicates through Darwin notifications
+  - Stores data in shared App Group container
+  
+- **Shield Extension**: Custom UI when blocked apps accessed
+  - Uses `SharedData` for configuration
+  - Reads blocking state from shared UserDefaults
+  
+- **DeviceReportExtension**: Usage statistics and visualizations
+  - Accesses shared GRDB database
+  - Generates reports from activity data
+
+#### 2. **Data Flow and Storage**
+- **SharedData** (`SharedData.swift`): Type-safe wrapper for App Group UserDefaults
+- **Storage** (`Storage.swift`): Unified interface for dual storage system
+  - GRDB for local SQLite storage (offline-first)
+  - Firestore for cloud backup and sync
+- **App Blocking Sessions**: Tracked with start/end times, daily statistics
+
+#### 3. **Cross-Extension Communication**
+- **Darwin Notifications** (`DarwinNotificationManager`): Low-level IPC
+  ```swift
+  // Example notifications:
+  - "appBlockingStarted"
+  - "appBlockingEnded"
+  - "refreshBlockingStats"
+  ```
+- **App Groups**: Shared container `group.com.app.antisocial.sharedData`
+- **SharedDataConstants**: Centralized keys for shared data access
+
+#### 4. **Authentication and User Management**
+- **Multi-provider**: Google Sign-In, Apple Sign-In, Anonymous
+- **AuthenticationViewModel**: Central auth state management
+- **Firebase Auth**: Backend integration
+- **Persistent state**: Via `@AppStorage` and Keychain
+
+#### 5. **Screen Time Integration**
+- **FamilyControlsManager**: Handles Screen Time permissions
+- **DeviceActivityService**: Configures app restrictions
+- **BlockingNotificationService**: Manages blocking sessions
+- **ManagedSettingsStore**: Named store for app restrictions
+
+### Critical Implementation Details
+
+#### App Group Configuration
+- Identifier: `group.com.app.antisocial.sharedData`
+- Must be enabled in all targets (main app + extensions)
+- Used for UserDefaults and GRDB database sharing
+
+#### Extension Entry Points
+- **DeviceActivityMonitorExtension**: `intervalDidStart`, `intervalDidEnd`, `eventDidReachThreshold`
+- **Shield**: `ShieldConfigurationDataSource` methods
+- **DeviceReport**: `DeviceActivityReportScene` configuration
+
+#### Notification Handling
+- Local notifications require user permission
+- Darwin notifications work without permission (system-level)
+- Extension → App communication via Darwin notifications
+- App → Extension communication via shared UserDefaults
+
+#### GRDB Database Location
+```swift
+let dbPath = FileManager.default
+    .containerURL(forSecurityApplicationGroupIdentifier: "group.com.app.antisocial.sharedData")!
+    .appendingPathComponent("db.sqlite")
+```
+
+### Development Workflow
+
+#### When Adding New Features
+1. Consider if feature needs extension access
+2. Use `SharedDataConstants` for new shared keys
+3. Update both GRDB and Firestore schemas if needed
+4. Test inter-process communication thoroughly
+
+#### Common Issues and Solutions
+- **Extensions not seeing data**: Check App Group configuration
+- **Darwin notifications not firing**: Ensure proper registration
+- **GRDB access errors**: Verify database path and permissions
+- **Build errors after clean**: Run `xcodebuild -resolvePackageDependencies`
+
+#### Testing Extensions
+- Extensions run in separate processes
+- Use Console.app to view extension logs
+- Test on real device for accurate Screen Time behavior
+- Simulator limitations: Some Family Controls features unavailable
+
+### Important Files for Architecture Understanding
+- `AntiSocial/App/AntiSocialApp.swift`: Main app entry and initialization
+- `AntiSocial/Utilities/Services/DeviceActivity/SharedData.swift`: Cross-process data sharing
+- `AntiSocial/Utilities/Services/Storage/Storage.swift`: Dual storage implementation
+- `AntiSocial/Utilities/Managers/DarwinNotificationManager.swift`: IPC mechanism
+- `AntiSocial/Utilities/Constants/SharedDataConstants.swift`: Shared data keys
+- `DeviceActivityMonitorExtension/DeviceActivityMonitorExtension.swift`: Background monitoring
+- `Shield/ShieldConfigurationExtension.swift`: App blocking UI
