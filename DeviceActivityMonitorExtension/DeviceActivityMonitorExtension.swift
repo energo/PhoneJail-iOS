@@ -15,6 +15,11 @@ import FamilyControls
 // Make sure that your class name matches the NSExtensionPrincipalClass in your Info.plist.
 class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   
+  // Track last trigger time to prevent rapid re-triggers
+  private var lastInterruptionTrigger: Date?
+  private var lastAlertTrigger: Date?
+  private let minimumTriggerInterval: TimeInterval = 60 // 1 minute minimum between triggers
+  
   //MARK: - Interval Start/End
   override func intervalDidStart(for activity: DeviceActivityName) {
     super.intervalDidStart(for: activity)
@@ -36,10 +41,20 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   override func eventDidReachThreshold(_ event: DeviceActivityEvent.Name, activity: DeviceActivityName) {
     super.eventDidReachThreshold(event, activity: activity)
     
+    // Check if this is an interruption event (could be interruption_1, interruption_2, etc)
+    if event.rawValue.contains(DeviceActivityEvent.Name.interruption.rawValue) {
+      // Check if enough time has passed since last trigger
+      let now = Date()
+      if let lastTrigger = lastInterruptionTrigger,
+         now.timeIntervalSince(lastTrigger) < minimumTriggerInterval {
+        print("Interruption triggered too soon, skipping. Last: \(lastTrigger), Now: \(now)")
+        return
+      }
       
-      //Schedule Interruption for 2 minutes
-      if event.rawValue == DeviceActivityEvent.Name.interruption.rawValue {
-        if let selection = SharedData.selectedInterruptionsActivity {
+      lastInterruptionTrigger = now
+      print("Interruption event triggered: \(event.rawValue)")
+      
+      if let selection = SharedData.selectedInterruptionsActivity {
         BlockingNotificationServiceWithoutSaving.shared.startBlocking(
           hours: 0 ,
           minutes: 2,
@@ -49,8 +64,20 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       }
     }
     
-    if let selection = SharedData.selectedAlertActivity {
-      if event.rawValue == DeviceActivityEvent.Name.screenAlert.rawValue {
+    // Check if this is a screen alert event (could be screenAlert_1, screenAlert_2, etc)
+    if event.rawValue.contains(DeviceActivityEvent.Name.screenAlert.rawValue) {
+      // Check if enough time has passed since last trigger
+      let now = Date()
+      if let lastTrigger = lastAlertTrigger,
+         now.timeIntervalSince(lastTrigger) < minimumTriggerInterval {
+        print("Alert triggered too soon, skipping. Last: \(lastTrigger), Now: \(now)")
+        return
+      }
+      
+      lastAlertTrigger = now
+      print("Screen alert event triggered: \(event.rawValue)")
+      
+      if let selection = SharedData.selectedAlertActivity {
         for application in selection.applications {
           if let displayName = application.localizedDisplayName {
             scheduleNotification(with: "Hey! Time to take a break from this app", details: displayName)
@@ -79,6 +106,8 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     // Handle the warning before the event reaches its threshold.
   }
   
+  
+  
   //MARK: - Notifications
   func scheduleNotification(with title: String, details: String = "") {
     let center = UNUserNotificationCenter.current()
@@ -94,7 +123,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false) // 5 seconds from now
         
-        let request = UNNotificationRequest(identifier: "MyNotification", content: content, trigger: trigger)
+        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
         
         center.add(request) { error in
           if let error = error {

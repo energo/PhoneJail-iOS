@@ -70,22 +70,37 @@ class AppMonitorViewModel: ObservableObject {
     
     print("startMonitoring timeLimitMinutes: \(timeLimitMinutes)")
     updateMonitoringState()
+    
     let enabledTokens = Set(monitoredApps.filter { $0.isMonitored }.map { $0.token })
-    let event = DeviceActivityEvent(
-      applications: enabledTokens,
-      categories: model.activitySelection.categoryTokens,
-      webDomains: model.activitySelection.webDomainTokens,
-      threshold: DateComponents(minute: timeLimitMinutes))
+    
+    // Create multiple events with increasing thresholds to trigger multiple times
+    var events: [DeviceActivityEvent.Name: DeviceActivityEvent] = [:]
+    
+    // Create up to 10 events for the day (covers 10 triggers)
+    for i in 1...10 {
+      let eventName = isInterruptionsEnabled 
+        ? DeviceActivityEvent.Name("\(DeviceActivityEvent.Name.interruption.rawValue)_\(i)")
+        : DeviceActivityEvent.Name("\(DeviceActivityEvent.Name.screenAlert.rawValue)_\(i)")
+      
+      let event = DeviceActivityEvent(
+        applications: enabledTokens,
+        categories: model.activitySelection.categoryTokens,
+        webDomains: model.activitySelection.webDomainTokens,
+        threshold: DateComponents(minute: timeLimitMinutes * i) // Cumulative thresholds
+      )
+      
+      events[eventName] = event
+    }
+    
     let activity = isInterruptionsEnabled ? DeviceActivityName.appMonitoringInterruption : DeviceActivityName.appMonitoringAlert
-    let eventName = isInterruptionsEnabled ? DeviceActivityEvent.Name.interruption : DeviceActivityEvent.Name.screenAlert
     let schedule = schedule24h()
     
     DispatchQueue.main.async {
       do {
-        print("startMonitoring \(activity)")
+        print("startMonitoring \(activity) with \(events.count) events")
         try self.center.startMonitoring(activity,
                                    during: schedule,
-                                   events: [eventName: event])
+                                   events: events)
       } catch let error {
         print("center.startMonitoring error \(error.localizedDescription)")
       }
