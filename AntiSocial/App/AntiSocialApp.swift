@@ -47,13 +47,13 @@ struct AntiSocialApp: App {
             .environmentObject(subscriptionManager)
             .environmentObject(deviceActivityService)
             .environmentObject(familyControlsManager)
-//            .task {
-//              LocalNotificationManager.shared.requestAuthorization { isNotificationAuthed in
-//                AppLogger.trace("isNotificationAuthed \(isNotificationAuthed)")
-//                
-//                UNUserNotificationCenter.current().delegate = DTNNotificationHandler.shared
-//              }
-//            }
+            .task {
+              LocalNotificationManager.shared.requestAuthorization { isNotificationAuthed in
+                AppLogger.trace("isNotificationAuthed \(isNotificationAuthed)")
+                
+                UNUserNotificationCenter.current().delegate = DTNNotificationHandler.shared
+              }
+            }
             .onAppear(perform: UIApplication.shared.addTapGestureRecognizer)
             .task {
               setupATTracking()

@@ -44,16 +44,9 @@ class DeviceActivityScheduleService {
     print("DeviceActivityScheduleService: Duration in minutes: \(diffMinutes)")
     
     // Schedule notifications
-    scheduleNotification(
-      title: "Phone Jail",
-      body: "You've entered Restriction Mode! Good Luck!",
-      dateComponents: startComponents
-    )
-    
-    scheduleNotification(
-      title: "Phone Jail",
-      body: "Congrats! You've reached the end of Restriction Mode",
-      dateComponents: DateComponents(year: year, month: month, day: day, hour: endHour, minute: endMins)
+    LocalNotificationManager.shared.scheduleBlockingStartNotification()
+    LocalNotificationManager.shared.scheduleBlockingEndNotification(
+      at: DateComponents(year: year, month: month, day: day, hour: endHour, minute: endMins)
     )
           
     let intervalEnd = Calendar.current.dateComponents(
@@ -90,25 +83,6 @@ class DeviceActivityScheduleService {
   
   static func stopSchedule() {
     center.stopMonitoring([.appBlocking])
-  }
-  
-  //MARK: - Notifications
-  private static func scheduleNotification(title: String, body: String, dateComponents: DateComponents) {
-    let content = UNMutableNotificationContent()
-    content.title = title
-    content.body = body
-    content.categoryIdentifier = "customIdentifier"
-    content.userInfo = ["customData": "fizzbuzz"]
-    content.sound = .default
-    
-    let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: false)
-    let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
-    
-    UNUserNotificationCenter.current().add(request) { error in
-      if let error = error {
-        print("Notification scheduling error: \(error)")
-      }
-    }
   }
 }
 

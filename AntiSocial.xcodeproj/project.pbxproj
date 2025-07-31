@@ -113,9 +113,13 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Models/AppUsage.swift,
+				Models/TimeOptions.swift,
 				Screens/1_AppMonitor/Views/Sections/AppBlocking/MyRestrictionModel.swift,
 				Utilities/Constants/SharedDataConstants.swift,
 				"Utilities/Extensions/Color+Constants.swift",
+				Utilities/LocalNotifications/DTNNotificationHandler.swift,
+				Utilities/LocalNotifications/LocalNotificationManager.swift,
+				"Utilities/LocalNotifications/LocalNotificationManager+Extension.swift",
 				Utilities/Services/DarwinNotificationManager.swift,
 				Utilities/Services/DeviceActivity/DeviceActivityScheduleService.swift,
 				Utilities/Services/DeviceActivity/DeviceActivityService.swift,

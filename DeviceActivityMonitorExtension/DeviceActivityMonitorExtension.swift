@@ -6,7 +6,6 @@
 //
 
 import DeviceActivity
-
 import UserNotifications
 import FamilyControls
 
@@ -24,8 +23,10 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   override func intervalDidStart(for activity: DeviceActivityName) {
     super.intervalDidStart(for: activity)
 
-    scheduleNotification(with: "The monitoring session has started",
-                         details: "\(activity.rawValue)")
+    LocalNotificationManager.scheduleExtensionNotification(
+      title: "The monitoring session has started",
+      details: "\(activity.rawValue)"
+    )
   }
   
   override func intervalDidEnd(for activity: DeviceActivityName) {
@@ -44,16 +45,18 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       print("Cleared blocking state after interval end")
     }
     
-    scheduleNotification(with: "The monitoring session has finished",
-                         details: "\(activity.rawValue)")
+    LocalNotificationManager.scheduleExtensionNotification(
+      title: "The monitoring session has finished",
+      details: "\(activity.rawValue)"
+    )
   }
   
   //MARK: - Threshold
   override func eventDidReachThreshold(_ event: DeviceActivityEvent.Name, activity: DeviceActivityName) {
     super.eventDidReachThreshold(event, activity: activity)
     
-    // Check if this is an interruption event (could be interruption_1, interruption_2, etc)
-    if event.rawValue.contains(DeviceActivityEvent.Name.interruption.rawValue) {
+    // Check if this is an interruption event
+    if event == DeviceActivityEvent.Name.interruption {
       // First check if any existing block has expired and clean it up
       if let unlockTimestamp = SharedDataConstants.userDefaults?.object(forKey: "UnlockDate") as? Date,
          unlockTimestamp <= Date() {
@@ -86,16 +89,19 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       
       if let selection = SharedData.selectedInterruptionsActivity {
         BlockingNotificationServiceWithoutSaving.shared.startBlocking(
-          hours: 0 ,
+          hours: 0,
           minutes: 2,
           selection: selection,
-          restrictionModel:  MyRestrictionModel()
+          restrictionModel: MyRestrictionModel()
         )
       }
+      
+      // Restart monitoring for continuous tracking
+      restartMonitoring(for: activity)
     }
     
-    // Check if this is a screen alert event (could be screenAlert_1, screenAlert_2, etc)
-    if event.rawValue.contains(DeviceActivityEvent.Name.screenAlert.rawValue) {
+    // Check if this is a screen alert event
+    if event == DeviceActivityEvent.Name.screenAlert {
       // Check if enough time has passed since last trigger
       let now = Date()
       if let lastTrigger = lastAlertTrigger,
@@ -110,12 +116,21 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       if let selection = SharedData.selectedAlertActivity {
         for application in selection.applications {
           if let displayName = application.localizedDisplayName {
-            scheduleNotification(with: "Hey! Time to take a break from this app", details: displayName)
+            LocalNotificationManager.scheduleExtensionNotification(
+              title: "Hey! Time to take a break from this app",
+              details: displayName
+            )
           } else {
-            scheduleNotification(with: "Phone Jail", details: "Hey! Time to take a break from this app")
+            LocalNotificationManager.scheduleExtensionNotification(
+              title: "Phone Jail",
+              details: "Hey! Time to take a break from this app"
+            )
           }
         }
       }
+      
+      // Restart monitoring for continuous tracking
+      restartMonitoring(for: activity)
     }
   }
   
@@ -136,33 +151,74 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     // Handle the warning before the event reaches its threshold.
   }
   
-  
-  
-  //MARK: - Notifications
-  func scheduleNotification(with title: String, details: String = "") {
-    let center = UNUserNotificationCenter.current()
-    center.requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
-      if granted {
-        let content = UNMutableNotificationContent()
-        content.title = title // Using the custom title here
-        content.body =  details //"Here is the body text of the notification."
-        content.sound = UNNotificationSound.default
-        
-        //        Label(app)
-        //            .labelStyle(.iconOnly)
-        
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false) // 5 seconds from now
-        
-        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
-        
-        center.add(request) { error in
-          if let error = error {
-            print("Error scheduling notification: \(error)")
-          }
-        }
+  //MARK: - Restart Monitoring
+  private func restartMonitoring(for activity: DeviceActivityName) {
+    let center = DeviceActivityCenter()
+    
+    // Stop current monitoring
+    center.stopMonitoring([activity])
+    
+    // Get the threshold time from UserDefaults
+    let timeLimitMinutes: Int
+    if activity == .appMonitoringInterruption {
+      // Get stored FrequencyOption data
+      if let data = SharedDataConstants.userDefaults?.data(forKey: "selectedFrequency"),
+         let frequencyOption = try? JSONDecoder().decode(FrequencyOption.self, from: data) {
+        timeLimitMinutes = frequencyOption.minutes
       } else {
-        print("Permission denied. \(error?.localizedDescription ?? "")")
+        timeLimitMinutes = 15 // Default to "Often" (15 mins)
       }
+    } else {
+      // Get stored TimeIntervalOption data
+      if let data = SharedDataConstants.userDefaults?.data(forKey: "selectedTime"),
+         let timeOption = try? JSONDecoder().decode(TimeIntervalOption.self, from: data) {
+        timeLimitMinutes = timeOption.minutes
+      } else {
+        timeLimitMinutes = 5 // Default to 5 mins
+      }
+    }
+    
+    print("Restarting monitoring for \(activity.rawValue) with threshold: \(timeLimitMinutes) minutes")
+    
+    // Get the appropriate selection and create event
+    let selection: FamilyActivitySelection?
+    let eventName: DeviceActivityEvent.Name
+    
+    if activity == .appMonitoringInterruption {
+      selection = SharedData.selectedInterruptionsActivity
+      eventName = DeviceActivityEvent.Name.interruption
+    } else {
+      selection = SharedData.selectedAlertActivity
+      eventName = DeviceActivityEvent.Name.screenAlert
+    }
+    
+    guard let selection = selection else {
+      print("No selection found for restarting monitoring")
+      return
+    }
+    
+    let event = DeviceActivityEvent(
+      applications: selection.applicationTokens,
+      categories: selection.categoryTokens,
+      webDomains: selection.webDomainTokens,
+      threshold: DateComponents(minute: timeLimitMinutes)
+    )
+    
+    let events = [eventName: event]
+    
+    // Create 24h schedule
+    let schedule = DeviceActivitySchedule(
+      intervalStart: DateComponents(hour: 0, minute: 0, second: 0),
+      intervalEnd: DateComponents(hour: 23, minute: 59, second: 59),
+      repeats: true
+    )
+    
+    // Restart monitoring
+    do {
+      try center.startMonitoring(activity, during: schedule, events: events)
+      print("Successfully restarted monitoring for \(activity.rawValue)")
+    } catch {
+      print("Failed to restart monitoring: \(error)")
     }
   }
 }

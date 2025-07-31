@@ -74,31 +74,29 @@ class AppMonitorViewModel: ObservableObject {
     
     let enabledTokens = Set(monitoredApps.filter { $0.isMonitored }.map { $0.token })
     
-    // Create multiple events with increasing thresholds to trigger multiple times
+    // Create a single event with the threshold
     var events: [DeviceActivityEvent.Name: DeviceActivityEvent] = [:]
     
-    // Create up to 10 events for the day (covers 10 triggers)
-    for i in 1...10 {
-      let eventName = isInterruptionsEnabled 
-        ? DeviceActivityEvent.Name("\(DeviceActivityEvent.Name.interruption.rawValue)_\(i)")
-        : DeviceActivityEvent.Name("\(DeviceActivityEvent.Name.screenAlert.rawValue)_\(i)")
-      
-      let event = DeviceActivityEvent(
-        applications: enabledTokens,
-        categories: model.activitySelection.categoryTokens,
-        webDomains: model.activitySelection.webDomainTokens,
-        threshold: DateComponents(minute: timeLimitMinutes * i) // Cumulative thresholds
-      )
-      
-      events[eventName] = event
-    }
+    let eventName = isInterruptionsEnabled 
+      ? DeviceActivityEvent.Name.interruption
+      : DeviceActivityEvent.Name.screenAlert
+    
+    let event = DeviceActivityEvent(
+      applications: enabledTokens,
+      categories: model.activitySelection.categoryTokens,
+      webDomains: model.activitySelection.webDomainTokens,
+      threshold: DateComponents(minute: timeLimitMinutes)
+    )
+    
+    events[eventName] = event
     
     let activity = isInterruptionsEnabled ? DeviceActivityName.appMonitoringInterruption : DeviceActivityName.appMonitoringAlert
     let schedule = schedule24h()
     
-    DispatchQueue.main.async {
+    // Run monitoring setup off main thread to prevent blocking
+    Task {
       do {
-        print("startMonitoring \(activity) with \(events.count) events")
+        print("startMonitoring \(activity) with threshold: \(timeLimitMinutes) minutes")
         try self.center.startMonitoring(activity,
                                    during: schedule,
                                    events: events)

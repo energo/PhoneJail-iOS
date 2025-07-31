@@ -25,7 +25,7 @@ class DTNNotificationHandler: NSObject, UNUserNotificationCenterDelegate {
   func userNotificationCenter(_ center: UNUserNotificationCenter,
                               didReceive response: UNNotificationResponse,
                               withCompletionHandler completionHandler: @escaping () -> Void) {
-    AppLogger.trace("User interacted with notification: \(response.notification.request.content.title)")
+//    AppLogger.trace("User interacted with notification: \(response.notification.request.content.title)")
 
       // Выполните нужное действие, например, откройте определенный экран
     completionHandler()

@@ -52,6 +52,12 @@ final class BlockingNotificationServiceWithoutSaving: ObservableObject {
 
     // Set schedule
     DeviceActivityScheduleService.setSchedule(endHour: endHour, endMins: endMin)
+    
+    // Send notification about interruption blocking
+    LocalNotificationManager.scheduleExtensionNotification(
+      title: "Phone Jail - Interruption Mode",
+      details: "Taking a 2-minute break from selected apps"
+    )
 
     // Save start timestamp
     SharedDataConstants.userDefaults?.set(Date().timeIntervalSince1970, forKey: SharedDataConstants.AppBlocking.currentBlockingStartTimestamp)
