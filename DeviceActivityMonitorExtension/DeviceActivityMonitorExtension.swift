@@ -364,19 +364,38 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         )
       }
     } else {
+      // For alerts - debug what's stored
+      let storedValue = SharedDataConstants.userDefaults?.integer(forKey: "selectedTime")
+      let objectValue = SharedDataConstants.userDefaults?.object(forKey: "selectedTime")
+      
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "🔍 Debug Alert Time",
+        details: "Int: \(storedValue), Type: \(type(of: objectValue))"
+      )
+      
+      // Additional debug - check if it might be stored as different type
+      if let data = objectValue as? Data {
+        LocalNotificationManager.scheduleExtensionNotification(
+          title: "📦 Found Data",
+          details: "Size: \(data.count) bytes"
+        )
+      }
+      
       // Get stored TimeIntervalOption data (stored as Int rawValue)
-      if let rawMinutes = SharedDataConstants.userDefaults?.integer(forKey: "selectedTime"),
-         rawMinutes > 0 {
+      // Note: @AppStorage might not save default values until changed
+      if let rawMinutes = storedValue, rawMinutes > 0 {
         timeLimitMinutes = rawMinutes
         LocalNotificationManager.scheduleExtensionNotification(
           title: "⏰ Time Found (Restart)",
           details: "\(timeLimitMinutes) minutes"
         )
       } else {
-        timeLimitMinutes = 5 // Default to 5 mins
+        // If no value stored, use the default from TimeIntervalOption.timeOptions[0]
+        // This matches the default in AppMonitorViewModel line 32
+        timeLimitMinutes = TimeIntervalOption.timeOptions[0].minutes
         LocalNotificationManager.scheduleExtensionNotification(
-          title: "⏰ Default Time (Restart)",
-          details: "\(timeLimitMinutes) minutes"
+          title: "⏰ Using App Default (Restart)",
+          details: "\(timeLimitMinutes) minutes - TimeIntervalOption.timeOptions[0]"
         )
       }
     }
