@@ -26,8 +26,8 @@ final class LocalNotificationManager {
   // MARK: - Screen Time Notifications  
   func scheduleBlockingStartNotification() {
     let content = UNMutableNotificationContent()
-    content.title = "Phone Jail"
-    content.body = "You've entered Restriction Mode! Good Luck!"
+    content.title = "🔒 Restriction Mode Started"
+    content.body = "Your selected apps are now blocked"
     content.categoryIdentifier = "customIdentifier"
     content.userInfo = ["customData": "fizzbuzz"]
     content.sound = .default
@@ -44,8 +44,8 @@ final class LocalNotificationManager {
   
   func scheduleBlockingEndNotification(at dateComponents: DateComponents) {
     let content = UNMutableNotificationContent()
-    content.title = "Phone Jail"
-    content.body = "Congrats! You've reached the end of Restriction Mode"
+    content.title = "✅ Restriction Mode Ended"
+    content.body = "Great job! Your apps are now accessible"
     content.categoryIdentifier = "customIdentifier"
     content.userInfo = ["customData": "fizzbuzz"]
     content.sound = .default
