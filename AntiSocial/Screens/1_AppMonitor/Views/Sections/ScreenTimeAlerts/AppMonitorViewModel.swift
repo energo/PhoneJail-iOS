@@ -6,7 +6,7 @@ import DeviceActivity
 import WidgetKit
 
 class AppMonitorViewModel: ObservableObject {
-  @AppStorage("isInterruptionsEnabled") var isInterruptionsEnabled: Bool = false {
+  @AppStorage("isInterruptionsEnabled", store: SharedData.defaultsGroup) var isInterruptionsEnabled: Bool = false {
     didSet {
         if oldValue == false && isInterruptionsEnabled == true {
             startMonitoring()
@@ -16,7 +16,7 @@ class AppMonitorViewModel: ObservableObject {
     }
   }
 
-  @AppStorage("isAlertEnabled") var isAlertEnabled: Bool = false {
+  @AppStorage("isAlertEnabled", store: SharedData.defaultsGroup) var isAlertEnabled: Bool = false {
       didSet {
           if oldValue == false && isAlertEnabled == true {
               startMonitoring()
@@ -28,8 +28,8 @@ class AppMonitorViewModel: ObservableObject {
   
   @Published var model: SelectAppsModel
   
-  @AppStorage("selectedFrequency") var selectedFrequency: FrequencyOption = FrequencyOption.frequencyOptions[0]
-  @AppStorage("selectedTime") var selectedTime: TimeIntervalOption = TimeIntervalOption.timeOptions[0]
+  @AppStorage("selectedFrequency", store: SharedData.defaultsGroup) var selectedFrequency: FrequencyOption = FrequencyOption.frequencyOptions[0]
+  @AppStorage("selectedTime", store: SharedData.defaultsGroup) var selectedTime: TimeIntervalOption = TimeIntervalOption.timeOptions[0]
 
   @Published var pickerIsPresented = false
   @Published var showSocialMediaHint = false

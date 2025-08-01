@@ -8,6 +8,7 @@
 import DeviceActivity
 import UserNotifications
 import FamilyControls
+import os.log
 
 
 // Optionally override any of the functions below.
@@ -19,30 +20,76 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   private var lastAlertTrigger: Date?
   private let minimumTriggerInterval: TimeInterval = 60 // 1 minute minimum between triggers
   
+  private let logger = Logger(subsystem: "com.app.antisocial", category: "DeviceActivityMonitor")
+  
   //MARK: - Interval Start/End
   override func intervalDidStart(for activity: DeviceActivityName) {
     super.intervalDidStart(for: activity)
 
     LocalNotificationManager.scheduleExtensionNotification(
-      title: "The monitoring session has started",
-      details: "\(activity.rawValue)"
+      title: "📱 Monitoring Started",
+      details: "Activity: \(activity.rawValue)"
     )
+    
+    if activity == .appMonitoringInterruption {
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "🔄 Interruption Monitoring Active",
+        details: "Waiting for usage threshold..."
+      )
+    }
   }
   
   override func intervalDidEnd(for activity: DeviceActivityName) {
     super.intervalDidEnd(for: activity)
     
+    logger.log("intervalDidEnd called for activity: \(activity.rawValue)")
+    
+    LocalNotificationManager.scheduleExtensionNotification(
+      title: "🏁 Interval Ended",
+      details: "Activity: \(activity.rawValue)"
+    )
+    
     DeviceActivityService.shared.stopAppRestrictions()
     
     // Clear blocking state when interruption blocking period ends
     if activity == .appBlocking {
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "🚫 Blocking Period Ended",
+        details: "Processing..."
+      )
+      
+      // Check if this was an interruption block
+      let wasInterruptionBlock = SharedDataConstants.userDefaults?.bool(forKey: "isInterruptionBlock") ?? false
+      
+      // Clear blocking state
+      DeviceActivityScheduleService.stopSchedule()
       SharedDataConstants.userDefaults?.set(false, forKey: SharedDataConstants.Widget.isBlocked)
       SharedDataConstants.userDefaults?.removeObject(forKey: SharedDataConstants.AppBlocking.currentBlockingStartTimestamp)
       SharedDataConstants.userDefaults?.removeObject(forKey: SharedDataConstants.Widget.endHour)
       SharedDataConstants.userDefaults?.removeObject(forKey: SharedDataConstants.Widget.endMinutes)
       SharedDataConstants.userDefaults?.removeObject(forKey: "UnlockDate")
+      SharedDataConstants.userDefaults?.removeObject(forKey: "isInterruptionBlock")
       
-      print("Cleared blocking state after interval end")
+      // If it was interruption block, check if interruptions are still enabled
+      if wasInterruptionBlock {
+        // Check if interruptions are enabled in shared group UserDefaults
+        let isEnabled = SharedDataConstants.userDefaults?.bool(forKey: "isInterruptionsEnabled") ?? false
+        
+        LocalNotificationManager.scheduleExtensionNotification(
+          title: "✅ Was Interruption Block",
+          details: "Enabled: \(isEnabled)"
+        )
+        
+        if isEnabled {
+          // Restart monitoring
+          startInterruptionMonitoring()
+        } else {
+          LocalNotificationManager.scheduleExtensionNotification(
+            title: "⚠️ Interruptions Disabled",
+            details: "User turned off interruptions"
+          )
+        }
+      }
     }
     
     LocalNotificationManager.scheduleExtensionNotification(
@@ -55,6 +102,11 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   override func eventDidReachThreshold(_ event: DeviceActivityEvent.Name, activity: DeviceActivityName) {
     super.eventDidReachThreshold(event, activity: activity)
     
+    LocalNotificationManager.scheduleExtensionNotification(
+      title: "⏰ Threshold Reached",
+      details: "Event: \(event.rawValue), Activity: \(activity.rawValue)"
+    )
+    
     // Check if this is an interruption event
     if event == DeviceActivityEvent.Name.interruption {
       // First check if any existing block has expired and clean it up
@@ -66,13 +118,16 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         SharedDataConstants.userDefaults?.removeObject(forKey: SharedDataConstants.AppBlocking.currentBlockingStartTimestamp)
         SharedDataConstants.userDefaults?.removeObject(forKey: SharedDataConstants.Widget.endHour)
         SharedDataConstants.userDefaults?.removeObject(forKey: SharedDataConstants.Widget.endMinutes)
-        print("Cleared expired blocking state")
+        logger.log("Cleared expired blocking state")
       }
       
       // Now check if we're in an active blocking state
       let isCurrentlyBlocked = SharedDataConstants.userDefaults?.bool(forKey: SharedDataConstants.Widget.isBlocked) ?? false
       if isCurrentlyBlocked {
-        print("Currently in blocking state, skipping interruption trigger")
+        LocalNotificationManager.scheduleExtensionNotification(
+          title: "⚠️ Already Blocked",
+          details: "Skipping interruption trigger"
+        )
         return
       }
       
@@ -80,14 +135,43 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       let now = Date()
       if let lastTrigger = lastInterruptionTrigger,
          now.timeIntervalSince(lastTrigger) < minimumTriggerInterval {
-        print("Interruption triggered too soon, skipping. Last: \(lastTrigger), Now: \(now)")
+        logger.log("Interruption triggered too soon, skipping. Last: \(lastTrigger), Now: \(now)")
         return
       }
       
       lastInterruptionTrigger = now
-      print("Interruption event triggered: \(event.rawValue)")
+      
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "🚨 Interruption Triggered",
+        details: "Processing interruption..."
+      )
       
       if let selection = SharedData.selectedInterruptionsActivity {
+        LocalNotificationManager.scheduleExtensionNotification(
+          title: "✅ Selection Found",
+          details: "Apps: \(selection.applicationTokens.count)"
+        )
+        
+        // Save the current time as last interruption time
+        SharedDataConstants.userDefaults?.set(Date().timeIntervalSince1970, forKey: "lastInterruptionBlockTime")
+        
+        // Stop current interruption monitoring before starting block
+        let center = DeviceActivityCenter()
+        center.stopMonitoring([.appMonitoringInterruption])
+        
+        LocalNotificationManager.scheduleExtensionNotification(
+          title: "🛑 Stopped Monitoring",
+          details: "Interruption monitoring stopped"
+        )
+        
+        // Start blocking with special flag to indicate it's from interruption
+        SharedDataConstants.userDefaults?.set(true, forKey: "isInterruptionBlock")
+        
+        LocalNotificationManager.scheduleExtensionNotification(
+          title: "🚀 Starting Block",
+          details: "2-minute interruption block"
+        )
+        
         BlockingNotificationServiceWithoutSaving.shared.startBlocking(
           hours: 0,
           minutes: 2,
@@ -95,9 +179,6 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
           restrictionModel: MyRestrictionModel()
         )
       }
-      
-      // Restart monitoring for continuous tracking
-      restartMonitoring(for: activity)
     }
     
     // Check if this is a screen alert event
@@ -106,12 +187,12 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       let now = Date()
       if let lastTrigger = lastAlertTrigger,
          now.timeIntervalSince(lastTrigger) < minimumTriggerInterval {
-        print("Alert triggered too soon, skipping. Last: \(lastTrigger), Now: \(now)")
+        logger.log("Alert triggered too soon, skipping. Last: \(lastTrigger), Now: \(now)")
         return
       }
       
       lastAlertTrigger = now
-      print("Screen alert event triggered: \(event.rawValue)")
+      logger.log("Screen alert event triggered: \(event.rawValue)")
       
       if let selection = SharedData.selectedAlertActivity {
         for application in selection.applications {
@@ -151,34 +232,159 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     // Handle the warning before the event reaches its threshold.
   }
   
+  //MARK: - Start Interruption Monitoring
+  private func startInterruptionMonitoring() {
+    LocalNotificationManager.scheduleExtensionNotification(
+      title: "🔄 startInterruptionMonitoring",
+      details: "Called"
+    )
+    
+    let center = DeviceActivityCenter()
+    
+    // Get the threshold time from UserDefaults
+    let timeLimitMinutes: Int
+    
+    // Debug: check what's stored and all keys
+    let rawValue = SharedDataConstants.userDefaults?.object(forKey: "selectedFrequency")
+    let allKeys = SharedDataConstants.userDefaults?.dictionaryRepresentation().keys.map { String($0) }.joined(separator: ", ") ?? "no keys"
+    
+    LocalNotificationManager.scheduleExtensionNotification(
+      title: "🔍 Debug Frequency",
+      details: "Type: \(type(of: rawValue)), Exists: \(rawValue != nil)"
+    )
+    
+    LocalNotificationManager.scheduleExtensionNotification(
+      title: "🔑 All Keys",
+      details: String(allKeys.prefix(100)) // First 100 chars
+    )
+    
+    // Read from shared group UserDefaults
+    // @AppStorage saves RawRepresentable types as their rawValue (Int in this case)
+    if let rawMinutes = SharedDataConstants.userDefaults?.integer(forKey: "selectedFrequency"),
+       rawMinutes > 0 {
+      timeLimitMinutes = rawMinutes
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "⏱️ Frequency Found",
+        details: "\(timeLimitMinutes) minutes"
+      )
+    } else {
+      timeLimitMinutes = 15 // Default to "Often" (15 mins)
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "⏱️ Using Default",
+        details: "No saved frequency"
+      )
+    }
+    
+    // Get the saved selection
+    guard let selection = SharedData.selectedInterruptionsActivity else {
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "❌ No Selection",
+        details: "selectedInterruptionsActivity is nil"
+      )
+      return
+    }
+    
+    if selection.applicationTokens.isEmpty {
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "❌ No Apps",
+        details: "Selection has 0 apps"
+      )
+      return
+    }
+    
+    let event = DeviceActivityEvent(
+      applications: selection.applicationTokens,
+      categories: selection.categoryTokens,
+      webDomains: selection.webDomainTokens,
+      threshold: DateComponents(minute: timeLimitMinutes)
+    )
+    
+    let events = [DeviceActivityEvent.Name.interruption: event]
+    
+    // Create 24h schedule
+    let schedule = DeviceActivitySchedule(
+      intervalStart: DateComponents(hour: 0, minute: 0, second: 0),
+      intervalEnd: DateComponents(hour: 23, minute: 59, second: 59),
+      repeats: true
+    )
+    
+    // Start monitoring
+    do {
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "🎯 Attempting Start",
+        details: "Apps: \(selection.applicationTokens.count)"
+      )
+      
+      try center.startMonitoring(.appMonitoringInterruption, during: schedule, events: events)
+      
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "✅ Monitoring Started",
+        details: "Next threshold: \(timeLimitMinutes) min"
+      )
+    } catch {
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "❌ Start Failed",
+        details: error.localizedDescription
+      )
+    }
+  }
+  
   //MARK: - Restart Monitoring
   private func restartMonitoring(for activity: DeviceActivityName) {
+    LocalNotificationManager.scheduleExtensionNotification(
+      title: "🔄 Restart Monitoring",
+      details: "Activity: \(activity.rawValue)"
+    )
+    
     let center = DeviceActivityCenter()
     
     // Stop current monitoring
     center.stopMonitoring([activity])
+    LocalNotificationManager.scheduleExtensionNotification(
+      title: "🛑 Stopped Monitoring",
+      details: "Activity: \(activity.rawValue)"
+    )
     
-    // Get the threshold time from UserDefaults
+    // Get the threshold time from UserDefaults (all data is in shared group)
     let timeLimitMinutes: Int
     if activity == .appMonitoringInterruption {
-      // Get stored FrequencyOption data
-      if let data = SharedDataConstants.userDefaults?.data(forKey: "selectedFrequency"),
-         let frequencyOption = try? JSONDecoder().decode(FrequencyOption.self, from: data) {
-        timeLimitMinutes = frequencyOption.minutes
+      // Get stored FrequencyOption data (stored as Int rawValue)
+      if let rawMinutes = SharedDataConstants.userDefaults?.integer(forKey: "selectedFrequency"),
+         rawMinutes > 0 {
+        timeLimitMinutes = rawMinutes
+        LocalNotificationManager.scheduleExtensionNotification(
+          title: "⏱️ Frequency Found (Restart)",
+          details: "\(timeLimitMinutes) minutes"
+        )
       } else {
         timeLimitMinutes = 15 // Default to "Often" (15 mins)
+        LocalNotificationManager.scheduleExtensionNotification(
+          title: "⏱️ Default Frequency (Restart)",
+          details: "\(timeLimitMinutes) minutes"
+        )
       }
     } else {
-      // Get stored TimeIntervalOption data
-      if let data = SharedDataConstants.userDefaults?.data(forKey: "selectedTime"),
-         let timeOption = try? JSONDecoder().decode(TimeIntervalOption.self, from: data) {
-        timeLimitMinutes = timeOption.minutes
+      // Get stored TimeIntervalOption data (stored as Int rawValue)
+      if let rawMinutes = SharedDataConstants.userDefaults?.integer(forKey: "selectedTime"),
+         rawMinutes > 0 {
+        timeLimitMinutes = rawMinutes
+        LocalNotificationManager.scheduleExtensionNotification(
+          title: "⏰ Time Found (Restart)",
+          details: "\(timeLimitMinutes) minutes"
+        )
       } else {
         timeLimitMinutes = 5 // Default to 5 mins
+        LocalNotificationManager.scheduleExtensionNotification(
+          title: "⏰ Default Time (Restart)",
+          details: "\(timeLimitMinutes) minutes"
+        )
       }
     }
     
-    print("Restarting monitoring for \(activity.rawValue) with threshold: \(timeLimitMinutes) minutes")
+    LocalNotificationManager.scheduleExtensionNotification(
+      title: "🎯 Threshold Set (Restart)",
+      details: "\(timeLimitMinutes) minutes for \(activity.rawValue)"
+    )
     
     // Get the appropriate selection and create event
     let selection: FamilyActivitySelection?
@@ -193,7 +399,10 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     }
     
     guard let selection = selection else {
-      print("No selection found for restarting monitoring")
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "❌ No Selection (Restart)",
+        details: "Cannot restart \(activity.rawValue)"
+      )
       return
     }
     
@@ -215,10 +424,22 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     
     // Restart monitoring
     do {
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "🚀 Starting Monitor (Restart)",
+        details: "Apps: \(selection.applicationTokens.count)"
+      )
+      
       try center.startMonitoring(activity, during: schedule, events: events)
-      print("Successfully restarted monitoring for \(activity.rawValue)")
+      
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "✅ Monitor Restarted",
+        details: "\(activity.rawValue) - Next: \(timeLimitMinutes)min"
+      )
     } catch {
-      print("Failed to restart monitoring: \(error)")
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "❌ Restart Failed",
+        details: error.localizedDescription
+      )
     }
   }
 }
