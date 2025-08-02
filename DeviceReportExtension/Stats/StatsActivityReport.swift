@@ -8,9 +8,15 @@ struct StatsActivityReport: DeviceActivityReportScene {
   func makeConfiguration(representing data: DeviceActivityResults<DeviceActivityData>) async -> StatsData {
     var sessions: [AppUsageSession] = []
     
+    // Calculate total duration correctly - same as TotalActivityReport
+    let totalDuration = await data.flatMap { $0.activitySegments }.reduce(0) {
+      $0 + $1.totalActivityDuration
+    }
+    
     for await d in data {
       for await segment in d.activitySegments {
-        guard let baseStart = segment.longestActivity?.start else { continue }
+        // Use segment's actual date interval if available
+        let segmentInterval = segment.dateInterval
         
         for await category in segment.categories {
           for await app in category.applications {
@@ -19,7 +25,9 @@ struct StatsActivityReport: DeviceActivityReportScene {
             guard let token = app.application.token else { continue }
             let appName = app.application.localizedDisplayName ?? "App"
             
-            let start = baseStart
+            // For chart visualization, we need approximate times
+            // Using segment interval start as base
+            let start = segmentInterval.start
             let end = start.addingTimeInterval(duration)
             
             let session = AppUsageSession(
@@ -30,8 +38,6 @@ struct StatsActivityReport: DeviceActivityReportScene {
               duration: duration
             )
             
-            print("\(session.appName): \(session.start.formatted()) → \(session.end.formatted()), duration: \(session.duration / 60) min")
-
             sessions.append(session)
           }
         }
@@ -39,7 +45,6 @@ struct StatsActivityReport: DeviceActivityReportScene {
     }
     
     let chartData = generateChartBars(from: sessions)
-    let totalDuration = sessions.reduce(0) { $0 + $1.duration }
     
     let (focusedDuration, distractedDuration) = (0.0, totalDuration)
     let top3AppUsages = topAppUsages(from: sessions, count: 3)
@@ -51,7 +56,7 @@ struct StatsActivityReport: DeviceActivityReportScene {
     }
     
     return StatsData(
-      totalDuration: totalDuration,
+      totalDuration: totalDuration,  // Now using correct total from segments
       chartData: filledChartData,
       focusedDuration: focusedDuration,
       distractedDuration: distractedDuration,
