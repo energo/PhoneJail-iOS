@@ -84,6 +84,15 @@ public class SharedData {
     
     /// Interruption block flag (Bool)
     public static let isInterruptionBlock = "isInterruptionBlock"
+    
+    /// Cached screen time data (Data)
+    public static let cachedScreenTimeData = "cachedScreenTimeData"
+    
+    /// Has loaded once flag (Bool)
+    public static let screenTimeHasLoadedOnce = "screenTimeHasLoadedOnce"
+    
+    /// Last refresh timestamp (Double)
+    public static let lastScreenTimeRefresh = "lastScreenTimeRefresh"
   }
     
   static var selectedFamilyActivity: FamilyActivitySelection? {

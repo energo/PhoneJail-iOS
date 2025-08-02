@@ -104,6 +104,17 @@ struct TotalActivityReport: DeviceActivityReportScene {
     topList = list
     topList = Array(list.sorted(by: sortApps).prefix(3))
     
+    // Cache the data for future use
+    let topAppsForCache = topList.map { app in
+      (name: app.displayName, duration: app.duration, bundleId: app.id)
+    }
+    
+    ScreenTimeCache.shared.cacheScreenTimeData(
+      totalDuration: totalActivityDuration,
+      totalPickups: totalPickups,
+      topApps: topAppsForCache
+    )
+    
     return ActivityReport(totalDuration: totalActivityDuration,
                           totalPickupsWithoutApplicationActivity: totalPickups,
                           longestActivity: longestActivity,

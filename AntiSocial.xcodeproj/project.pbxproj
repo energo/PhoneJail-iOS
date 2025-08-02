@@ -137,6 +137,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Models/ActivityReport.swift,
+				ScreenTime/CachedScreenTimeView.swift,
 				ScreenTime/ScreenTimeTodayView.swift,
 				Stats/ActivityReportView.swift,
 				Stats/StatsSectionViewProxy.swift,
@@ -160,6 +161,7 @@
 				Models/DeviceActivity/StatsData.swift,
 				Screens/1_AppMonitor/Views/Sections/Stats/ChartView.swift,
 				"Utilities/Extensions/Color+Constants.swift",
+				Utilities/Services/DeviceActivity/ScreenTimeCache.swift,
 				Utilities/Services/DeviceActivity/SharedData.swift,
 				Views/Blur/BackdropBlurView.swift,
 				Views/SeparatorView.swift,

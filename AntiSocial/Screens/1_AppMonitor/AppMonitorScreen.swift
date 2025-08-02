@@ -18,6 +18,7 @@ struct AppMonitorScreen: View {
   @EnvironmentObject var subscriptionManager: SubscriptionManager
   @EnvironmentObject var familyControlsManager: FamilyControlsManager
   @StateObject private var restrictionModel = MyRestrictionModel()
+  @Environment(\.scenePhase) var scenePhase
   
   @StateObject var vmScreenInteraption: AppMonitorViewModel = AppMonitorViewModel(model: SelectAppsModel(mode: .interruptions))
   @StateObject var vmScreenAlert: AppMonitorViewModel = AppMonitorViewModel(model: SelectAppsModel(mode: .alert))
@@ -27,6 +28,7 @@ struct AppMonitorScreen: View {
   @State private var headerHeight: CGFloat = UIScreen.main.bounds.height * 0.35
   
   @State private var screenTimeID = UUID() // используется как .id
+  @State private var lastRefreshDate = Date()
   
   var body: some View {
     BGView(imageRsc: .bgMain) {
@@ -82,6 +84,22 @@ struct AppMonitorScreen: View {
       await AppBlockingLogger.shared.refreshAllData()
       await MainActor.run {
         familyControlsManager.requestAuthorization()
+      }
+    }
+    .onChange(of: scenePhase) { newPhase in
+      switch newPhase {
+      case .active:
+        // Check if enough time passed since last refresh (at least 5 seconds)
+        let timeSinceLastRefresh = Date().timeIntervalSince(lastRefreshDate)
+        if timeSinceLastRefresh > 5 {
+          // Refresh screen time data when app becomes active
+          refreshScreenTime()
+          lastRefreshDate = Date()
+        }
+      case .inactive, .background:
+        break
+      @unknown default:
+        break
       }
     }
     .presentPaywallIfNeeded(
