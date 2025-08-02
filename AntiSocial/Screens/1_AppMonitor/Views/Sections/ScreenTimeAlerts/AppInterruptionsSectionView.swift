@@ -33,15 +33,15 @@ struct AppInterruptionsSectionView: View {
   
   private var frequencyView: some View {
     RoundedPicker(
-      title: "Frequency",
-      options: FrequencyOption.frequencyOptions,
-      selected: $viewModel.selectedFrequency,
+      title: "Interrupt every",
+      options: TimeIntervalOption.timeOptions,
+      selected: $viewModel.selectedInterruptionTime,
       labelProvider: { $0.label }
     )
   }
   
   private var bottomTextView: some View {
-    Text("During use, chosen apps will be blocked for 60 seconds at random intervals.")
+    Text("During use, chosen apps will be blocked for 2 minutes at selected intervals.")
       .foregroundColor(Color.as_light_blue)
       .font(.system(size: 10, weight: .regular))
   }

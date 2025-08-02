@@ -39,7 +39,7 @@ class DeviceActivityService: ObservableObject {
   private let decoder = PropertyListDecoder()
   
   var timeBlockedString: String {
-    if let startTimestamp = SharedDataConstants.userDefaults?.double(forKey: SharedDataConstants.AppBlocking.currentBlockingStartTimestamp) {
+    if let startTimestamp = SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp) {
       let elapsed = Date().timeIntervalSince1970 - startTimestamp
       let hours = Int(elapsed) / 3600
       let minutes = (Int(elapsed) % 3600) / 60

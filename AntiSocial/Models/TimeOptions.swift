@@ -9,32 +9,6 @@ import Foundation
 
 // Shared structures for time options used across the app and extensions
 
-struct FrequencyOption: Identifiable, Hashable, Codable {
-  var id: UUID = UUID()
-  let label: String
-  let minutes: Int
-}
-
-extension FrequencyOption {
-  static let frequencyOptions = [
-    FrequencyOption(label: "Rarely", minutes: 60),
-    FrequencyOption(label: "Often", minutes: 15),
-    FrequencyOption(label: "Very Often", minutes: 2)
-  ]
-  
-  static func option(for minutes: Int) -> FrequencyOption {
-    frequencyOptions.first(where: { $0.minutes == minutes }) ?? frequencyOptions[0]
-  }
-}
-
-extension FrequencyOption: RawRepresentable {
-  init?(rawValue: Int) {
-    self = FrequencyOption.option(for: rawValue)
-  }
-  
-  var rawValue: Int { minutes }
-}
-
 struct TimeIntervalOption: Identifiable, Hashable, Codable {
   var id = UUID()
   let minutes: Int

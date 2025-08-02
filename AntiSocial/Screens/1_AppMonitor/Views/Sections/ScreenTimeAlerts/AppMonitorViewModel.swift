@@ -6,7 +6,7 @@ import DeviceActivity
 import WidgetKit
 
 class AppMonitorViewModel: ObservableObject {
-  @AppStorage("isInterruptionsEnabled", store: SharedData.defaultsGroup) var isInterruptionsEnabled: Bool = false {
+  @AppStorage(SharedData.ScreenTime.isInterruptionsEnabled, store: SharedData.userDefaults) var isInterruptionsEnabled: Bool = false {
     didSet {
         if oldValue == false && isInterruptionsEnabled == true {
             startMonitoring()
@@ -16,7 +16,7 @@ class AppMonitorViewModel: ObservableObject {
     }
   }
 
-  @AppStorage("isAlertEnabled", store: SharedData.defaultsGroup) var isAlertEnabled: Bool = false {
+  @AppStorage(SharedData.ScreenTime.isAlertEnabled, store: SharedData.userDefaults) var isAlertEnabled: Bool = false {
       didSet {
           if oldValue == false && isAlertEnabled == true {
               startMonitoring()
@@ -28,8 +28,8 @@ class AppMonitorViewModel: ObservableObject {
   
   @Published var model: SelectAppsModel
   
-  @AppStorage("selectedFrequency", store: SharedData.defaultsGroup) var selectedFrequency: FrequencyOption = FrequencyOption.frequencyOptions[0]
-  @AppStorage("selectedTime", store: SharedData.defaultsGroup) var selectedTime: TimeIntervalOption = TimeIntervalOption.timeOptions[0]
+  @AppStorage(SharedData.ScreenTime.selectedInterruptionTime, store: SharedData.userDefaults) var selectedInterruptionTime: TimeIntervalOption = TimeIntervalOption.timeOptions[1]  // Default 5 mins
+  @AppStorage(SharedData.ScreenTime.selectedTime, store: SharedData.userDefaults) var selectedTime: TimeIntervalOption = TimeIntervalOption.timeOptions[0]
 
   @Published var pickerIsPresented = false
   @Published var showSocialMediaHint = false
@@ -67,7 +67,7 @@ class AppMonitorViewModel: ObservableObject {
   }
   
   func startMonitoring() {
-    let timeLimitMinutes = isInterruptionsEnabled ? selectedFrequency.minutes : selectedTime.minutes
+    let timeLimitMinutes = isInterruptionsEnabled ? selectedInterruptionTime.minutes : selectedTime.minutes
     
     print("startMonitoring timeLimitMinutes: \(timeLimitMinutes)")
     updateMonitoringState()
@@ -140,10 +140,10 @@ class AppMonitorViewModel: ObservableObject {
   
   private func resetInterruptionBlockingState() {
     // Clear all shared data related to interruption blocking
-    SharedDataConstants.userDefaults?.set(false, forKey: SharedDataConstants.Widget.isBlocked)
-    SharedDataConstants.userDefaults?.removeObject(forKey: SharedDataConstants.AppBlocking.currentBlockingStartTimestamp)
-    SharedDataConstants.userDefaults?.removeObject(forKey: SharedDataConstants.Widget.endHour)
-    SharedDataConstants.userDefaults?.removeObject(forKey: SharedDataConstants.Widget.endMinutes)
+    SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
+    SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
+    SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endHour)
+    SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endMinutes)
     
     // Clear device activity service state
     let service = DeviceActivityService.shared

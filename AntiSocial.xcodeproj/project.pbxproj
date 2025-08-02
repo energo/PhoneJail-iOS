@@ -115,7 +115,6 @@
 				Models/AppUsage.swift,
 				Models/TimeOptions.swift,
 				Screens/1_AppMonitor/Views/Sections/AppBlocking/MyRestrictionModel.swift,
-				Utilities/Constants/SharedDataConstants.swift,
 				"Utilities/Extensions/Color+Constants.swift",
 				Utilities/LocalNotifications/DTNNotificationHandler.swift,
 				Utilities/LocalNotifications/LocalNotificationManager.swift,
@@ -160,8 +159,8 @@
 				Models/ChartBar.swift,
 				Models/DeviceActivity/StatsData.swift,
 				Screens/1_AppMonitor/Views/Sections/Stats/ChartView.swift,
-				Utilities/Constants/SharedDataConstants.swift,
 				"Utilities/Extensions/Color+Constants.swift",
+				Utilities/Services/DeviceActivity/SharedData.swift,
 				Views/Blur/BackdropBlurView.swift,
 				Views/SeparatorView.swift,
 			);
@@ -185,7 +184,6 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				App/Assets.xcassets,
-				Utilities/Constants/SharedDataConstants.swift,
 			);
 			target = 47889F822E12A4B900D86A0E /* Shield */;
 		};

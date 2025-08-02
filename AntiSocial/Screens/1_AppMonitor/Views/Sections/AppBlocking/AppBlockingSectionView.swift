@@ -50,14 +50,14 @@ struct AppBlockingSectionView: View {
     }
     .onAppear {
       // Восстанавливаем isUnlocked из UserDefaults
-      isStrictBlock = SharedDataConstants.userDefaults?.bool(forKey: SharedDataConstants.Widget.isStricted) ?? false
-      isBlocked = SharedDataConstants.userDefaults?.bool(forKey: SharedDataConstants.Widget.isBlocked) ?? false
+      isStrictBlock = SharedData.userDefaults?.bool(forKey: SharedData.Widget.isStricted) ?? false
+      isBlocked = SharedData.userDefaults?.bool(forKey: SharedData.Widget.isBlocked) ?? false
       timeRemainingString = deviceActivityService.timeRemainingString
       timeBlockedString = deviceActivityService.timeBlockedString
       
       //TODO: - need to refactor (looks like odd properties)
-      if let savedHour = SharedDataConstants.userDefaults?.integer(forKey: SharedDataConstants.Widget.endHour),
-         let savedMin = SharedDataConstants.userDefaults?.integer(forKey: SharedDataConstants.Widget.endMinutes) {
+      if let savedHour = SharedData.userDefaults?.integer(forKey: SharedData.Widget.endHour),
+         let savedMin = SharedData.userDefaults?.integer(forKey: SharedData.Widget.endMinutes) {
         restrictionModel.endHour = savedHour
         restrictionModel.endMins = savedMin
       }

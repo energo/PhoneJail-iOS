@@ -48,21 +48,21 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       )
       
       // Check if this was an interruption block
-      let wasInterruptionBlock = SharedDataConstants.userDefaults?.bool(forKey: "isInterruptionBlock") ?? false
+      let wasInterruptionBlock = SharedData.userDefaults?.bool(forKey: SharedData.ScreenTime.isInterruptionBlock) ?? false
       
       // Clear blocking state
       DeviceActivityScheduleService.stopSchedule()
-      SharedDataConstants.userDefaults?.set(false, forKey: SharedDataConstants.Widget.isBlocked)
-      SharedDataConstants.userDefaults?.removeObject(forKey: SharedDataConstants.AppBlocking.currentBlockingStartTimestamp)
-      SharedDataConstants.userDefaults?.removeObject(forKey: SharedDataConstants.Widget.endHour)
-      SharedDataConstants.userDefaults?.removeObject(forKey: SharedDataConstants.Widget.endMinutes)
-      SharedDataConstants.userDefaults?.removeObject(forKey: "UnlockDate")
-      SharedDataConstants.userDefaults?.removeObject(forKey: "isInterruptionBlock")
+      SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
+      SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
+      SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endHour)
+      SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endMinutes)
+      SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.unlockDate)
+      SharedData.userDefaults?.removeObject(forKey: SharedData.ScreenTime.isInterruptionBlock)
       
       // If it was interruption block, check if interruptions are still enabled
       if wasInterruptionBlock {
         // Check if interruptions are enabled in shared group UserDefaults
-        let isEnabled = SharedDataConstants.userDefaults?.bool(forKey: "isInterruptionsEnabled") ?? false
+        let isEnabled = SharedData.userDefaults?.bool(forKey: SharedData.ScreenTime.isInterruptionsEnabled) ?? false
         
         // Debug info removed
         
@@ -85,19 +85,19 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     // Check if this is an interruption event
     if event == DeviceActivityEvent.Name.interruption {
       // First check if any existing block has expired and clean it up
-      if let unlockTimestamp = SharedDataConstants.userDefaults?.object(forKey: "UnlockDate") as? Date,
+      if let unlockTimestamp = SharedData.userDefaults?.object(forKey: SharedData.AppBlocking.unlockDate) as? Date,
          unlockTimestamp <= Date() {
         // Unlock date has passed, clear blocking state
-        SharedDataConstants.userDefaults?.set(false, forKey: SharedDataConstants.Widget.isBlocked)
-        SharedDataConstants.userDefaults?.removeObject(forKey: "UnlockDate")
-        SharedDataConstants.userDefaults?.removeObject(forKey: SharedDataConstants.AppBlocking.currentBlockingStartTimestamp)
-        SharedDataConstants.userDefaults?.removeObject(forKey: SharedDataConstants.Widget.endHour)
-        SharedDataConstants.userDefaults?.removeObject(forKey: SharedDataConstants.Widget.endMinutes)
+        SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
+        SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.unlockDate)
+        SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
+        SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endHour)
+        SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endMinutes)
         logger.log("Cleared expired blocking state")
       }
       
       // Now check if we're in an active blocking state
-      let isCurrentlyBlocked = SharedDataConstants.userDefaults?.bool(forKey: SharedDataConstants.Widget.isBlocked) ?? false
+      let isCurrentlyBlocked = SharedData.userDefaults?.bool(forKey: SharedData.Widget.isBlocked) ?? false
       if isCurrentlyBlocked {
         // Already blocked, skip
         return
@@ -119,7 +119,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         // Found selection with apps
         
         // Save the current time as last interruption time
-        SharedDataConstants.userDefaults?.set(Date().timeIntervalSince1970, forKey: "lastInterruptionBlockTime")
+        SharedData.userDefaults?.set(Date().timeIntervalSince1970, forKey: SharedData.AppBlocking.lastInterruptionBlockTime)
         
         // Stop current interruption monitoring before starting block
         let center = DeviceActivityCenter()
@@ -128,7 +128,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         // Stopped monitoring for block
         
         // Start blocking with special flag to indicate it's from interruption
-        SharedDataConstants.userDefaults?.set(true, forKey: "isInterruptionBlock")
+        SharedData.userDefaults?.set(true, forKey: SharedData.ScreenTime.isInterruptionBlock)
         
         LocalNotificationManager.scheduleExtensionNotification(
           title: "⏸️ Take a Break",
@@ -208,13 +208,13 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     
     // Read from shared group UserDefaults
     // @AppStorage saves RawRepresentable types as their rawValue (Int in this case)
-    if let rawMinutes = SharedDataConstants.userDefaults?.integer(forKey: "selectedFrequency"),
+    if let rawMinutes = SharedData.userDefaults?.integer(forKey: SharedData.ScreenTime.selectedInterruptionTime),
        rawMinutes > 0 {
       timeLimitMinutes = rawMinutes
-      // Using saved frequency
+      // Using saved interruption time
     } else {
-      timeLimitMinutes = 15 // Default to "Often" (15 mins)
-      // Using default frequency
+      timeLimitMinutes = TimeIntervalOption.timeOptions[1].minutes // Default to 5 mins
+      // Using default interruption time
     }
     
     // Get the saved selection
@@ -269,18 +269,18 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     // Get the threshold time from UserDefaults (all data is in shared group)
     let timeLimitMinutes: Int
     if activity == .appMonitoringInterruption {
-      // Get stored FrequencyOption data (stored as Int rawValue)
-      if let rawMinutes = SharedDataConstants.userDefaults?.integer(forKey: "selectedFrequency"),
+      // Get stored TimeIntervalOption data (stored as Int rawValue)
+      if let rawMinutes = SharedData.userDefaults?.integer(forKey: SharedData.ScreenTime.selectedInterruptionTime),
          rawMinutes > 0 {
         timeLimitMinutes = rawMinutes
-        // Using saved frequency
+        // Using saved interruption time
       } else {
-        timeLimitMinutes = 15 // Default to "Often" (15 mins)
-        // Using default frequency
+        timeLimitMinutes = TimeIntervalOption.timeOptions[1].minutes // Default to 5 mins
+        // Using default interruption time
       }
     } else {
       // For alerts - read time from UserDefaults
-      let storedValue = SharedDataConstants.userDefaults?.integer(forKey: "selectedTime")
+      let storedValue = SharedData.userDefaults?.integer(forKey: SharedData.ScreenTime.selectedTime)
       
       // Get stored TimeIntervalOption data (stored as Int rawValue)
       // Note: @AppStorage might not save default values until changed

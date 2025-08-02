@@ -15,8 +15,8 @@ class SelectAppsModel: ObservableObject {
   
   let mode: Mode
   
-  @AppStorage("isAlertEnabled", store: SharedData.defaultsGroup) var isAlertEnabled: Bool = false
-  @AppStorage("isInterruptionsEnabled", store: SharedData.defaultsGroup) var isInterruptionsEnabled: Bool = false
+  @AppStorage(SharedData.ScreenTime.isAlertEnabled, store: SharedData.userDefaults) var isAlertEnabled: Bool = false
+  @AppStorage(SharedData.ScreenTime.isInterruptionsEnabled, store: SharedData.userDefaults) var isInterruptionsEnabled: Bool = false
   
   @Published var activitySelection: FamilyActivitySelection {
     didSet {

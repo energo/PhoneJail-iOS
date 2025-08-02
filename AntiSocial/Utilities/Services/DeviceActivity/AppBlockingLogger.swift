@@ -149,9 +149,9 @@ final class AppBlockingLogger: ObservableObject {
         let completedCount = getTodayCompletedSessions()
         let totalCount = getTodayTotalSessions()
         
-        SharedDataConstants.userDefaults?.set(totalTime, forKey: SharedDataConstants.AppBlocking.todayTotalBlockingTime)
-        SharedDataConstants.userDefaults?.set(completedCount, forKey: SharedDataConstants.AppBlocking.todayCompletedSessions)
-        SharedDataConstants.userDefaults?.set(totalCount, forKey: SharedDataConstants.AppBlocking.todayTotalSessions)
+        SharedData.userDefaults?.set(totalTime, forKey: SharedData.AppBlocking.todayTotalBlockingTime)
+        SharedData.userDefaults?.set(completedCount, forKey: SharedData.AppBlocking.todayCompletedSessions)
+        SharedData.userDefaults?.set(totalCount, forKey: SharedData.AppBlocking.todayTotalSessions)
         
         AppLogger.notice("Updated shared blocking stats: \(totalTime)s total, \(completedCount)/\(totalCount) sessions")
     }
@@ -234,9 +234,9 @@ final class AppBlockingLogger: ObservableObject {
     
     /// Получить статистику блокировок за сегодня из SharedData (для использования в расширениях)
     static func getTodayBlockingStatsFromSharedData() -> TodayBlockingStats {
-        let totalBlockingTime = SharedDataConstants.userDefaults?.double(forKey: SharedDataConstants.AppBlocking.todayTotalBlockingTime) ?? 0
-        let completedSessions = SharedDataConstants.userDefaults?.integer(forKey: SharedDataConstants.AppBlocking.todayCompletedSessions) ?? 0
-        let totalSessions = SharedDataConstants.userDefaults?.integer(forKey: SharedDataConstants.AppBlocking.todayTotalSessions) ?? 0
+        let totalBlockingTime = SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.todayTotalBlockingTime) ?? 0
+        let completedSessions = SharedData.userDefaults?.integer(forKey: SharedData.AppBlocking.todayCompletedSessions) ?? 0
+        let totalSessions = SharedData.userDefaults?.integer(forKey: SharedData.AppBlocking.todayTotalSessions) ?? 0
         
         return TodayBlockingStats(
             totalBlockingTime: totalBlockingTime,
@@ -247,12 +247,12 @@ final class AppBlockingLogger: ObservableObject {
     
     /// Получить суммарное время блокировок за сегодня (статический метод для расширений)
     static func getTodayTotalBlockingTimeFromSharedData() -> TimeInterval {
-        return SharedDataConstants.userDefaults?.double(forKey: SharedDataConstants.AppBlocking.todayTotalBlockingTime) ?? 0
+        return SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.todayTotalBlockingTime) ?? 0
     }
     
     /// Получить количество завершенных сессий за сегодня (статический метод для расширений)
     static func getTodayCompletedSessionsFromSharedData() -> Int {
-        return SharedDataConstants.userDefaults?.integer(forKey: SharedDataConstants.AppBlocking.todayCompletedSessions) ?? 0
+        return SharedData.userDefaults?.integer(forKey: SharedData.AppBlocking.todayCompletedSessions) ?? 0
     }
 }
 

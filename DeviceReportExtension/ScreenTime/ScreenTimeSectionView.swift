@@ -43,8 +43,8 @@ struct ScreenTimeSectionView: View {
   
   /// Временная функция для получения данных из SharedData (использует те же ключи что и AppBlockingLogger)
   private static func getTodayTotalBlockingTimeFromSharedData() -> TimeInterval {
-    let groupDefaults = SharedDataConstants.userDefaults
-    return groupDefaults?.double(forKey: SharedDataConstants.AppBlocking.todayTotalBlockingTime) ?? 0
+    let groupDefaults = SharedData.userDefaults
+    return groupDefaults?.double(forKey: SharedData.AppBlocking.todayTotalBlockingTime) ?? 0
   }
   
   private var bottomView: some View {
