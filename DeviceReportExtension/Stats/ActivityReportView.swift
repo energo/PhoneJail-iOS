@@ -77,8 +77,7 @@ struct ActivityReportView: View {
       
       Spacer()
       
-//      Text(selectedDate, style: .date)
-      Text("TODAY, " + selectedDate.formatted(.dateTime.month(.wide).day()))
+      Text(dateText)
         .font(.caption)
         .foregroundStyle(.gray)
       
@@ -92,9 +91,23 @@ struct ActivityReportView: View {
           .symbolRenderingMode(.hierarchical)
           .foregroundStyle(.white, .white.opacity(0.07))
       }
+      .disabled(isToday)
+      .opacity(isToday ? 0.3 : 1.0)
     }
     .foregroundStyle(Color.white)
-//    .padding()
+  }
+  
+  private var isToday: Bool {
+    Calendar.current.isDateInToday(selectedDate)
+  }
+  
+  private var dateText: String {
+    if isToday {
+      return "TODAY, " + selectedDate.formatted(.dateTime.month(.wide).day())
+    } else {
+      // Показываем день недели и дату
+      return selectedDate.formatted(.dateTime.weekday(.wide)) + ", " + selectedDate.formatted(.dateTime.month(.wide).day())
+    }
   }
   
   private var bgBlur: some View {
