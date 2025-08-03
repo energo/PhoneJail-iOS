@@ -8,6 +8,7 @@
 import SwiftUI
 import WidgetKit
 import FamilyControls
+import Combine
 
 
 struct AppBlockingSectionView: View {
@@ -23,7 +24,8 @@ struct AppBlockingSectionView: View {
   @State private var noCategoriesAlert = false
   @State private var maxCategoriesAlert = false
   @State private var isDiscouragedPresented = false
-  @State private var timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+  @State private var timer: Timer.TimerPublisher = Timer.publish(every: 1, on: .main, in: .common)
+  @State private var timerConnection: Cancellable?
   
   @State private var timeRemainingString: String = ""
   @State private var timeBlockedString: String = ""
@@ -33,21 +35,7 @@ struct AppBlockingSectionView: View {
     contentView
     .padding()
     .blurBackground()
-    .onChangeWithOldValue(of: isBlocked) { oldValue, newValue in
-      if newValue {
-        BlockingNotificationService.shared.startBlocking(
-          hours: hours,
-          minutes: minutes,
-          selection: deviceActivityService.selectionToDiscourage,
-          restrictionModel: restrictionModel
-        )
-      } else {
-        BlockingNotificationService.shared.stopBlocking(selection: deviceActivityService.selectionToDiscourage)
-        hours = 0
-        minutes = 0
-//        BlockingNotificationService.shared.resetBlockingState()
-      }
-    }
+    // Removed onChangeWithOldValue - logic moved to swipeBlockView
     .onAppear {
       // Восстанавливаем isUnlocked из UserDefaults
       isStrictBlock = SharedData.userDefaults?.bool(forKey: SharedData.Widget.isStricted) ?? false
@@ -66,17 +54,29 @@ struct AppBlockingSectionView: View {
         hours = restrictionModel.endHour
         minutes = restrictionModel.endMins
       }
+      
+      // Start timer if already blocked
+      if isBlocked && deviceActivityService.unlockDate != nil {
+        timerConnection = timer.connect()
+      }
     }
     .onReceive(timer) { _ in
-      if let unlockDate = deviceActivityService.unlockDate {
-        timeRemainingString = unlockDate > Date() ? deviceActivityService.timeRemainingString : "0:00:00"
-        timeBlockedString = deviceActivityService.timeBlockedString
+      if timerConnection != nil && isBlocked {
+        if let unlockDate = deviceActivityService.unlockDate {
+          timeRemainingString = unlockDate > Date() ? deviceActivityService.timeRemainingString : "0:00:00"
+          timeBlockedString = deviceActivityService.timeBlockedString
 
-        if unlockDate <= Date() {
-          isBlocked = false
-          BlockingNotificationService.shared.stopBlocking(selection: deviceActivityService.selectionToDiscourage)
+          if unlockDate <= Date() {
+            isBlocked = false
+            BlockingNotificationService.shared.stopBlocking(selection: deviceActivityService.selectionToDiscourage)
+            timerConnection?.cancel()
+            timerConnection = nil
+          }
         }
       }
+    }
+    .onDisappear {
+      timerConnection?.cancel()
     }
     .alert("No categories selected", isPresented: $noCategoriesAlert) {
       Button("OK", role: .cancel) { }
@@ -89,7 +89,7 @@ struct AppBlockingSectionView: View {
   //MARK: - Views
   private var contentView: some View {
     VStack(alignment: .leading, spacing: 16) {
-      if deviceActivityService.unlockDate != nil && (deviceActivityService.unlockDate ?? Date()) > Date() {
+      if isBlocked && deviceActivityService.unlockDate != nil && (deviceActivityService.unlockDate ?? Date()) > Date() {
         timeRemainingView
       } else {
         headerView
@@ -108,7 +108,7 @@ struct AppBlockingSectionView: View {
       swipeBlockView
         .padding(.bottom, 8)
       
-      if deviceActivityService.unlockDate != nil && (deviceActivityService.unlockDate ?? Date()) > Date() {
+      if isBlocked && deviceActivityService.unlockDate != nil && (deviceActivityService.unlockDate ?? Date()) > Date() {
         HStack(alignment: .top, spacing: 12) {
           savedBlockedView
             .frame(maxHeight: .infinity)
@@ -310,7 +310,27 @@ struct AppBlockingSectionView: View {
   
   private var swipeBlockView: some View {
     SlideToTurnOnView(isBlocked: $isBlocked,
-                      isStrictBlock: $isStrictBlock)
+                      isStrictBlock: $isStrictBlock,
+                      onBlockingStateChanged: { newState in
+                        if newState {
+                          BlockingNotificationService.shared.startBlocking(
+                            hours: hours,
+                            minutes: minutes,
+                            selection: deviceActivityService.selectionToDiscourage,
+                            restrictionModel: restrictionModel
+                          )
+                          // Start timer after blocking animation completes
+                          DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                            timerConnection = timer.connect()
+                          }
+                        } else {
+                          BlockingNotificationService.shared.stopBlocking(selection: deviceActivityService.selectionToDiscourage)
+                          hours = 0
+                          minutes = 0
+                          timerConnection?.cancel()
+                          timerConnection = nil
+                        }
+                      })
       .disabled(isBlockButtonDisabled)
   }
   

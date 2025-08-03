@@ -4,6 +4,7 @@ import SwiftUI
 struct SlideToTurnOnView: View {
   @Binding var isBlocked: Bool
   @Binding var isStrictBlock: Bool
+  var onBlockingStateChanged: ((Bool) -> Void)?
 
   @Environment(\.isEnabled) private var isEnabled
 
@@ -162,6 +163,7 @@ private extension SlideToTurnOnView {
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
       withAnimation {
         isBlocked = shouldBlock
+        onBlockingStateChanged?(shouldBlock)
       }
     }
   }
@@ -190,6 +192,7 @@ private extension SlideToTurnOnView {
       DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
         withAnimation {
           isBlocked = false
+          onBlockingStateChanged?(false)
         }
       }
     }

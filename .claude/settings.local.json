@@ -7,7 +7,11 @@
       "Bash(rm:*)",
       "Bash(open:*)",
       "Bash(brew tap:*)",
-      "Bash(brew install:*)"
+      "Bash(brew install:*)",
+      "Bash(claude doctor)",
+      "Bash(claude doctor:*)",
+      "Bash(true)",
+      "Bash(claude --version)"
     ],
     "deny": []
   }

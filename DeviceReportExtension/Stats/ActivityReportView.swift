@@ -11,6 +11,8 @@ import DeviceActivity
 struct ActivityReportView: View {
   // Храним выбранную дату
   @State private var selectedDate: Date = Date()
+  @State private var refreshTrigger = false
+  @Environment(\.scenePhase) var scenePhase
   
   // Контекст отчёта (может быть .totalActivity или ваш собственный)
   let context: DeviceActivityReport.Context = .statsActivity
@@ -42,10 +44,20 @@ struct ActivityReportView: View {
       datePicker
       
       // Сам отчёт
-      DeviceActivityReport(context, filter: filter)
+      if refreshTrigger {
+        DeviceActivityReport(context, filter: filter)
+      } else {
+        DeviceActivityReport(context, filter: filter)
+      }
     }
     .padding()
     .background(bgBlur)
+    .onChange(of: scenePhase) { newPhase in
+      if newPhase == .active {
+        // Переключаем триггер для принудительного обновления
+        refreshTrigger.toggle()
+      }
+    }
   }
   
   private var separatorView: some View {
