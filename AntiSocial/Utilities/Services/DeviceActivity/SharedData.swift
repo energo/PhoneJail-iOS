@@ -59,6 +59,9 @@ public class SharedData {
     
     /// Saved duration minutes (Int)
     public static let savedDurationMinutes = "savedDurationMinutes"
+    
+    /// Lifetime total blocking time in seconds (Double)
+    public static let lifetimeTotalBlockingTime = "lifetimeTotalBlockingTime"
   }
   
   /// Widget data keys

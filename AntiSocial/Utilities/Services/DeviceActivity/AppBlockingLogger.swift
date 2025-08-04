@@ -29,12 +29,14 @@ final class AppBlockingLogger: ObservableObject {
     
     @Published private(set) var activeSessions: [AppBlockingSession] = []
     @Published private(set) var todayStats: [DailyAppBlockingStats] = []
+    @Published private(set) var allTimeStats: [DailyAppBlockingStats] = []
     
     private init() {
         // Загружаем статистику при инициализации
         Task {
             await loadActiveSessions()
             await loadTodayStats()
+            await loadAllTimeStats()
         }
     }
     
@@ -86,6 +88,7 @@ final class AppBlockingLogger: ObservableObject {
         
         await loadActiveSessions()
         await loadTodayStats()
+        await loadAllTimeStats()
         
         AppLogger.notice("Completed blocking session for \(session.appDisplayName)")
     }
@@ -109,6 +112,7 @@ final class AppBlockingLogger: ObservableObject {
         
         await loadActiveSessions()
         await loadTodayStats()
+        await loadAllTimeStats()
         
         AppLogger.notice("Interrupted blocking session for \(session.appDisplayName)")
     }
@@ -152,8 +156,12 @@ final class AppBlockingLogger: ObservableObject {
         SharedData.userDefaults?.set(totalTime, forKey: SharedData.AppBlocking.todayTotalBlockingTime)
         SharedData.userDefaults?.set(completedCount, forKey: SharedData.AppBlocking.todayCompletedSessions)
         SharedData.userDefaults?.set(totalCount, forKey: SharedData.AppBlocking.todayTotalSessions)
+        SharedData.userDefaults?.synchronize() // Форсируем синхронизацию
         
-        AppLogger.notice("Updated shared blocking stats: \(totalTime)s total, \(completedCount)/\(totalCount) sessions")
+        let hours = Int(totalTime) / 3600
+        let minutes = (Int(totalTime) % 3600) / 60
+        let remainingMinutes = Int(totalTime.truncatingRemainder(dividingBy: 3600) / 60)
+        AppLogger.notice("Updated shared blocking stats: \(hours)h \(remainingMinutes)m (\(totalTime)s total), \(completedCount)/\(totalCount) sessions")
     }
     
     // MARK: - Statistics
@@ -228,6 +236,51 @@ final class AppBlockingLogger: ObservableObject {
     func refreshAllData() async {
         await loadActiveSessions()
         await loadTodayStats()
+        await loadAllTimeStats()
+    }
+    
+    /// Загрузить всю статистику
+    func loadAllTimeStats() async {
+        do {
+            guard let currentUser = Storage.shared.user else { return }
+            
+            let stats = try await Storage.shared.getAllBlockingStats(for: currentUser.id)
+            self.allTimeStats = stats
+            
+            // Обновляем lifetime статистику в SharedData
+            await updateLifetimeStats()
+        } catch {
+            AppLogger.critical(error, details: "Failed to load all-time blocking stats")
+        }
+    }
+    
+    /// Получить общее время блокировки за все время
+    func getAllTimeTotalBlockingTime() -> TimeInterval {
+        // Суммируем время из всех DailyAppBlockingStats
+        let totalFromStats = allTimeStats.reduce(0) { $0 + $1.totalBlockedDuration }
+        
+        // Добавляем время из активных сессий
+        let activeTime = activeSessions.reduce(0) { total, session in
+            if session.endDate == nil {
+                // Активная сессия - считаем текущее время
+                return total + Date().timeIntervalSince(session.startDate)
+            }
+            return total
+        }
+        
+        return totalFromStats + activeTime
+    }
+    
+    /// Обновить lifetime статистику
+    private func updateLifetimeStats() async {
+        let totalTime = getAllTimeTotalBlockingTime()
+        
+        SharedData.userDefaults?.set(totalTime, forKey: SharedData.AppBlocking.lifetimeTotalBlockingTime)
+        SharedData.userDefaults?.synchronize() // Форсируем синхронизацию
+        
+        let hours = Int(totalTime) / 3600
+        let minutes = (Int(totalTime) % 3600) / 60
+        AppLogger.notice("Updated lifetime blocking time: \(hours)h \(minutes)m")
     }
     
     // MARK: - Static Methods for Extensions
@@ -253,6 +306,11 @@ final class AppBlockingLogger: ObservableObject {
     /// Получить количество завершенных сессий за сегодня (статический метод для расширений)
     static func getTodayCompletedSessionsFromSharedData() -> Int {
         return SharedData.userDefaults?.integer(forKey: SharedData.AppBlocking.todayCompletedSessions) ?? 0
+    }
+    
+    /// Получить суммарное время блокировок за все время (статический метод для расширений)
+    static func getLifetimeTotalBlockingTimeFromSharedData() -> TimeInterval {
+        return SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.lifetimeTotalBlockingTime) ?? 0
     }
 }
 

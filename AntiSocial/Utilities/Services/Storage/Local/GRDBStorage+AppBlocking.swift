@@ -176,6 +176,14 @@ extension GRDBStorage {
         }
     }
     
+    func getAllBlockingStats(for userId: String) async throws -> [DailyAppBlockingStats] {
+        return try await writer?.read { db in
+            try DailyAppBlockingStats
+                .filter(Column("userId") == userId)
+                .fetchAll(db)
+        } ?? []
+    }
+    
     // MARK: - Aggregation Methods
     
     /// Создать или обновить дневную статистику на основе завершенной сессии

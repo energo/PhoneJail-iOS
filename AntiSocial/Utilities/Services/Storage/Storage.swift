@@ -136,6 +136,10 @@ final class Storage: ObservableObject {
     try await cloud.deleteOldBlockingData(for: userId, olderThan: date)
   }
   
+  func getAllBlockingStats(for userId: String) async throws -> [DailyAppBlockingStats] {
+    return try await cache.getAllBlockingStats(for: userId)
+  }
+  
   /// Обновить дневную статистику на основе завершенной сессии
   func updateDailyStatsForSession(_ session: AppBlockingSession) async throws {
     try await cache.updateDailyStatsForSession(session)

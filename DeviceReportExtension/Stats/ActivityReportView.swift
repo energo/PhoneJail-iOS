@@ -12,6 +12,7 @@ struct ActivityReportView: View {
   // Храним выбранную дату
   @State private var selectedDate: Date = Date()
   @State private var refreshTrigger = false
+  @State private var lifetimeFocusedTime: TimeInterval = 0
   @Environment(\.scenePhase) var scenePhase
   
   // Контекст отчёта (может быть .totalActivity или ваш собственный)
@@ -36,6 +37,10 @@ struct ActivityReportView: View {
           .foregroundColor(.white)
           .font(.system(size: 19, weight: .medium))
         Spacer()
+        Text(formatLifetimeTime())
+          .foregroundColor(.as_light_green)
+          .font(.system(size: 14))
+          .lineLimit(1)
       }
 
       separatorView
@@ -56,8 +61,33 @@ struct ActivityReportView: View {
       if newPhase == .active {
         // Переключаем триггер для принудительного обновления
         refreshTrigger.toggle()
+        Task {
+          await loadLifetimeStats()
+        }
       }
     }
+    .task {
+      await loadLifetimeStats()
+    }
+    .onChange(of: selectedDate) { _ in
+      Task {
+        await loadLifetimeStats()
+      }
+    }
+  }
+  
+  private func loadLifetimeStats() async {
+    // Получаем данные из SharedData через UserDefaults
+    let totalTime = SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.lifetimeTotalBlockingTime) ?? 0
+    await MainActor.run {
+      lifetimeFocusedTime = totalTime
+    }
+  }
+  
+  private func formatLifetimeTime() -> String {
+    let hours = Int(lifetimeFocusedTime) / 3600
+    let minutes = (Int(lifetimeFocusedTime) % 3600) / 60
+    return "\(hours)H \(minutes)M FOCUSED LIFETIME"
   }
   
   private var separatorView: some View {
