@@ -60,7 +60,7 @@ public struct CustomPickerView: View {
           }
           .scrollIndicators(.hidden)
           .safeAreaPadding(.horizontal, geo.size.width / 2.0)
-//          .scrollTargetBehavior(.viewAligned)
+          .scrollTargetBehavior(.viewAligned)
           .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
               withAnimation {

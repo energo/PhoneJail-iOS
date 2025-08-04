@@ -15,8 +15,8 @@ struct AppBlockingSectionView: View {
   @EnvironmentObject var deviceActivityService: DeviceActivityService
   @ObservedObject var restrictionModel: MyRestrictionModel
   
-  @AppStorage(SharedData.AppBlocking.savedDurationHours, store: SharedData.userDefaults) var hours: Int = 0
-  @AppStorage(SharedData.AppBlocking.savedDurationMinutes, store: SharedData.userDefaults) var minutes: Int = 0
+  @State var hours: Int = 0
+  @State var minutes: Int = 0
   
   @State private var isStrictBlock: Bool = false
   @State private var isBlocked: Bool = false
@@ -177,7 +177,9 @@ struct AppBlockingSectionView: View {
       
       // Load saved time if not currently blocked
       if !isBlocked {
-        // Time is already loaded from @AppStorage
+        // Load saved duration
+        hours = SharedData.userDefaults?.integer(forKey: SharedData.AppBlocking.savedDurationHours) ?? 0
+        minutes = SharedData.userDefaults?.integer(forKey: SharedData.AppBlocking.savedDurationMinutes) ?? 0
       }
       
       // Start timer if already blocked
@@ -347,6 +349,12 @@ struct AppBlockingSectionView: View {
       }
       
       TimePickerView(value1: $hours, value2: $minutes)
+        .onChange(of: hours) { _, newValue in
+          SharedData.userDefaults?.set(newValue, forKey: SharedData.AppBlocking.savedDurationHours)
+        }
+        .onChange(of: minutes) { _, newValue in
+          SharedData.userDefaults?.set(newValue, forKey: SharedData.AppBlocking.savedDurationMinutes)
+        }
     }
   }
   
