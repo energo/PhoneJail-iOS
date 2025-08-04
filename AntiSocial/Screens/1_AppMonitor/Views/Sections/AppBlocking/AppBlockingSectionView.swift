@@ -24,7 +24,7 @@ struct AppBlockingSectionView: View {
   @State private var noCategoriesAlert = false
   @State private var maxCategoriesAlert = false
   @State private var isDiscouragedPresented = false
-  @State private var timer: Timer.TimerPublisher = Timer.publish(every: 1, on: .main, in: .common)
+  @State private var currentTimer: Timer.TimerPublisher?
   @State private var timerConnection: Cancellable?
   @State private var timerID = UUID() // Для отладки
   
@@ -32,18 +32,114 @@ struct AppBlockingSectionView: View {
   @State private var timeBlockedString: String = ""
   @State private var blockingCount = 0 // Счетчик блокировок
   
+  // MARK: - Constants
+  private enum Constants {
+    enum Timer {
+      static let updateInterval: TimeInterval = 1.0
+      static let animationDelay: TimeInterval = 0.6
+    }
+    
+    enum TimeFormat {
+      static let initialBlocked = "0h 00m"
+      static let initialRemaining = "0:00:00"
+      static let remainingFormat = "%d:%02d:%02d"
+      static let blockedFormat = "%dh %02dm"
+    }
+    
+    enum TimeCalculation {
+      static let secondsInHour = 3600
+      static let secondsInMinute = 60
+      static let secondsInDay = 86400 // 24 часа - максимальное разумное время блокировки
+    }
+  }
+  
+  // MARK: - Time Formatting Methods
+  private func formatRemainingTime(_ timeInterval: TimeInterval) -> String {
+    let remaining = Int(timeInterval)
+    
+    guard remaining > 0 else {
+      return Constants.TimeFormat.initialRemaining
+    }
+    
+    let hours = remaining / Constants.TimeCalculation.secondsInHour
+    let minutes = (remaining % Constants.TimeCalculation.secondsInHour) / Constants.TimeCalculation.secondsInMinute
+    let seconds = remaining % Constants.TimeCalculation.secondsInMinute
+    
+    return String(format: Constants.TimeFormat.remainingFormat, hours, minutes, seconds)
+  }
+  
+  private func formatBlockedTime(from timestamp: TimeInterval) -> String {
+    let elapsed = Date().timeIntervalSince1970 - timestamp
+    
+    // Валидация: если elapsed > 24 часов, что-то пошло не так
+    guard elapsed >= 0 && elapsed < TimeInterval(Constants.TimeCalculation.secondsInDay) else {
+      print("⚠️ Invalid elapsed time: \(elapsed) seconds from timestamp: \(timestamp)")
+      return Constants.TimeFormat.initialBlocked
+    }
+    
+    let hours = Int(elapsed) / Constants.TimeCalculation.secondsInHour
+    let minutes = (Int(elapsed) % Constants.TimeCalculation.secondsInHour) / Constants.TimeCalculation.secondsInMinute
+    
+    print("⏱️ Blocked time: \(hours)h \(minutes)m (elapsed: \(elapsed)s)")
+    return String(format: Constants.TimeFormat.blockedFormat, hours, minutes)
+  }
+  
+  private func calculateBlockedTime() -> String {
+    guard let startTimestamp = SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp) else {
+      return Constants.TimeFormat.initialBlocked
+    }
+    
+    return formatBlockedTime(from: startTimestamp)
+  }
+  
+  // MARK: - Timer Management Methods
+  private func startTimer() {
+    // Останавливаем предыдущий таймер если есть
+    stopTimer()
+    
+    // Создаем новый Timer.TimerPublisher каждый раз
+    let newTimer = Timer.publish(every: Constants.Timer.updateInterval, on: .main, in: .common)
+    currentTimer = newTimer
+    timerConnection = newTimer.connect()
+    timerID = UUID() // Обновляем ID для отладки
+    
+    print("🟢 Timer started with ID: \(timerID)")
+  }
+  
+  private func stopTimer() {
+    timerConnection?.cancel()
+    timerConnection = nil
+    currentTimer = nil
+    
+    print("🔴 Timer stopped for ID: \(timerID)")
+  }
+  
   //MARK: - Views
   var body: some View {
     contentView
     .padding()
     .blurBackground()
-    // Removed onChangeWithOldValue - logic moved to swipeBlockView
+    .onChange(of: isBlocked) { _, newValue in
+      if newValue {
+        // При включении блокировки сразу сбрасываем счетчик
+        timeBlockedString = Constants.TimeFormat.initialBlocked
+        timeRemainingString = deviceActivityService.timeRemainingString
+      } else {
+        // При выключении блокировки очищаем все данные
+        timeBlockedString = Constants.TimeFormat.initialBlocked
+        // ВАЖНО: Очищаем timestamp чтобы избежать проблем при следующем запуске
+        SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
+        print("🧹 Cleared blocking timestamp on disable")
+      }
+    }
     .onAppear {
       // Восстанавливаем isUnlocked из UserDefaults
       isStrictBlock = SharedData.userDefaults?.bool(forKey: SharedData.Widget.isStricted) ?? false
       isBlocked = SharedData.userDefaults?.bool(forKey: SharedData.Widget.isBlocked) ?? false
       timeRemainingString = deviceActivityService.timeRemainingString
-      timeBlockedString = deviceActivityService.timeBlockedString
+      
+      // Вычисляем начальное время блокировки
+      timeBlockedString = calculateBlockedTime()
       
       //TODO: - need to refactor (looks like odd properties)
       if let savedHour = SharedData.userDefaults?.integer(forKey: SharedData.Widget.endHour),
@@ -58,39 +154,34 @@ struct AppBlockingSectionView: View {
       }
       
       // Start timer if already blocked
-      if isBlocked && deviceActivityService.unlockDate != nil && timerConnection == nil {
-        timerConnection = timer.connect()
+      if isBlocked && deviceActivityService.unlockDate != nil {
+        startTimer()
       }
     }
-    .onReceive(timer) { _ in
-      if timerConnection != nil && isBlocked {
-        if let unlockDate = deviceActivityService.unlockDate {
-          // Вычисляем время локально для избежания проблем
-          let remaining = Int(unlockDate.timeIntervalSinceNow)
-          let newTimeRemaining: String
-          if remaining > 0 {
-            let hours = remaining / 3600
-            let minutes = (remaining % 3600) / 60
-            let seconds = remaining % 60
-            newTimeRemaining = String(format: "%d:%02d:%02d", hours, minutes, seconds)
-          } else {
-            newTimeRemaining = "0:00:00"
-          }
-          
-          timeRemainingString = newTimeRemaining
-          timeBlockedString = deviceActivityService.timeBlockedString
+    .onReceive(currentTimer ?? Timer.publish(every: 999, on: .main, in: .common)) { _ in
+      // Обработка тиков таймера - только если таймер активен и блокировка включена
+      guard timerConnection != nil && isBlocked else { return }
+      
+      guard let unlockDate = deviceActivityService.unlockDate else { return }
+      
+      // Обновляем время до разблокировки
+      timeRemainingString = formatRemainingTime(unlockDate.timeIntervalSinceNow)
+      
+      // Обновляем время блокировки
+      timeBlockedString = calculateBlockedTime()
 
-          if unlockDate <= Date() {
-            isBlocked = false
-            BlockingNotificationService.shared.stopBlocking(selection: deviceActivityService.selectionToDiscourage)
-            timerConnection?.cancel()
-            timerConnection = nil
-          }
-        }
+      // Проверяем завершение блокировки
+      if unlockDate <= Date() {
+        isBlocked = false
+        BlockingNotificationService.shared.stopBlocking(selection: deviceActivityService.selectionToDiscourage)
+        // Очищаем timestamp при автоматическом завершении
+        SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
+        print("🧹 Cleared timestamp on auto-completion")
+        stopTimer()
       }
     }
     .onDisappear {
-      timerConnection?.cancel()
+      stopTimer()
     }
     .alert("No categories selected", isPresented: $noCategoriesAlert) {
       Button("OK", role: .cancel) { }
@@ -342,18 +433,24 @@ struct AppBlockingSectionView: View {
                             restrictionModel: restrictionModel
                           )
                           // Start timer after blocking animation completes
-                          DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                          DispatchQueue.main.asyncAfter(deadline: .now() + Constants.Timer.animationDelay) {
                             // Проверяем что таймер еще не подключен
                             if timerConnection == nil {
                               // Устанавливаем время начала блокировки после анимации
                               SharedData.userDefaults?.set(Date().timeIntervalSince1970, forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
-                              timerConnection = timer.connect()
+                              // Сразу обновляем отображение
+                              timeBlockedString = Constants.TimeFormat.initialBlocked
+                              timeRemainingString = deviceActivityService.timeRemainingString
+                              startTimer()
                             }
                           }
                         } else {
                           // Сначала отключаем таймер
-                          timerConnection?.cancel()
-                          timerConnection = nil
+                          stopTimer()
+                          
+                          // Очищаем timestamp при ручном выключении
+                          SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
+                          print("🧹 Cleared timestamp on manual disable")
                           
                           BlockingNotificationService.shared.stopBlocking(selection: deviceActivityService.selectionToDiscourage)
                           hours = 0
