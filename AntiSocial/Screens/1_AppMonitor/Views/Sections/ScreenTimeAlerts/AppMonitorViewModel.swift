@@ -55,7 +55,7 @@ class AppMonitorViewModel: ObservableObject {
   }
   
   func onActivitySelectionChange() {
-    print("Изменился выбор приложений в модели")
+    AppLogger.trace("Изменился выбор приложений в модели")
     updateMonitoredAppsList()
   }
   
@@ -69,7 +69,7 @@ class AppMonitorViewModel: ObservableObject {
   func startMonitoring() {
     let timeLimitMinutes = isInterruptionsEnabled ? selectedInterruptionTime.minutes : selectedTime.minutes
     
-    print("startMonitoring timeLimitMinutes: \(timeLimitMinutes)")
+    AppLogger.notice("startMonitoring timeLimitMinutes: \(timeLimitMinutes)")
     updateMonitoringState()
     
     let enabledTokens = Set(monitoredApps.filter { $0.isMonitored }.map { $0.token })
@@ -96,12 +96,12 @@ class AppMonitorViewModel: ObservableObject {
     // Run monitoring setup off main thread to prevent blocking
     Task {
       do {
-        print("startMonitoring \(activity) with threshold: \(timeLimitMinutes) minutes")
+        AppLogger.notice("startMonitoring \(activity) with threshold: \(timeLimitMinutes) minutes")
         try self.center.startMonitoring(activity,
                                    during: schedule,
                                    events: events)
       } catch let error {
-        print("center.startMonitoring error \(error.localizedDescription)")
+        AppLogger.critical(error, details: "center.startMonitoring error")
       }
     }
   }
@@ -119,13 +119,13 @@ class AppMonitorViewModel: ObservableObject {
     // Reset blocking state completely
     resetInterruptionBlockingState()
     
-    print("Stopped interruption monitoring and cleared all restrictions")
+    AppLogger.notice("Stopped interruption monitoring and cleared all restrictions")
   }
   
   func stopAlertMonitoring() {
     let center = DeviceActivityCenter()
     center.stopMonitoring([.appMonitoringAlert])
-    print("Stopped alert monitoring")
+    AppLogger.notice("Stopped alert monitoring")
   }
   
   func stopMonitoring() {

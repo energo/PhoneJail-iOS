@@ -121,7 +121,7 @@ struct OnboardingScreen: View {
       do {
         try await Storage.shared.saveUser(currentUser)
       } catch {
-        print("Failed to save user: \(error.localizedDescription)")
+        AppLogger.critical(error, details: "Failed to save user")
       }
     }
   }

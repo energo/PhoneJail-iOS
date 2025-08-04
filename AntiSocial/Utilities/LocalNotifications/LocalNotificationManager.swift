@@ -37,7 +37,7 @@ final class LocalNotificationManager {
     
     notificationCenter.add(request) { error in
       if let error = error {
-        print("Notification scheduling error: \(error)")
+//        AppLogger.critical(error, details: "Notification scheduling error")
       }
     }
   }
@@ -55,7 +55,7 @@ final class LocalNotificationManager {
     
     notificationCenter.add(request) { error in
       if let error = error {
-        print("Notification scheduling error: \(error)")
+//        AppLogger.critical(error, details: "Notification scheduling error")
       }
     }
   }
@@ -74,7 +74,7 @@ final class LocalNotificationManager {
     
     notificationCenter.add(request) { error in
       if let error = error {
-        print("Error scheduling notification: \(error)")
+//        AppLogger.critical(error, details: "Error scheduling notification")
       }
     }
   }
@@ -87,7 +87,7 @@ final class LocalNotificationManager {
       if granted {
         self.scheduleScreenTimeNotification(title: title, body: details)
       } else {
-        print("Permission denied for notifications")
+//        AppLogger.alert("Permission denied for notifications")
       }
     }
   }

@@ -24,7 +24,7 @@ class FamilyControlsManager: ObservableObject {
     @MainActor
     func requestAuthorization() {
         if authorizationCenter.authorizationStatus == .approved {
-            print("ScreenTime Permission approved")
+            AppLogger.notice("ScreenTime Permission approved")
         } else {
             Task {
                 do {
@@ -33,7 +33,7 @@ class FamilyControlsManager: ObservableObject {
                     // Consent given
                 } catch {
                     // Consent not given
-                    print("Failed to enroll Aniyah with error: \(error)")
+                    AppLogger.critical(error, details: "Failed to enroll Aniyah")
                     hasScreenTimePermission = false
                     // The user did not allow.
                     // Error Domain=FamilyControls.FamilyControlsError Code=5 "(null)"
@@ -54,9 +54,9 @@ class FamilyControlsManager: ObservableObject {
         authorizationCenter.revokeAuthorization(completionHandler: { result in
             switch result {
             case .success:
-                print("Success")
+                AppLogger.notice("Success")
             case .failure(let failure):
-                print("\(failure) - failed revoke Permission")
+                AppLogger.critical(nil, details: "\(failure) - failed revoke Permission")
             }
         })
     }

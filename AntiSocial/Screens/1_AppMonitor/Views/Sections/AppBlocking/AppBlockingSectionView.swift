@@ -73,14 +73,14 @@ struct AppBlockingSectionView: View {
     
     // Валидация: если elapsed > 24 часов, что-то пошло не так
     guard elapsed >= 0 && elapsed < TimeInterval(Constants.TimeCalculation.secondsInDay) else {
-      print("⚠️ Invalid elapsed time: \(elapsed) seconds from timestamp: \(timestamp)")
+      AppLogger.alert("Invalid elapsed time: \(elapsed) seconds from timestamp: \(timestamp)")
       return Constants.TimeFormat.initialBlocked
     }
     
     let hours = Int(elapsed) / Constants.TimeCalculation.secondsInHour
     let minutes = (Int(elapsed) % Constants.TimeCalculation.secondsInHour) / Constants.TimeCalculation.secondsInMinute
     
-    print("⏱️ Blocked time: \(hours)h \(minutes)m (elapsed: \(elapsed)s)")
+    AppLogger.trace("Blocked time: \(hours)h \(minutes)m (elapsed: \(elapsed)s)")
     return String(format: Constants.TimeFormat.blockedFormat, hours, minutes)
   }
   
@@ -103,7 +103,7 @@ struct AppBlockingSectionView: View {
     timerConnection = newTimer.connect()
     timerID = UUID() // Обновляем ID для отладки
     
-    print("🟢 Timer started with ID: \(timerID)")
+    AppLogger.trace("Timer started with ID: \(timerID)")
   }
   
   private func stopTimer() {
@@ -111,7 +111,7 @@ struct AppBlockingSectionView: View {
     timerConnection = nil
     currentTimer = nil
     
-    print("🔴 Timer stopped for ID: \(timerID)")
+    AppLogger.trace("Timer stopped for ID: \(timerID)")
   }
   
   //MARK: - Views
@@ -129,7 +129,7 @@ struct AppBlockingSectionView: View {
         timeBlockedString = Constants.TimeFormat.initialBlocked
         // ВАЖНО: Очищаем timestamp чтобы избежать проблем при следующем запуске
         SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
-        print("🧹 Cleared blocking timestamp on disable")
+        AppLogger.trace("Cleared blocking timestamp on disable")
       }
     }
     .onAppear {
@@ -150,7 +150,7 @@ struct AppBlockingSectionView: View {
         if let unlockDate = deviceActivityService.unlockDate, unlockDate > Date() {
           // Блокировка еще активна - восстанавливаем состояние
           timeBlockedString = calculateBlockedTime()
-          print("🔄 Restored active blocking state on app start")
+          AppLogger.notice("Restored active blocking state on app start")
         } else {
           // Блокировка истекла или нет unlockDate - завершаем ее
           isBlocked = false
@@ -158,14 +158,14 @@ struct AppBlockingSectionView: View {
           SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
           SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.unlockDate)
           timeBlockedString = Constants.TimeFormat.initialBlocked
-          print("⏰ Blocking expired or invalid - cleaning up")
+          AppLogger.notice("Blocking expired or invalid - cleaning up")
         }
       } else {
         // Блокировка неактивна - очищаем старые timestamp'ы и unlock date
         SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
         SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.unlockDate)
         timeBlockedString = Constants.TimeFormat.initialBlocked
-        print("🧹 Cleared stale data on app start (blocking inactive)")
+        AppLogger.trace("Cleared stale data on app start (blocking inactive)")
       }
       
       //TODO: - need to refactor (looks like odd properties)
@@ -190,7 +190,7 @@ struct AppBlockingSectionView: View {
             timeBlockedString = calculateBlockedTime()
           }
           startTimer()
-          print("🔄 Restored timer for active blocking")
+          AppLogger.notice("Restored timer for active blocking")
         }
       }
     }
@@ -212,7 +212,7 @@ struct AppBlockingSectionView: View {
         BlockingNotificationService.shared.stopBlocking(selection: deviceActivityService.selectionToDiscourage)
         // Очищаем timestamp при автоматическом завершении
         SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
-        print("🧹 Cleared timestamp on auto-completion")
+        AppLogger.trace("Cleared timestamp on auto-completion")
         stopTimer()
       }
     }
@@ -497,7 +497,7 @@ struct AppBlockingSectionView: View {
                           
                           // Очищаем timestamp при ручном выключении
                           SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
-                          print("🧹 Cleared timestamp on manual disable")
+                          AppLogger.trace("Cleared timestamp on manual disable")
                           
                           BlockingNotificationService.shared.stopBlocking(selection: deviceActivityService.selectionToDiscourage)
                           // Don't reset hours and minutes - keep last used values

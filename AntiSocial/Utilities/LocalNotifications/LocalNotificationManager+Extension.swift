@@ -31,11 +31,11 @@ extension LocalNotificationManager {
         
         center.add(request) { error in
           if let error = error {
-            print("Error scheduling notification: \(error)")
+//            AppLogger.critical(error, details: "Error scheduling notification")
           }
         }
       } else {
-        print("Permission denied. \(error?.localizedDescription ?? "")")
+//        AppLogger.alert("Permission denied. \(error?.localizedDescription ?? "")")
       }
     }
   }

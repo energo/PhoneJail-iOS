@@ -48,9 +48,9 @@ class DeviceActivityScheduleService {
     let endDate = calendar.date(from: DateComponents(year: year, month: month, day: day, hour: endHour, minute: endMins))!
     let diffMinutes = Int(endDate.timeIntervalSince(startDate) / 60)
     
-    print("DeviceActivityScheduleService: Start time: \(startDate)")
-    print("DeviceActivityScheduleService: End time: \(endDate)")
-    print("DeviceActivityScheduleService: Duration in minutes: \(diffMinutes)")
+//    AppLogger.notice("DeviceActivityScheduleService: Start time: \(startDate)")
+//    AppLogger.notice("DeviceActivityScheduleService: End time: \(endDate)")
+//    AppLogger.notice("DeviceActivityScheduleService: Duration in minutes: \(diffMinutes)")
     
     // Schedule notifications
     LocalNotificationManager.shared.scheduleBlockingStartNotification()
@@ -84,7 +84,7 @@ class DeviceActivityScheduleService {
                                  during: schedule,
                                  events: event)
     } catch {
-      print("Error monitoring schedule: \(error)")
+//      AppLogger.critical(error, details: "Error monitoring schedule")
     }
   }
   
