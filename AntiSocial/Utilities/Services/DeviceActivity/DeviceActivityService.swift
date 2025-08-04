@@ -149,6 +149,8 @@ class DeviceActivityService: ObservableObject {
     if let data = try? encoder.encode(selection) {
       UserDefaults.standard.set(data, forKey: selectionKey)
     }
+    // Also save to SharedData for persistence
+    SharedData.selectedBlockingActivity = selection
   }
   
   func saveFamilyActivitySelectionAsync(_ selection: FamilyActivitySelection) async {
@@ -158,12 +160,19 @@ class DeviceActivityService: ObservableObject {
     if let data = try? encoder.encode(selection) {
       UserDefaults.standard.set(data, forKey: selectionKey)
     }
+    // Also save to SharedData for persistence
+    SharedData.selectedBlockingActivity = selection
   }
   
   func loadSelection() {
     if let data = UserDefaults.standard.data(forKey: selectionKey),
        let loaded = try? decoder.decode(FamilyActivitySelection.self, from: data) {
       selectionToDiscourage = loaded
+    } else if let sharedSelection = SharedData.selectedBlockingActivity {
+      // Load from SharedData if available
+      selectionToDiscourage = sharedSelection
+      // Save to UserDefaults for future use
+      saveFamilyActivitySelection(selectionToDiscourage)
     }
   }
   

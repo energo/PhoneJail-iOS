@@ -32,6 +32,7 @@ public class SharedData {
         
     static let selectedAlertActivity = "SelectedAlertActivity"
     static let selectedInterruptionsActivity = "SelectedInterruptionsActivity"
+    static let selectedBlockingActivity = "SelectedBlockingActivity"
   }
   
   /// App blocking statistics keys
@@ -52,6 +53,12 @@ public class SharedData {
     
     /// Last interruption block time (TimeInterval)
     public static let lastInterruptionBlockTime = "lastInterruptionBlockTime"
+    
+    /// Saved duration hours (Int)
+    public static let savedDurationHours = "savedDurationHours"
+    
+    /// Saved duration minutes (Int)
+    public static let savedDurationMinutes = "savedDurationMinutes"
   }
   
   /// Widget data keys
@@ -153,6 +160,16 @@ public class SharedData {
     }
     set {
       userDefaults?.set(try? JSONEncoder().encode(newValue), forKey: Keys.selectedInterruptionsActivity)
+    }
+  }
+
+  static var selectedBlockingActivity: FamilyActivitySelection? {
+    get {
+      guard let data = userDefaults?.data(forKey: Keys.selectedBlockingActivity) else { return nil }
+      return try? JSONDecoder().decode(FamilyActivitySelection.self, from: data)
+    }
+    set {
+      userDefaults?.set(try? JSONEncoder().encode(newValue), forKey: Keys.selectedBlockingActivity)
     }
   }
 }

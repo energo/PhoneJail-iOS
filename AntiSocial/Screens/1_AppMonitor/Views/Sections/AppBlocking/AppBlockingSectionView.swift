@@ -15,8 +15,8 @@ struct AppBlockingSectionView: View {
   @EnvironmentObject var deviceActivityService: DeviceActivityService
   @ObservedObject var restrictionModel: MyRestrictionModel
   
-  @State var hours: Int = 0
-  @State var minutes: Int = 0
+  @AppStorage(SharedData.AppBlocking.savedDurationHours, store: SharedData.userDefaults) var hours: Int = 0
+  @AppStorage(SharedData.AppBlocking.savedDurationMinutes, store: SharedData.userDefaults) var minutes: Int = 0
   
   @State private var isStrictBlock: Bool = false
   @State private var isBlocked: Bool = false
@@ -137,6 +137,9 @@ struct AppBlockingSectionView: View {
       isStrictBlock = SharedData.userDefaults?.bool(forKey: SharedData.Widget.isStricted) ?? false
       isBlocked = SharedData.userDefaults?.bool(forKey: SharedData.Widget.isBlocked) ?? false
       
+      // Reload saved app selection
+      deviceActivityService.loadSelection()
+      
       // Unlock date is already loaded in DeviceActivityService init
       
       timeRemainingString = deviceActivityService.timeRemainingString
@@ -172,9 +175,9 @@ struct AppBlockingSectionView: View {
         restrictionModel.endMins = savedMin
       }
       
+      // Load saved time if not currently blocked
       if !isBlocked {
-        hours = restrictionModel.endHour
-        minutes = restrictionModel.endMins
+        // Time is already loaded from @AppStorage
       }
       
       // Start timer if already blocked
@@ -405,6 +408,10 @@ struct AppBlockingSectionView: View {
         isPresented: $isDiscouragedPresented,
         selection: $deviceActivityService.selectionToDiscourage
       )
+      .onChange(of: deviceActivityService.selectionToDiscourage) { _, newValue in
+        // Save selection when changed
+        deviceActivityService.saveFamilyActivitySelection(newValue)
+      }
     }
   }
   
@@ -485,8 +492,7 @@ struct AppBlockingSectionView: View {
                           print("🧹 Cleared timestamp on manual disable")
                           
                           BlockingNotificationService.shared.stopBlocking(selection: deviceActivityService.selectionToDiscourage)
-                          hours = 0
-                          minutes = 0
+                          // Don't reset hours and minutes - keep last used values
                         }
                       })
       .disabled(isBlockButtonDisabled)

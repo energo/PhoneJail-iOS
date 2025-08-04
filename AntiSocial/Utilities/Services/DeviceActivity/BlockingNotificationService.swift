@@ -130,12 +130,12 @@ final class BlockingNotificationService: ObservableObject {
     let service = DeviceActivityService.shared
     
     Task { @MainActor in
-      service.selectionToDiscourage = FamilyActivitySelection()
+      // Don't clear selectionToDiscourage - keep it for next time
       service.savedSelection.removeAll()
       service.unlockDate = nil
     }
     
-    service.saveFamilyActivitySelection(FamilyActivitySelection())
+    // Don't save empty selection - keep the saved apps for next use
     
     SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
     service.stopAppRestrictions()
