@@ -32,6 +32,7 @@ struct AppBlockingSectionView: View {
   @State private var timeBlockedString: String = ""
   @State private var blockingCount = 0 // Счетчик блокировок
   @State private var totalSavedTime: TimeInterval = 0 // Общее время за сегодня
+  @State private var currentSessionSavedTime: String = "0h 00m" // Текущая сессия
   
   // MARK: - Constants
   private enum Constants {
@@ -114,6 +115,20 @@ struct AppBlockingSectionView: View {
     return String(format: Constants.TimeFormat.blockedFormat, hours, minutes)
   }
   
+  // Форматировать только текущую сессию блокировки
+  private func formatSavedTime() -> String {
+    guard isBlocked, 
+          let startTimestamp = SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp) else {
+      return Constants.TimeFormat.initialBlocked
+    }
+    
+    let currentSessionTime = Date().timeIntervalSince1970 - startTimestamp
+    let hours = Int(currentSessionTime) / Constants.TimeCalculation.secondsInHour
+    let minutes = (Int(currentSessionTime) % Constants.TimeCalculation.secondsInHour) / Constants.TimeCalculation.secondsInMinute
+    
+    return String(format: Constants.TimeFormat.blockedFormat, hours, minutes)
+  }
+  
   // MARK: - Timer Management Methods
   private func startTimer() {
     // Останавливаем предыдущий таймер если есть
@@ -145,10 +160,12 @@ struct AppBlockingSectionView: View {
       if newValue {
         // При включении блокировки сразу сбрасываем счетчик
         timeBlockedString = Constants.TimeFormat.initialBlocked
+        currentSessionSavedTime = Constants.TimeFormat.initialBlocked
         timeRemainingString = deviceActivityService.timeRemainingString
       } else {
         // При выключении блокировки очищаем все данные
         timeBlockedString = Constants.TimeFormat.initialBlocked
+        currentSessionSavedTime = Constants.TimeFormat.initialBlocked
         // ВАЖНО: Очищаем timestamp чтобы избежать проблем при следующем запуске
         SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
         AppLogger.trace("Cleared blocking timestamp on disable")
@@ -175,6 +192,7 @@ struct AppBlockingSectionView: View {
         if let unlockDate = deviceActivityService.unlockDate, unlockDate > Date() {
           // Блокировка еще активна - восстанавливаем состояние
           timeBlockedString = calculateBlockedTime()
+          currentSessionSavedTime = formatSavedTime()
           AppLogger.notice("Restored active blocking state on app start")
         } else {
           // Блокировка истекла или нет unlockDate - завершаем ее
@@ -183,6 +201,7 @@ struct AppBlockingSectionView: View {
           SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
           SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.unlockDate)
           timeBlockedString = Constants.TimeFormat.initialBlocked
+          currentSessionSavedTime = Constants.TimeFormat.initialBlocked
           AppLogger.notice("Blocking expired or invalid - cleaning up")
         }
       } else {
@@ -190,6 +209,7 @@ struct AppBlockingSectionView: View {
         SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
         SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.unlockDate)
         timeBlockedString = Constants.TimeFormat.initialBlocked
+        currentSessionSavedTime = Constants.TimeFormat.initialBlocked
         AppLogger.trace("Cleared stale data on app start (blocking inactive)")
       }
       
@@ -230,6 +250,9 @@ struct AppBlockingSectionView: View {
       
       // Обновляем время блокировки
       timeBlockedString = calculateBlockedTime()
+      
+      // Обновляем время текущей сессии
+      currentSessionSavedTime = formatSavedTime()
       
       // Обновляем общее время за сегодня
       loadTotalSavedTime()
@@ -299,7 +322,7 @@ struct AppBlockingSectionView: View {
   }
   private var savedBlockedView: some View {
     VStack(alignment: .leading, spacing: 6) {
-      Text(formatTotalSavedTime())
+      Text(currentSessionSavedTime)
         .font(.system(size: 20, weight: .bold, design: .monospaced))
         .foregroundStyle(Color.as_white)
       
