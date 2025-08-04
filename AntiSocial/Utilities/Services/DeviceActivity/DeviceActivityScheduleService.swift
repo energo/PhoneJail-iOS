@@ -25,6 +25,15 @@ extension DeviceActivityEvent.Name {
 class DeviceActivityScheduleService {
   static let center = DeviceActivityCenter()
   
+  static func setScheduleAsync(endHour: Int, endMins: Int) async {
+    await withCheckedContinuation { continuation in
+      Task {
+        setSchedule(endHour: endHour, endMins: endMins)
+        continuation.resume()
+      }
+    }
+  }
+  
   static func setSchedule(endHour: Int, endMins: Int) {
     let now = Date()
     let calendar = Calendar.current
@@ -68,16 +77,14 @@ class DeviceActivityScheduleService {
     let event: [DeviceActivityEvent.Name: DeviceActivityEvent] = [ eventName : DeviceActivityEvent(applications: enabledTokens, threshold: DateComponents(minute: diffMinutes))
     ]
          
-    DispatchQueue.main.async {
-      do {
-        DeviceActivityService.shared.setShieldRestrictions()
-        
-        try center.startMonitoring(activity,
-                                   during: schedule,
-                                   events: event)
-      } catch {
-        print("Error monitoring schedule: \(error)")
-      }
+    // Убираем DispatchQueue.main.async - это блокирует main thread!
+    // setShieldRestrictions уже вызывается в startBlocking
+    do {
+      try center.startMonitoring(activity,
+                                 during: schedule,
+                                 events: event)
+    } catch {
+      print("Error monitoring schedule: \(error)")
     }
   }
   

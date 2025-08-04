@@ -153,7 +153,7 @@ class AppMonitorViewModel: ObservableObject {
     service.unlockDate = nil
     
     // Reload widgets
-    WidgetCenter.shared.reloadAllTimelines()
+//    WidgetCenter.shared.reloadAllTimelines()
   }
   
   func schedule24h() -> DeviceActivitySchedule {

@@ -26,9 +26,11 @@ struct AppBlockingSectionView: View {
   @State private var isDiscouragedPresented = false
   @State private var timer: Timer.TimerPublisher = Timer.publish(every: 1, on: .main, in: .common)
   @State private var timerConnection: Cancellable?
+  @State private var timerID = UUID() // Для отладки
   
   @State private var timeRemainingString: String = ""
   @State private var timeBlockedString: String = ""
+  @State private var blockingCount = 0 // Счетчик блокировок
   
   //MARK: - Views
   var body: some View {
@@ -56,14 +58,26 @@ struct AppBlockingSectionView: View {
       }
       
       // Start timer if already blocked
-      if isBlocked && deviceActivityService.unlockDate != nil {
+      if isBlocked && deviceActivityService.unlockDate != nil && timerConnection == nil {
         timerConnection = timer.connect()
       }
     }
     .onReceive(timer) { _ in
       if timerConnection != nil && isBlocked {
         if let unlockDate = deviceActivityService.unlockDate {
-          timeRemainingString = unlockDate > Date() ? deviceActivityService.timeRemainingString : "0:00:00"
+          // Вычисляем время локально для избежания проблем
+          let remaining = Int(unlockDate.timeIntervalSinceNow)
+          let newTimeRemaining: String
+          if remaining > 0 {
+            let hours = remaining / 3600
+            let minutes = (remaining % 3600) / 60
+            let seconds = remaining % 60
+            newTimeRemaining = String(format: "%d:%02d:%02d", hours, minutes, seconds)
+          } else {
+            newTimeRemaining = "0:00:00"
+          }
+          
+          timeRemainingString = newTimeRemaining
           timeBlockedString = deviceActivityService.timeBlockedString
 
           if unlockDate <= Date() {
@@ -89,25 +103,31 @@ struct AppBlockingSectionView: View {
   //MARK: - Views
   private var contentView: some View {
     VStack(alignment: .leading, spacing: 16) {
+      // Время до разблокировки - показываем с анимацией
       if isBlocked && deviceActivityService.unlockDate != nil && (deviceActivityService.unlockDate ?? Date()) > Date() {
         timeRemainingView
-      } else {
-        headerView
-        separatorView
-
-        durationSection
-        separatorView
-        
-        whatToBlockView
-        separatorView
-        
-        strictBlockView
-        separatorView
+          .transition(.asymmetric(insertion: .opacity.combined(with: .move(edge: .top)), removal: .opacity))
+      }
+      
+      // Основные настройки - скрываем с анимацией когда заблокировано
+      if !isBlocked || deviceActivityService.unlockDate == nil || (deviceActivityService.unlockDate ?? Date()) <= Date() {
+        VStack(alignment: .leading, spacing: 16) {
+          headerView
+          separatorView
+          durationSection
+          separatorView
+          whatToBlockView
+          separatorView
+          strictBlockView
+          separatorView
+        }
+        .transition(.asymmetric(insertion: .opacity, removal: .opacity.combined(with: .scale)))
       }
       
       swipeBlockView
         .padding(.bottom, 8)
       
+      // Статистика блокировки - показываем с анимацией
       if isBlocked && deviceActivityService.unlockDate != nil && (deviceActivityService.unlockDate ?? Date()) > Date() {
         HStack(alignment: .top, spacing: 12) {
           savedBlockedView
@@ -117,8 +137,10 @@ struct AppBlockingSectionView: View {
             .frame(maxHeight: .infinity)
         }
         .frame(minHeight: 0, alignment: .top)
+        .transition(.asymmetric(insertion: .opacity.combined(with: .move(edge: .bottom)), removal: .opacity))
       }
     }
+    .animation(.easeInOut(duration: 0.3), value: isBlocked)
   }
   private var savedBlockedView: some View {
     VStack(alignment: .leading, spacing: 6) {
@@ -321,14 +343,21 @@ struct AppBlockingSectionView: View {
                           )
                           // Start timer after blocking animation completes
                           DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                            timerConnection = timer.connect()
+                            // Проверяем что таймер еще не подключен
+                            if timerConnection == nil {
+                              // Устанавливаем время начала блокировки после анимации
+                              SharedData.userDefaults?.set(Date().timeIntervalSince1970, forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
+                              timerConnection = timer.connect()
+                            }
                           }
                         } else {
+                          // Сначала отключаем таймер
+                          timerConnection?.cancel()
+                          timerConnection = nil
+                          
                           BlockingNotificationService.shared.stopBlocking(selection: deviceActivityService.selectionToDiscourage)
                           hours = 0
                           minutes = 0
-                          timerConnection?.cancel()
-                          timerConnection = nil
                         }
                       })
       .disabled(isBlockButtonDisabled)

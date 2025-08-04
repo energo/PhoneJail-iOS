@@ -64,10 +64,17 @@ class DeviceActivityService: ObservableObject {
     components.hour = hour
     components.minute = minute
     components.second = 0
+    let newUnlockDate: Date?
     if let unlock = Calendar.current.date(from: components), unlock > now {
-      unlockDate = unlock
+      newUnlockDate = unlock
     } else if let unlock = Calendar.current.date(from: components) {
-      unlockDate = Calendar.current.date(byAdding: .day, value: 1, to: unlock)
+      newUnlockDate = Calendar.current.date(byAdding: .day, value: 1, to: unlock)
+    } else {
+      newUnlockDate = nil
+    }
+    
+    Task { @MainActor in
+      unlockDate = newUnlockDate
     }
   }
   
@@ -116,7 +123,18 @@ class DeviceActivityService: ObservableObject {
   
   // MARK: - FamilyActivitySelection Save/Load
   func saveFamilyActivitySelection(_ selection: FamilyActivitySelection) {
-    selectionToDiscourage = selection
+    Task { @MainActor in
+      selectionToDiscourage = selection
+    }
+    if let data = try? encoder.encode(selection) {
+      UserDefaults.standard.set(data, forKey: selectionKey)
+    }
+  }
+  
+  func saveFamilyActivitySelectionAsync(_ selection: FamilyActivitySelection) async {
+    await MainActor.run {
+      selectionToDiscourage = selection
+    }
     if let data = try? encoder.encode(selection) {
       UserDefaults.standard.set(data, forKey: selectionKey)
     }
@@ -167,6 +185,13 @@ class DeviceActivityService: ObservableObject {
     store.shield.applicationCategories = applications.categoryTokens.isEmpty
     ? nil
     : ShieldSettings.ActivityCategoryPolicy.specific(applications.categoryTokens)
+  }
+  
+  func setShieldRestrictionsAsync() async {
+    await withCheckedContinuation { continuation in
+      setShieldRestrictions()
+      continuation.resume()
+    }
   }
   
   func startAppRestrictions() {

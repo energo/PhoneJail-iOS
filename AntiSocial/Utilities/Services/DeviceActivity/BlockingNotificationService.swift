@@ -24,43 +24,46 @@ final class BlockingNotificationService: ObservableObject {
   ) {
     guard hours > 0 || minutes > 0 else { return }
 
-    // Save restriction mode
+    // Минимальные синхронные операции для UI
     SharedData.userDefaults?.set(true, forKey: SharedData.Widget.isBlocked)
-
-    // Save selection
-    DeviceActivityService.shared.saveFamilyActivitySelection(selection)
-
-    // Time setup
-    let now = Date()
-    let calendar = Calendar.current
-    restrictionModel.startHour = calendar.component(.hour, from: now)
-    restrictionModel.startMin = calendar.component(.minute, from: now)
-
+    
     let (endHour, endMin) = getEndTime(hourDuration: hours, minuteDuration: minutes)
     restrictionModel.endHour = endHour
     restrictionModel.endMins = endMin
-
-    // Save unlockDate if not already set
+    
+    // Устанавливаем дату разблокировки сразу для UI
     if DeviceActivityService.shared.unlockDate == nil || (DeviceActivityService.shared.unlockDate ?? Date()) <= Date() {
       DeviceActivityService.shared.setUnlockDate(hour: endHour, minute: endMin)
     }
 
-    // Store for widgets
-    SharedData.userDefaults?.set(endHour, forKey: SharedData.Widget.endHour)
-    SharedData.userDefaults?.set(endMin, forKey: SharedData.Widget.endMinutes)
-
-    WidgetCenter.shared.reloadAllTimelines()
-
-    // Set schedule
-    DeviceActivityScheduleService.setSchedule(endHour: endHour, endMins: endMin)
-
-    // Ensure shield restrictions are set
-    DeviceActivityService.shared.setShieldRestrictions()
-    AppLogger.notice("Shield restrictions set for blocking session")
+    // Все тяжелые операции в фоне
+    Task {
+      // Сохраняем выбор приложений
+      await DeviceActivityService.shared.saveFamilyActivitySelectionAsync(selection)
+      
+      // Устанавливаем время
+      let now = Date()
+      let calendar = Calendar.current
+      await MainActor.run {
+        restrictionModel.startHour = calendar.component(.hour, from: now)
+        restrictionModel.startMin = calendar.component(.minute, from: now)
+      }
+      
+      // Сохраняем для виджетов
+      await saveWidgetData(endHour: endHour, endMin: endMin)
+      
+      // Устанавливаем расписание
+      await DeviceActivityScheduleService.setScheduleAsync(endHour: endHour, endMins: endMin)
+      
+      // Устанавливаем ограничения - самая тяжелая операция
+      await DeviceActivityService.shared.setShieldRestrictionsAsync()
+      AppLogger.notice("Shield restrictions set for blocking session")
+    }
 
     // Log blocking sessions for each app
     let plannedDuration = TimeInterval(hours * 3600 + minutes * 60)
-    Task { @MainActor in
+    Task {
+      // Выполняем в фоновой очереди, чтобы не блокировать UI
       for app in selection.applications {
         guard let appToken = app.token else { continue }
         do {
@@ -75,24 +78,28 @@ final class BlockingNotificationService: ObservableObject {
       }
     }
 
-    SharedData.userDefaults?.set(Date().timeIntervalSince1970, forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
+    // Время начала блокировки устанавливается после завершения анимации в AppBlockingSectionView
+    // SharedData.userDefaults?.set(Date().timeIntervalSince1970, forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
   }
 
   func stopBlocking(selection: FamilyActivitySelection) {
     SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
     SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
 
-    DeviceActivityService.shared.savedSelection.removeAll()
+    Task { @MainActor in
+      DeviceActivityService.shared.savedSelection.removeAll()
+    }
     SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endHour)
     SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endMinutes)
 
-    WidgetCenter.shared.reloadAllTimelines()
+//    WidgetCenter.shared.reloadAllTimelines()
 
     // Complete blocking sessions for each app
-    Task { @MainActor in
+    Task {
+      // Выполняем в фоновой очереди
       for app in selection.applications {
         guard let appToken = app.token else { continue }
-        if let activeSession = AppBlockingLogger.shared.findActiveSession(for: appToken) {
+        if let activeSession = await AppBlockingLogger.shared.findActiveSession(for: appToken) {
           do {
             try await AppBlockingLogger.shared.completeBlockingSession(activeSession.id)
           } catch {
@@ -117,17 +124,22 @@ final class BlockingNotificationService: ObservableObject {
 
   func resetBlockingState() {
     let service = DeviceActivityService.shared
-    service.selectionToDiscourage = FamilyActivitySelection()
-    service.savedSelection.removeAll()
-    service.saveFamilyActivitySelection(service.selectionToDiscourage)
-    service.unlockDate = nil
+    
+    Task { @MainActor in
+      service.selectionToDiscourage = FamilyActivitySelection()
+      service.savedSelection.removeAll()
+      service.unlockDate = nil
+    }
+    
+    service.saveFamilyActivitySelection(FamilyActivitySelection())
     
     SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
     service.stopAppRestrictions()
     
     // Interrupt all active blocking sessions
-    Task { @MainActor in
-      let activeSessions = AppBlockingLogger.shared.activeSessions
+    Task {
+      // Выполняем в фоновой очереди
+      let activeSessions = await AppBlockingLogger.shared.activeSessions
       for session in activeSessions {
         do {
           try await AppBlockingLogger.shared.interruptBlockingSession(session.id)
@@ -138,6 +150,14 @@ final class BlockingNotificationService: ObservableObject {
     }
   }
 
+  private func saveWidgetData(endHour: Int, endMin: Int) async {
+    await withCheckedContinuation { continuation in
+      SharedData.userDefaults?.set(endHour, forKey: SharedData.Widget.endHour)
+      SharedData.userDefaults?.set(endMin, forKey: SharedData.Widget.endMinutes)
+      continuation.resume()
+    }
+  }
+  
   func getEndTime(hourDuration: Int, minuteDuration: Int) -> (Int, Int) {
     let now = Date()
     let calendar = Calendar.current

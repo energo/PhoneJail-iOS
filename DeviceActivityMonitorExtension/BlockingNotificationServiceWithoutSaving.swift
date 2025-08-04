@@ -48,7 +48,7 @@ final class BlockingNotificationServiceWithoutSaving: ObservableObject {
     SharedData.userDefaults?.set(endHour, forKey: SharedData.Widget.endHour)
     SharedData.userDefaults?.set(endMin, forKey: SharedData.Widget.endMinutes)
 
-    WidgetCenter.shared.reloadAllTimelines()
+//    WidgetCenter.shared.reloadAllTimelines()
 
     // Set schedule
     DeviceActivityScheduleService.setSchedule(endHour: endHour, endMins: endMin)
@@ -67,7 +67,7 @@ final class BlockingNotificationServiceWithoutSaving: ObservableObject {
     SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endHour)
     SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endMinutes)
 
-    WidgetCenter.shared.reloadAllTimelines()
+//    WidgetCenter.shared.reloadAllTimelines()
 
     
     resetBlockingState()
