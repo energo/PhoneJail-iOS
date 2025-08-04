@@ -22,21 +22,21 @@ struct ChartView: View {
             let cappedFocused = min(bar.focusedMinutes, cappedTotal)
             let cappedDistracted = max(0, cappedTotal - cappedFocused)
             
-            // Focused bar (нижняя часть)
+            // Distracted bar (нижняя часть)
             BarMark(
               x: .value("Hour", bar.hour),
               yStart: .value("Start", 0),
-              yEnd: .value("Focused", cappedFocused)
-            )
-            .foregroundStyle(.green)
-            
-            // Distracted bar (верхняя часть)
-            BarMark(
-              x: .value("Hour", bar.hour),
-              yStart: .value("Start", cappedFocused),
-              yEnd: .value("Total", cappedFocused + cappedDistracted)
+              yEnd: .value("Distracted", cappedDistracted)
             )
             .foregroundStyle(.pink)
+            
+            // Focused bar (верхняя часть)
+            BarMark(
+              x: .value("Hour", bar.hour),
+              yStart: .value("Start", cappedDistracted),
+              yEnd: .value("Total", cappedDistracted + cappedFocused)
+            )
+            .foregroundStyle(.green)
           } else {
             // Пустой бар
             BarMark(

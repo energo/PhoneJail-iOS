@@ -46,7 +46,9 @@ struct StatsActivityReport: DeviceActivityReportScene {
     
     let chartData = generateChartBars(from: sessions)
     
-    let (focusedDuration, distractedDuration) = (0.0, totalDuration)
+    // Calculate focused and distracted durations from chart data
+    let focusedDuration = chartData.reduce(0.0) { $0 + Double($1.focusedMinutes * 60) }
+    let distractedDuration = chartData.reduce(0.0) { $0 + Double($1.distractedMinutes * 60) }
     let top3AppUsages = topAppUsages(from: sessions, count: 3)
     
     var filledChartData = chartData
@@ -68,6 +70,9 @@ struct StatsActivityReport: DeviceActivityReportScene {
   func generateChartBars(from sessions: [AppUsageSession]) -> [ChartBar] {
       var hourly = Array(repeating: (focused: 0.0, distracted: 0.0), count: 24)
       let calendar = Calendar.current
+      
+      // Получаем часовые данные блокировки из SharedData
+      let hourlyBlockingData = SharedData.getHourlyBlockingData()
 
       for session in sessions {
           var t1 = session.start
@@ -93,6 +98,17 @@ struct StatsActivityReport: DeviceActivityReportScene {
               // Двигаемся дальше
               t1 = intervalEnd
           }
+      }
+      
+      // Добавляем focused time из блокировок
+      for hour in 0..<24 {
+          let blockedSeconds = hourlyBlockingData[hour]
+          let blockedMinutes = blockedSeconds / 60.0
+          
+          // Перемещаем время из distracted в focused
+          let transferMinutes = min(blockedMinutes, hourly[hour].distracted)
+          hourly[hour].focused += transferMinutes
+          hourly[hour].distracted -= transferMinutes
       }
 
       return (0..<24).map { hour in

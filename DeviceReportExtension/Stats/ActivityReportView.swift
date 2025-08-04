@@ -78,7 +78,7 @@ struct ActivityReportView: View {
   
   private func loadLifetimeStats() async {
     // Получаем данные из SharedData через UserDefaults
-    let totalTime = SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.lifetimeTotalBlockingTime) ?? 0
+    let totalTime = SharedData.getLifetimeTotalBlockingTime()
     await MainActor.run {
       lifetimeFocusedTime = totalTime
     }

@@ -156,6 +156,12 @@ final class AppBlockingLogger: ObservableObject {
         SharedData.userDefaults?.set(totalTime, forKey: SharedData.AppBlocking.todayTotalBlockingTime)
         SharedData.userDefaults?.set(completedCount, forKey: SharedData.AppBlocking.todayCompletedSessions)
         SharedData.userDefaults?.set(totalCount, forKey: SharedData.AppBlocking.todayTotalSessions)
+        
+        // Сохраняем часовые данные
+        Task {
+            await saveHourlyBlockingDataToSharedData()
+        }
+        
         SharedData.userDefaults?.synchronize() // Форсируем синхронизацию
         
         let hours = Int(totalTime) / 3600
@@ -311,6 +317,68 @@ final class AppBlockingLogger: ObservableObject {
     /// Получить суммарное время блокировок за все время (статический метод для расширений)
     static func getLifetimeTotalBlockingTimeFromSharedData() -> TimeInterval {
         return SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.lifetimeTotalBlockingTime) ?? 0
+    }
+    
+    /// Получить часовые данные блокировок за сегодня и сохранить в SharedData
+    func saveHourlyBlockingDataToSharedData() async {
+        // Создаем массив для 24 часов
+        var hourlyData = Array(repeating: 0.0, count: 24)
+        let calendar = Calendar.current
+        
+        // Обрабатываем завершенные сессии из todayStats
+        for stat in todayStats {
+            // Каждая статистика может содержать несколько сессий
+            // Распределяем общее время равномерно по дню (упрощенный подход)
+            let hoursBlocked = stat.totalBlockedDuration / 3600.0
+            let startHour = 0 // Можно улучшить, если хранить время начала в статистике
+            let endHour = min(23, Int(hoursBlocked))
+            
+            for hour in startHour...endHour {
+                if hour < 24 {
+                    hourlyData[hour] += min(3600, stat.totalBlockedDuration - Double(hour * 3600))
+                }
+            }
+        }
+        
+        // Обрабатываем активные сессии
+        for session in activeSessions {
+            if session.endDate == nil {
+                // Активная сессия
+                let startHour = calendar.component(.hour, from: session.startDate)
+                let currentHour = calendar.component(.hour, from: Date())
+                let duration = Date().timeIntervalSince(session.startDate)
+                
+                // Распределяем время по часам
+                for hour in startHour...currentHour {
+                    if hour < 24 {
+                        let hourStart = calendar.date(bySettingHour: hour, minute: 0, second: 0, of: session.startDate) ?? session.startDate
+                        let hourEnd = calendar.date(bySettingHour: hour + 1, minute: 0, second: 0, of: session.startDate) ?? Date()
+                        
+                        let sessionStart = max(session.startDate, hourStart)
+                        let sessionEnd = min(Date(), hourEnd)
+                        
+                        if sessionEnd > sessionStart {
+                            hourlyData[hour] += sessionEnd.timeIntervalSince(sessionStart)
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Сохраняем в SharedData
+        if let jsonData = try? JSONEncoder().encode(hourlyData) {
+            SharedData.userDefaults?.set(jsonData, forKey: SharedData.AppBlocking.hourlyBlockingData)
+            SharedData.userDefaults?.synchronize()
+        }
+    }
+    
+    /// Получить часовые данные блокировок из SharedData (для расширений)
+    static func getHourlyBlockingDataFromSharedData() -> [Double] {
+        guard let jsonData = SharedData.userDefaults?.data(forKey: SharedData.AppBlocking.hourlyBlockingData),
+              let hourlyData = try? JSONDecoder().decode([Double].self, from: jsonData) else {
+            return Array(repeating: 0.0, count: 24)
+        }
+        return hourlyData
     }
 }
 

@@ -62,6 +62,9 @@ public class SharedData {
     
     /// Lifetime total blocking time in seconds (Double)
     public static let lifetimeTotalBlockingTime = "lifetimeTotalBlockingTime"
+    
+    /// Hourly blocking data for chart (Data - JSON encoded [Double])
+    public static let hourlyBlockingData = "hourlyBlockingData"
   }
   
   /// Widget data keys
@@ -103,6 +106,35 @@ public class SharedData {
     
     /// Last refresh timestamp (Double)
     public static let lastScreenTimeRefresh = "lastScreenTimeRefresh"
+  }
+  
+  // MARK: - Bridge Methods for Extensions
+  
+  /// Get hourly blocking data from SharedData (for extensions)
+  public static func getHourlyBlockingData() -> [Double] {
+    guard let jsonData = userDefaults?.data(forKey: AppBlocking.hourlyBlockingData),
+          let hourlyData = try? JSONDecoder().decode([Double].self, from: jsonData) else {
+      return Array(repeating: 0.0, count: 24)
+    }
+    return hourlyData
+  }
+  
+  /// Get today's total blocking time from SharedData (for extensions)
+  public static func getTodayTotalBlockingTime() -> TimeInterval {
+    return userDefaults?.double(forKey: AppBlocking.todayTotalBlockingTime) ?? 0
+  }
+  
+  /// Get lifetime total blocking time from SharedData (for extensions)
+  public static func getLifetimeTotalBlockingTime() -> TimeInterval {
+    return userDefaults?.double(forKey: AppBlocking.lifetimeTotalBlockingTime) ?? 0
+  }
+  
+  /// Get today's blocking statistics from SharedData (for extensions)
+  public static func getTodayBlockingStats() -> (totalTime: TimeInterval, completedSessions: Int, totalSessions: Int) {
+    let totalTime = userDefaults?.double(forKey: AppBlocking.todayTotalBlockingTime) ?? 0
+    let completed = userDefaults?.integer(forKey: AppBlocking.todayCompletedSessions) ?? 0
+    let total = userDefaults?.integer(forKey: AppBlocking.todayTotalSessions) ?? 0
+    return (totalTime, completed, total)
   }
     
   static var selectedFamilyActivity: FamilyActivitySelection? {

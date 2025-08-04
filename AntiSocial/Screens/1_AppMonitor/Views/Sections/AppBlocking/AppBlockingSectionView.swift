@@ -31,6 +31,7 @@ struct AppBlockingSectionView: View {
   @State private var timeRemainingString: String = ""
   @State private var timeBlockedString: String = ""
   @State private var blockingCount = 0 // Счетчик блокировок
+  @State private var totalSavedTime: TimeInterval = 0 // Общее время за сегодня
   
   // MARK: - Constants
   private enum Constants {
@@ -92,6 +93,27 @@ struct AppBlockingSectionView: View {
     return formatBlockedTime(from: startTimestamp)
   }
   
+  // Загрузить общее время за сегодня
+  private func loadTotalSavedTime() {
+    totalSavedTime = SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.todayTotalBlockingTime) ?? 0
+  }
+  
+  // Форматировать общее время включая текущую сессию
+  private func formatTotalSavedTime() -> String {
+    var total = totalSavedTime
+    
+    // Добавляем время текущей сессии если блокировка активна
+    if isBlocked, let startTimestamp = SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp) {
+      let currentSessionTime = Date().timeIntervalSince1970 - startTimestamp
+      total += currentSessionTime
+    }
+    
+    let hours = Int(total) / Constants.TimeCalculation.secondsInHour
+    let minutes = (Int(total) % Constants.TimeCalculation.secondsInHour) / Constants.TimeCalculation.secondsInMinute
+    
+    return String(format: Constants.TimeFormat.blockedFormat, hours, minutes)
+  }
+  
   // MARK: - Timer Management Methods
   private func startTimer() {
     // Останавливаем предыдущий таймер если есть
@@ -139,6 +161,9 @@ struct AppBlockingSectionView: View {
       
       // Reload saved app selection
       deviceActivityService.loadSelection()
+      
+      // Загружаем общее время за сегодня
+      loadTotalSavedTime()
       
       // Unlock date is already loaded in DeviceActivityService init
       
@@ -205,6 +230,9 @@ struct AppBlockingSectionView: View {
       
       // Обновляем время блокировки
       timeBlockedString = calculateBlockedTime()
+      
+      // Обновляем общее время за сегодня
+      loadTotalSavedTime()
 
       // Проверяем завершение блокировки
       if unlockDate <= Date() {
@@ -271,7 +299,7 @@ struct AppBlockingSectionView: View {
   }
   private var savedBlockedView: some View {
     VStack(alignment: .leading, spacing: 6) {
-      Text(timeBlockedString)
+      Text(formatTotalSavedTime())
         .font(.system(size: 20, weight: .bold, design: .monospaced))
         .foregroundStyle(Color.as_white)
       
