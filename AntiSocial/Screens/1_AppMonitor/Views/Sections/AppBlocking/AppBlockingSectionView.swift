@@ -136,10 +136,34 @@ struct AppBlockingSectionView: View {
       // Восстанавливаем isUnlocked из UserDefaults
       isStrictBlock = SharedData.userDefaults?.bool(forKey: SharedData.Widget.isStricted) ?? false
       isBlocked = SharedData.userDefaults?.bool(forKey: SharedData.Widget.isBlocked) ?? false
+      
+      // Unlock date is already loaded in DeviceActivityService init
+      
       timeRemainingString = deviceActivityService.timeRemainingString
       
-      // Вычисляем начальное время блокировки
-      timeBlockedString = calculateBlockedTime()
+      // Проверяем состояние блокировки
+      if isBlocked {
+        // Check if we have a valid unlock date
+        if let unlockDate = deviceActivityService.unlockDate, unlockDate > Date() {
+          // Блокировка еще активна - восстанавливаем состояние
+          timeBlockedString = calculateBlockedTime()
+          print("🔄 Restored active blocking state on app start")
+        } else {
+          // Блокировка истекла или нет unlockDate - завершаем ее
+          isBlocked = false
+          SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
+          SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
+          SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.unlockDate)
+          timeBlockedString = Constants.TimeFormat.initialBlocked
+          print("⏰ Blocking expired or invalid - cleaning up")
+        }
+      } else {
+        // Блокировка неактивна - очищаем старые timestamp'ы и unlock date
+        SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
+        SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.unlockDate)
+        timeBlockedString = Constants.TimeFormat.initialBlocked
+        print("🧹 Cleared stale data on app start (blocking inactive)")
+      }
       
       //TODO: - need to refactor (looks like odd properties)
       if let savedHour = SharedData.userDefaults?.integer(forKey: SharedData.Widget.endHour),
@@ -154,8 +178,15 @@ struct AppBlockingSectionView: View {
       }
       
       // Start timer if already blocked
-      if isBlocked && deviceActivityService.unlockDate != nil {
-        startTimer()
+      if isBlocked {
+        if let unlockDate = deviceActivityService.unlockDate, unlockDate > Date() {
+          // If we have a timestamp, calculate current blocked time
+          if SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp) != nil {
+            timeBlockedString = calculateBlockedTime()
+          }
+          startTimer()
+          print("🔄 Restored timer for active blocking")
+        }
       }
     }
     .onReceive(currentTimer ?? Timer.publish(every: 999, on: .main, in: .common)) { _ in
@@ -426,6 +457,9 @@ struct AppBlockingSectionView: View {
                       isStrictBlock: $isStrictBlock,
                       onBlockingStateChanged: { newState in
                         if newState {
+                          // Set timestamp immediately when blocking starts
+                          SharedData.userDefaults?.set(Date().timeIntervalSince1970, forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
+                          
                           BlockingNotificationService.shared.startBlocking(
                             hours: hours,
                             minutes: minutes,
@@ -436,8 +470,6 @@ struct AppBlockingSectionView: View {
                           DispatchQueue.main.asyncAfter(deadline: .now() + Constants.Timer.animationDelay) {
                             // Проверяем что таймер еще не подключен
                             if timerConnection == nil {
-                              // Устанавливаем время начала блокировки после анимации
-                              SharedData.userDefaults?.set(Date().timeIntervalSince1970, forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
                               // Сразу обновляем отображение
                               timeBlockedString = Constants.TimeFormat.initialBlocked
                               timeRemainingString = deviceActivityService.timeRemainingString

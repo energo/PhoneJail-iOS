@@ -34,6 +34,10 @@ final class BlockingNotificationService: ObservableObject {
     // Устанавливаем дату разблокировки сразу для UI
     if DeviceActivityService.shared.unlockDate == nil || (DeviceActivityService.shared.unlockDate ?? Date()) <= Date() {
       DeviceActivityService.shared.setUnlockDate(hour: endHour, minute: endMin)
+      // Also save to SharedData for extensions and app restart
+      if let unlockDate = DeviceActivityService.shared.unlockDate {
+        SharedData.userDefaults?.set(unlockDate, forKey: SharedData.AppBlocking.unlockDate)
+      }
     }
 
     // Все тяжелые операции в фоне

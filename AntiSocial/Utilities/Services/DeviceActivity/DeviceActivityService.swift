@@ -41,6 +41,15 @@ class DeviceActivityService: ObservableObject {
   var timeBlockedString: String {
     if let startTimestamp = SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp) {
       let elapsed = Date().timeIntervalSince1970 - startTimestamp
+      
+      // Валидация: если elapsed > 24 часов или отрицательное, что-то пошло не так
+      guard elapsed >= 0 && elapsed < 86400 else {
+        print("⚠️ DeviceActivityService: Invalid elapsed time: \(elapsed) seconds from timestamp: \(startTimestamp)")
+        // Очищаем некорректный timestamp
+        SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
+        return "0h 00m"
+      }
+      
       let hours = Int(elapsed) / 3600
       let minutes = (Int(elapsed) % 3600) / 60
       return String(format: "%dh %02dm", hours, minutes)
@@ -106,16 +115,27 @@ class DeviceActivityService: ObservableObject {
     if let date = unlockDate {
       print("[MyModel] saveUnlockDate: \(date)")
       UserDefaults.standard.set(date, forKey: unlockDateKey)
+      // Also save to SharedData for extensions
+      SharedData.userDefaults?.set(date, forKey: SharedData.AppBlocking.unlockDate)
     } else {
       print("[MyModel] saveUnlockDate: nil (removing)")
       UserDefaults.standard.removeObject(forKey: unlockDateKey)
+      SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.unlockDate)
     }
   }
   
-  private func loadUnlockDate() {
+  func loadUnlockDate() {
+    // First try to load from UserDefaults
     if let date = UserDefaults.standard.object(forKey: unlockDateKey) as? Date {
       print("[MyModel] loadUnlockDate: \(date)")
       unlockDate = date
+    } 
+    // Also check SharedData for unlock date
+    else if let sharedDate = SharedData.userDefaults?.object(forKey: SharedData.AppBlocking.unlockDate) as? Date {
+      print("[MyModel] loadUnlockDate from SharedData: \(sharedDate)")
+      unlockDate = sharedDate
+      // Sync to UserDefaults
+      UserDefaults.standard.set(sharedDate, forKey: unlockDateKey)
     } else {
       print("[MyModel] loadUnlockDate: nil")
     }
