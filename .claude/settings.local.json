@@ -12,7 +12,8 @@
       "Bash(claude doctor:*)",
       "Bash(true)",
       "Bash(claude --version)",
-      "Bash(xcrun simctl list:*)"
+      "Bash(xcrun simctl list:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": []
   }
