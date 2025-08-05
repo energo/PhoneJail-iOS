@@ -12,6 +12,8 @@ struct AppEntity: Codable, Identifiable {
 
 extension ManagedSettingsStore.Name {
   static let mySettingStore = Self("mySettingStore")
+  static let appBlocking = Self("appBlocking")
+  static let interruption = Self("interruption")
 }
 
 class DeviceActivityService: ObservableObject {
@@ -216,6 +218,21 @@ class DeviceActivityService: ObservableObject {
     : ShieldSettings.ActivityCategoryPolicy.specific(applications.categoryTokens)
   }
   
+  func setShieldRestrictions(for selection: FamilyActivitySelection) {
+    store.shield.applications = selection.applicationTokens.isEmpty ? nil : selection.applicationTokens
+    store.shield.applicationCategories = selection.categoryTokens.isEmpty
+    ? nil
+    : ShieldSettings.ActivityCategoryPolicy.specific(selection.categoryTokens)
+  }
+  
+  func setShieldRestrictions(for selection: FamilyActivitySelection, storeName: ManagedSettingsStore.Name) {
+    let customStore = ManagedSettingsStore(named: storeName)
+    customStore.shield.applications = selection.applicationTokens.isEmpty ? nil : selection.applicationTokens
+    customStore.shield.applicationCategories = selection.categoryTokens.isEmpty
+    ? nil
+    : ShieldSettings.ActivityCategoryPolicy.specific(selection.categoryTokens)
+  }
+  
   func setShieldRestrictionsAsync() async {
     await withCheckedContinuation { continuation in
       setShieldRestrictions()
@@ -234,6 +251,11 @@ class DeviceActivityService: ObservableObject {
   
   func stopAppRestrictions() {
     store.clearAllSettings()
+  }
+  
+  func stopAppRestrictions(storeName: ManagedSettingsStore.Name) {
+    let customStore = ManagedSettingsStore(named: storeName)
+    customStore.clearAllSettings()
   }
   
   // MARK: - Helpers

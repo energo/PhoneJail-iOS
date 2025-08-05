@@ -10,7 +10,7 @@ import FamilyControls
 import ManagedSettings
 
 struct ScreenTimeAlertsSectionView: View {
-  @ObservedObject var viewModel: AppMonitorViewModel
+  @ObservedObject var viewModel: ScreenTimeAlertViewModel
   @State private var isExpanded: Bool = true
   
   var body: some View {
@@ -199,6 +199,6 @@ struct ScreenTimeAlertsSectionView: View {
 //MARK: - Preview
 #Preview {
   BGView(imageRsc: .bgMain) {
-    ScreenTimeAlertsSectionView(viewModel: AppMonitorViewModel(model: SelectAppsModel(mode: .alert)))
+    ScreenTimeAlertsSectionView(viewModel: ScreenTimeAlertViewModel())
   }
 }

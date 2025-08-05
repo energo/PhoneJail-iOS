@@ -140,7 +140,7 @@ final class AppBlockingLogger: ObservableObject {
             self.todayStats = stats
             
             // Сохраняем данные в SharedData для доступа из расширения
-            await updateSharedStats()
+            updateSharedStats()
         } catch {
             AppLogger.critical(error, details: "Failed to load today's blocking stats")
         }

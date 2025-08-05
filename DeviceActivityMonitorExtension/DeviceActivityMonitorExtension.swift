@@ -38,38 +38,73 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     
     // Interval ended silently
     
-    DeviceActivityService.shared.stopAppRestrictions()
-    
-    // Clear blocking state when interruption blocking period ends
+    // Handle different activities differently
     if activity == .appBlocking {
-      LocalNotificationManager.scheduleExtensionNotification(
-        title: "✅ Apps Unblocked",
-        details: "You can use your apps again"
-      )
-      
       // Check if this was an interruption block
       let wasInterruptionBlock = SharedData.userDefaults?.bool(forKey: SharedData.ScreenTime.isInterruptionBlock) ?? false
       
-      // Clear blocking state
-      DeviceActivityScheduleService.stopSchedule()
-      SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
-      SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
-      SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endHour)
-      SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endMinutes)
-      SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.unlockDate)
-      SharedData.userDefaults?.removeObject(forKey: SharedData.ScreenTime.isInterruptionBlock)
-      
-      // If it was interruption block, check if interruptions are still enabled
       if wasInterruptionBlock {
-        // Check if interruptions are enabled in shared group UserDefaults
+        // This is interruption block ending
+        LocalNotificationManager.scheduleExtensionNotification(
+          title: "✅ Break Over",
+          details: "You can use your apps again"
+        )
+        
+        // Clear interruption store
+        DeviceActivityService.shared.stopAppRestrictions(storeName: .interruption)
+        
+        // Clear interruption block flag
+        SharedData.userDefaults?.removeObject(forKey: SharedData.ScreenTime.isInterruptionBlock)
+        
+        // Restart interruption monitoring if still enabled and no main block active
         let isEnabled = SharedData.userDefaults?.bool(forKey: SharedData.ScreenTime.isInterruptionsEnabled) ?? false
-        
-        // Debug info removed
-        
-        if isEnabled {
-          // Restart monitoring
+        let isMainBlockActive = SharedData.userDefaults?.bool(forKey: SharedData.Widget.isBlocked) ?? false
+        if isEnabled && !isMainBlockActive {
           startInterruptionMonitoring()
         }
+      } else {
+        // This is regular What2Block ending
+        LocalNotificationManager.scheduleExtensionNotification(
+          title: "✅ Apps Unblocked",
+          details: "You can use your apps again"
+        )
+        
+        // Clear regular blocking store
+        DeviceActivityService.shared.stopAppRestrictions()
+        
+        // Clear regular blocking state
+        DeviceActivityScheduleService.stopSchedule()
+        SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
+        SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
+        SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endHour)
+        SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endMinutes)
+        SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.unlockDate)
+        
+        // After main block ends, restart interruption monitoring if enabled
+        let interruptionsEnabled = SharedData.userDefaults?.bool(forKey: SharedData.ScreenTime.isInterruptionsEnabled) ?? false
+        if interruptionsEnabled {
+          startInterruptionMonitoring()
+        }
+      }
+      
+    } else if activity == .appBlockingInterruption {
+      // Interruption block ending
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "✅ Break Over",
+        details: "You can use your apps again"
+      )
+      
+      // Clear shield restrictions for interruption store
+      DeviceActivityService.shared.stopAppRestrictions(storeName: .interruption)
+      
+      // Clear interruption state
+      SharedData.userDefaults?.removeObject(forKey: SharedData.ScreenTime.isInterruptionBlock)
+      // Interruption schedule is handled by the main schedule system now
+      
+      // Restart interruption monitoring if enabled
+      let isEnabled = SharedData.userDefaults?.bool(forKey: SharedData.ScreenTime.isInterruptionsEnabled) ?? false
+      if isEnabled {
+        startInterruptionMonitoring()
       }
     }
     
@@ -84,100 +119,110 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     
     // Check if this is an interruption event
     if event == DeviceActivityEvent.Name.interruption {
-      // First check if any existing block has expired and clean it up
-      if let unlockTimestamp = SharedData.userDefaults?.object(forKey: SharedData.AppBlocking.unlockDate) as? Date,
-         unlockTimestamp <= Date() {
-        // Unlock date has passed, clear blocking state
-        SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
-        SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.unlockDate)
-        SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
-        SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endHour)
-        SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endMinutes)
-        logger.log("Cleared expired blocking state")
-      }
-      
-      // Now check if we're in an active blocking state
-      let isCurrentlyBlocked = SharedData.userDefaults?.bool(forKey: SharedData.Widget.isBlocked) ?? false
-      if isCurrentlyBlocked {
-        // Already blocked, skip
-        return
-      }
-      
-      // Check if enough time has passed since last trigger
-      let now = Date()
-      if let lastTrigger = lastInterruptionTrigger,
-         now.timeIntervalSince(lastTrigger) < minimumTriggerInterval {
-        logger.log("Interruption triggered too soon, skipping. Last: \(lastTrigger), Now: \(now)")
-        return
-      }
-      
-      lastInterruptionTrigger = now
-      
-      // Processing interruption
-      
-      if let selection = SharedData.selectedInterruptionsActivity {
-        // Found selection with apps
-        
-        // Save the current time as last interruption time
-        SharedData.userDefaults?.set(Date().timeIntervalSince1970, forKey: SharedData.AppBlocking.lastInterruptionBlockTime)
-        
-        // Stop current interruption monitoring before starting block
-        let center = DeviceActivityCenter()
-        center.stopMonitoring([.appMonitoringInterruption])
-        
-        // Stopped monitoring for block
-        
-        // Start blocking with special flag to indicate it's from interruption
-        SharedData.userDefaults?.set(true, forKey: SharedData.ScreenTime.isInterruptionBlock)
-        
-        LocalNotificationManager.scheduleExtensionNotification(
-          title: "⏸️ Take a Break",
-          details: "Apps blocked for 2 minutes"
-        )
-        
-        BlockingNotificationServiceWithoutSaving.shared.startBlocking(
-          hours: 0,
-          minutes: 2,
-          selection: selection,
-          restrictionModel: MyRestrictionModel()
-        )
-      }
+      handleTresholdScreenInterruption(event)
     }
     
     // Check if this is a screen alert event
     if event == DeviceActivityEvent.Name.screenAlert {
-      // Check if enough time has passed since last trigger
-      let now = Date()
-      if let lastTrigger = lastAlertTrigger,
-         now.timeIntervalSince(lastTrigger) < minimumTriggerInterval {
-        logger.log("Alert triggered too soon, skipping. Last: \(lastTrigger), Now: \(now)")
-        return
-      }
-      
-      lastAlertTrigger = now
-      logger.log("Screen alert event triggered: \(event.rawValue)")
-      
-      if let selection = SharedData.selectedAlertActivity {
-        for application in selection.applications {
-          if let displayName = application.localizedDisplayName {
-            LocalNotificationManager.scheduleExtensionNotification(
-              title: "⏰ Screen Time Alert",
-              details: "Time to take a break from \(displayName)"
-            )
-          } else {
-            LocalNotificationManager.scheduleExtensionNotification(
-              title: "⏰ Screen Time Alert",
-              details: "Time to take a break from your apps"
-            )
-          }
+      handleTresholdScreenAlert(event)
+    }
+    
+    restartMonitoring(for: activity)
+  }
+  
+  private func handleTresholdScreenAlert(_ event: DeviceActivityEvent.Name) {
+    // Check if enough time has passed since last trigger
+    let now = Date()
+//    if let lastTrigger = lastAlertTrigger,
+//       now.timeIntervalSince(lastTrigger) < minimumTriggerInterval {
+//      logger.log("Alert triggered too soon, skipping. Last: \(lastTrigger), Now: \(now)")
+//      return
+//    }
+    
+    lastAlertTrigger = now
+    logger.log("Screen alert event triggered: \(event.rawValue)")
+    
+    if let selection = SharedData.selectedAlertActivity {
+      for application in selection.applications {
+        if let displayName = application.localizedDisplayName {
+          LocalNotificationManager.scheduleExtensionNotification(
+            title: "⏰ Screen Time Alert",
+            details: "Time to take a break from \(displayName)"
+          )
+        } else {
+          LocalNotificationManager.scheduleExtensionNotification(
+            title: "⏰ Screen Time Alert",
+            details: "Time to take a break from your apps"
+          )
         }
       }
-      
-      // Restart monitoring for continuous tracking
-      restartMonitoring(for: activity)
     }
   }
   
+  private func handleTresholdScreenInterruption(_ event: DeviceActivityEvent.Name) {
+    // Check if interruptions are enabled
+    let interruptionsEnabled = SharedData.userDefaults?.bool(forKey: SharedData.ScreenTime.isInterruptionsEnabled) ?? false
+    if !interruptionsEnabled {
+      return
+    }
+    
+    // Check if currently in interruption block
+    let isInterruptionBlock = SharedData.userDefaults?.bool(forKey: SharedData.ScreenTime.isInterruptionBlock) ?? false
+    if isInterruptionBlock {
+      // Already in interruption block, skip
+      return
+    }
+    
+    // Check if What2Block is active
+//      let isMainBlockActive = SharedData.userDefaults?.bool(forKey: SharedData.Widget.isBlocked) ?? false
+//      if isMainBlockActive {
+//        logger.log("What2Block is active, cannot start interruption block")
+//        // Don't start interruption block when main block is active
+//        // Just show notification
+//        if let selection = SharedData.selectedInterruptionsActivity {
+//          LocalNotificationManager.scheduleExtensionNotification(
+//            title: "⏰ Time for a break",
+//            details: "But apps are already blocked"
+//          )
+//        }
+//        return
+//      }
+    
+    // Check if enough time has passed since last trigger
+    let now = Date()
+    if let lastTrigger = lastInterruptionTrigger,
+       now.timeIntervalSince(lastTrigger) < minimumTriggerInterval {
+      logger.log("Interruption triggered too soon, skipping. Last: \(lastTrigger), Now: \(now)")
+      return
+    }
+    
+    lastInterruptionTrigger = now
+    
+    // Processing interruption
+    
+    if let selection = SharedData.selectedInterruptionsActivity {
+      // Found selection with apps
+      
+      // Save the current time as last interruption time
+      SharedData.userDefaults?.set(Date().timeIntervalSince1970, forKey: SharedData.AppBlocking.lastInterruptionBlockTime)
+      
+      // Don't stop monitoring - we'll restart it after the interruption block ends
+      
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "⏸️ Take a Break",
+        details: "Apps blocked for 2 minutes"
+      )
+      
+      BlockingNotificationServiceForInterruptions.shared.startBlocking(
+        hours: 0,
+        minutes: 2,
+        selection: selection,
+        restrictionModel: MyRestrictionModel()
+      )
+    }
+
+  }
+
   //MARK: - Interval Warnings
   override func intervalWillStartWarning(for activity: DeviceActivityName) {
     super.intervalWillStartWarning(for: activity)

@@ -20,8 +20,8 @@ struct AppMonitorScreen: View {
   @StateObject private var restrictionModel = MyRestrictionModel()
   @Environment(\.scenePhase) var scenePhase
   
-  @StateObject var vmScreenInteraption: AppMonitorViewModel = AppMonitorViewModel(model: SelectAppsModel(mode: .interruptions))
-  @StateObject var vmScreenAlert: AppMonitorViewModel = AppMonitorViewModel(model: SelectAppsModel(mode: .alert))
+  @StateObject var vmScreenInteraption = AppInterruptionViewModel()
+  @StateObject var vmScreenAlert = ScreenTimeAlertViewModel()
 
   @State private var isShowingProfile: Bool = false
   @State private var offsetY: CGFloat = .zero

@@ -1,45 +1,46 @@
-import Foundation
+//
+//  AppInterruptionViewModel.swift
+//  AntiSocial
+//
+//  Created by Assistant on 2025.
+//
+
 import SwiftUI
 import FamilyControls
-import ManagedSettings
 import DeviceActivity
-import WidgetKit
+import ManagedSettings
 
-class AppMonitorViewModel: ObservableObject {
+class AppInterruptionViewModel: ObservableObject {
   @AppStorage(SharedData.ScreenTime.isInterruptionsEnabled, store: SharedData.userDefaults) var isInterruptionsEnabled: Bool = false {
     didSet {
+      if oldValue != isInterruptionsEnabled {
         if oldValue == false && isInterruptionsEnabled == true {
-            startMonitoring()
+          startMonitoring()
         } else if oldValue == true && isInterruptionsEnabled == false {
-            stopInterruptionMonitoring()
+          stopMonitoring()
         }
-    }
-  }
-
-  @AppStorage(SharedData.ScreenTime.isAlertEnabled, store: SharedData.userDefaults) var isAlertEnabled: Bool = false {
-      didSet {
-          if oldValue == false && isAlertEnabled == true {
-              startMonitoring()
-          } else if oldValue == true && isAlertEnabled == false {
-              stopAlertMonitoring()
-          }
       }
+    }
   }
   
   @Published var model: SelectAppsModel
   
   @AppStorage(SharedData.ScreenTime.selectedInterruptionTime, store: SharedData.userDefaults) var selectedInterruptionTime: TimeIntervalOption = TimeIntervalOption.timeOptions[1]  // Default 5 mins
-  @AppStorage(SharedData.ScreenTime.selectedTime, store: SharedData.userDefaults) var selectedTime: TimeIntervalOption = TimeIntervalOption.timeOptions[0]
-
+  
   @Published var pickerIsPresented = false
   @Published var showSocialMediaHint = false
   @Published var monitoredApps: [MonitoredApp] = []
-
-  let center = DeviceActivityScheduleService.center
-
+  
+  let center = DeviceActivityCenter()
+  
   //MARK: - Init
-  init(model: SelectAppsModel) {
-    self.model = model
+  init() {
+    self.model = SelectAppsModel(mode: .interruptions)
+    
+    // Load saved selection
+    if let savedSelection = SharedData.selectedInterruptionsActivity {
+      model.activitySelection = savedSelection
+    }
   }
   
   @MainActor
@@ -55,8 +56,11 @@ class AppMonitorViewModel: ObservableObject {
   }
   
   func onActivitySelectionChange() {
-    AppLogger.trace("Изменился выбор приложений в модели")
+    AppLogger.trace("Изменился выбор приложений для interruptions")
     updateMonitoredAppsList()
+    
+    // Save selection to SharedData
+    SharedData.selectedInterruptionsActivity = model.activitySelection
   }
   
   func toggleAppMonitoring(app: MonitoredApp) {
@@ -67,19 +71,19 @@ class AppMonitorViewModel: ObservableObject {
   }
   
   func startMonitoring() {
-    let timeLimitMinutes = isInterruptionsEnabled ? selectedInterruptionTime.minutes : selectedTime.minutes
+    let timeLimitMinutes = selectedInterruptionTime.minutes
     
-    AppLogger.notice("startMonitoring timeLimitMinutes: \(timeLimitMinutes)")
+    AppLogger.notice("startMonitoring interruptions with timeLimitMinutes: \(timeLimitMinutes)")
     updateMonitoringState()
+    
+    // Save selection before starting monitoring
+    SharedData.selectedInterruptionsActivity = model.activitySelection
+    AppLogger.notice("Saved interruptions selection with \(model.activitySelection.applicationTokens.count) apps")
     
     let enabledTokens = Set(monitoredApps.filter { $0.isMonitored }.map { $0.token })
     
-    // Create a single event with the threshold
+    // Create event with threshold
     var events: [DeviceActivityEvent.Name: DeviceActivityEvent] = [:]
-    
-    let eventName = isInterruptionsEnabled 
-      ? DeviceActivityEvent.Name.interruption
-      : DeviceActivityEvent.Name.screenAlert
     
     let event = DeviceActivityEvent(
       applications: enabledTokens,
@@ -88,33 +92,35 @@ class AppMonitorViewModel: ObservableObject {
       threshold: DateComponents(minute: timeLimitMinutes)
     )
     
-    events[eventName] = event
+    events[DeviceActivityEvent.Name.interruption] = event
     
-    let activity = isInterruptionsEnabled ? DeviceActivityName.appMonitoringInterruption : DeviceActivityName.appMonitoringAlert
-    let schedule = schedule24h()
+    let schedule = DeviceActivitySchedule(
+      intervalStart: DateComponents(hour: 0, minute: 0, second: 0),
+      intervalEnd: DateComponents(hour: 23, minute: 59, second: 59),
+      repeats: true
+    )
     
     // Run monitoring setup off main thread to prevent blocking
     Task {
       do {
-        AppLogger.notice("startMonitoring \(activity) with threshold: \(timeLimitMinutes) minutes")
-        try self.center.startMonitoring(activity,
+        AppLogger.notice("Starting interruption monitoring with threshold: \(timeLimitMinutes) minutes")
+        try self.center.startMonitoring(.appMonitoringInterruption,
                                    during: schedule,
                                    events: events)
       } catch let error {
-        AppLogger.critical(error, details: "center.startMonitoring error")
+        AppLogger.critical(error, details: "Failed to start interruption monitoring")
       }
     }
   }
   
-  func stopInterruptionMonitoring() {
-    let center = DeviceActivityCenter()
+  func stopMonitoring() {
     center.stopMonitoring([.appMonitoringInterruption])
     
     // Clear any active restrictions from interruptions
-    DeviceActivityService.shared.stopAppRestrictions()
+    DeviceActivityService.shared.stopAppRestrictions(storeName: .interruption)
     
-    // Also stop any active blocking schedule
-    DeviceActivityScheduleService.stopSchedule()
+    // Also stop any active interruption blocking schedule
+    DeviceActivityScheduleService.stopInterruptionSchedule()
     
     // Reset blocking state completely
     resetInterruptionBlockingState()
@@ -122,46 +128,13 @@ class AppMonitorViewModel: ObservableObject {
     AppLogger.notice("Stopped interruption monitoring and cleared all restrictions")
   }
   
-  func stopAlertMonitoring() {
-    let center = DeviceActivityCenter()
-    center.stopMonitoring([.appMonitoringAlert])
-    AppLogger.notice("Stopped alert monitoring")
-  }
-  
-  func stopMonitoring() {
-    // Stop monitoring based on what's currently enabled
-    if isInterruptionsEnabled {
-      stopInterruptionMonitoring()
-    }
-    if isAlertEnabled {
-      stopAlertMonitoring()
-    }
-  }
-  
   private func resetInterruptionBlockingState() {
-    // Clear all shared data related to interruption blocking
-    SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
-    SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
-    SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endHour)
-    SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endMinutes)
+    // Clear only interruption-specific data
+    SharedData.userDefaults?.removeObject(forKey: SharedData.ScreenTime.isInterruptionBlock)
+    SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.lastInterruptionBlockTime)
     
-    // Clear device activity service state
-    let service = DeviceActivityService.shared
-    service.selectionToDiscourage = FamilyActivitySelection()
-    service.savedSelection.removeAll()
-    service.saveFamilyActivitySelection(service.selectionToDiscourage)
-    service.unlockDate = nil
-    
-    // Reload widgets
-//    WidgetCenter.shared.reloadAllTimelines()
-  }
-  
-  func schedule24h() -> DeviceActivitySchedule {
-    return DeviceActivitySchedule(
-      intervalStart: DateComponents(hour: 0, minute: 0, second: 0),
-      intervalEnd: DateComponents(hour: 23, minute: 59, second: 59),
-      repeats: true
-    )
+    // Clear interruption restrictions
+    DeviceActivityService.shared.stopAppRestrictions(storeName: .interruption)
   }
   
   private func updateMonitoredAppsList() {
@@ -176,6 +149,9 @@ class AppMonitorViewModel: ObservableObject {
     var selection = self.model.activitySelection
     selection.applicationTokens = enabledApps
     self.model.activitySelection = selection
+    
+    // Save updated selection to SharedData
+    SharedData.selectedInterruptionsActivity = selection
   }
 
   var toggleBinding: Binding<Bool> {

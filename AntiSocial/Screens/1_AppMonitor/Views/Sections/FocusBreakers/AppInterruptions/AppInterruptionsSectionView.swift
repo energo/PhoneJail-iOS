@@ -10,7 +10,7 @@ import FamilyControls
 import ManagedSettings
 
 struct AppInterruptionsSectionView: View {
-  @ObservedObject var viewModel: AppMonitorViewModel
+  @ObservedObject var viewModel: AppInterruptionViewModel
   @State private var isExpanded: Bool = true
   
   var body: some View {
@@ -234,6 +234,6 @@ struct AppInterruptionsSectionView: View {
 
 #Preview {
   BGView(imageRsc: .bgMain) {
-    AppInterruptionsSectionView(viewModel: AppMonitorViewModel(model: SelectAppsModel(mode: .interruptions)))
+    AppInterruptionsSectionView(viewModel: AppInterruptionViewModel())
   }
 }
