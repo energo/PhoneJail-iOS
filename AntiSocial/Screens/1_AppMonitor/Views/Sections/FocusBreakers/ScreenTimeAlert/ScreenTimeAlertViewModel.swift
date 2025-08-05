@@ -107,6 +107,12 @@ class ScreenTimeAlertViewModel: ObservableObject {
         try self.center.startMonitoring(.appMonitoringAlert,
                                    during: schedule,
                                    events: events)
+        
+        // Send notification on successful start
+        LocalNotificationManager.scheduleExtensionNotification(
+          title: "✅ Screen Time Alerts Enabled",
+          details: "You'll be notified after \(timeLimitMinutes) minutes of app use"
+        )
       } catch let error {
         AppLogger.critical(error, details: "Failed to start alert monitoring")
       }

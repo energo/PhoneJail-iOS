@@ -107,6 +107,12 @@ class AppInterruptionViewModel: ObservableObject {
         try self.center.startMonitoring(.appMonitoringInterruption,
                                    during: schedule,
                                    events: events)
+        
+        // Send notification on successful start
+        LocalNotificationManager.scheduleExtensionNotification(
+          title: "✅ App Interruptions Enabled",
+          details: "Apps will be blocked for 2 minutes every \(timeLimitMinutes) minutes of use"
+        )
       } catch let error {
         AppLogger.critical(error, details: "Failed to start interruption monitoring")
       }
