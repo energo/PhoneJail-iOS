@@ -121,6 +121,13 @@ class ScreenTimeAlertViewModel: ObservableObject {
   
   func stopMonitoring() {
     center.stopMonitoring([.appMonitoringAlert])
+    
+    // Send notification about disabling
+    LocalNotificationManager.scheduleExtensionNotification(
+      title: "🛑 Screen Time Alerts Disabled",
+      details: "You will no longer receive app usage notifications"
+    )
+    
     AppLogger.notice("Stopped alert monitoring")
   }
   

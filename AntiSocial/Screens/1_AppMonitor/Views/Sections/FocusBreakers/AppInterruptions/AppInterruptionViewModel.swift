@@ -131,6 +131,12 @@ class AppInterruptionViewModel: ObservableObject {
     // Reset blocking state completely
     resetInterruptionBlockingState()
     
+    // Send notification about disabling
+    LocalNotificationManager.scheduleExtensionNotification(
+      title: "🛑 App Interruptions Disabled",
+      details: "Interruption blocking has been turned off"
+    )
+    
     AppLogger.notice("Stopped interruption monitoring and cleared all restrictions")
   }
   
