@@ -152,7 +152,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     } else if activity == .appBlockingInterruption {
       // Interruption block ending
       LocalNotificationManager.scheduleExtensionNotification(
-        title: "✅ Break Over",
+        title: "✅ Interruption Break Over",
         details: "You can use your apps again"
       )
       
@@ -242,12 +242,12 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       )
       
       // If no specific apps, send generic message
-      if selection.applicationTokens.isEmpty {
-        LocalNotificationManager.scheduleExtensionNotification(
-          title: "⏰ Screen Time Alert",
-          details: "Time to take a break from your apps"
-        )
-      }
+//      if selection.applicationTokens.isEmpty {
+//        LocalNotificationManager.scheduleExtensionNotification(
+//          title: "⏰ Screen Time Alert",
+//          details: "Time to take a break from your apps"
+//        )
+//      }
     }
   }
   
