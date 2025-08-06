@@ -26,6 +26,8 @@ final class BlockingNotificationService: ObservableObject {
 
     // Минимальные синхронные операции для UI
     SharedData.userDefaults?.set(true, forKey: SharedData.Widget.isBlocked)
+    // Сохраняем timestamp начала блокировки
+    SharedData.userDefaults?.set(Date().timeIntervalSince1970, forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
     
     let (endHour, endMin) = getEndTime(hourDuration: hours, minuteDuration: minutes)
     restrictionModel.endHour = endHour
@@ -87,6 +89,8 @@ final class BlockingNotificationService: ObservableObject {
   }
 
   func stopBlocking(selection: FamilyActivitySelection) {
+    AppLogger.alert("stopBlocking selection")
+
     SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
     SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
 

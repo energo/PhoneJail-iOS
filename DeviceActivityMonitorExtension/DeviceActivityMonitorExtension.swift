@@ -95,51 +95,59 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     // Handle different activities differently
     if activity == .appBlocking {
       // Check if this was an interruption block
-      let wasInterruptionBlock = SharedData.userDefaults?.bool(forKey: SharedData.ScreenTime.isInterruptionBlock) ?? false
-      
-      if wasInterruptionBlock {
-        // This is interruption block ending
-        LocalNotificationManager.scheduleExtensionNotification(
-          title: "✅ Break Over",
-          details: "You can use your apps again"
-        )
-        
-        // Clear interruption store
-        DeviceActivityService.shared.stopAppRestrictions(storeName: .interruption)
-        
-        // Clear interruption block flag
-        SharedData.userDefaults?.removeObject(forKey: SharedData.ScreenTime.isInterruptionBlock)
-        
-        // Restart interruption monitoring if still enabled and no main block active
-        let isEnabled = SharedData.userDefaults?.bool(forKey: SharedData.ScreenTime.isInterruptionsEnabled) ?? false
-        let isMainBlockActive = SharedData.userDefaults?.bool(forKey: SharedData.Widget.isBlocked) ?? false
-        if isEnabled && !isMainBlockActive {
-          startInterruptionMonitoring()
-        }
-      } else {
+//      let wasInterruptionBlock = SharedData.userDefaults?.bool(forKey: SharedData.ScreenTime.isInterruptionBlock) ?? false
+//      
+//      if wasInterruptionBlock {
+//        // This is interruption block ending
+//        LocalNotificationManager.scheduleExtensionNotification(
+//          title: "✅ Break Over",
+//          details: "You can use your apps again"
+//        )
+//        
+//        // Clear interruption store
+//        DeviceActivityService.shared.stopAppRestrictions(storeName: .interruption)
+//        
+//        // Clear interruption block flag
+//        SharedData.userDefaults?.removeObject(forKey: SharedData.ScreenTime.isInterruptionBlock)
+//        
+//        // Restart interruption monitoring if still enabled and no main block active
+//        let isEnabled = SharedData.userDefaults?.bool(forKey: SharedData.ScreenTime.isInterruptionsEnabled) ?? false
+//        let isMainBlockActive = SharedData.userDefaults?.bool(forKey: SharedData.Widget.isBlocked) ?? false
+//        if isEnabled && !isMainBlockActive {
+//          startInterruptionMonitoring()
+//        }
+//      } else {
         // This is regular What2Block ending
-        LocalNotificationManager.scheduleExtensionNotification(
-          title: "✅ Apps Unblocked",
-          details: "You can use your apps again"
-        )
         
-        // Clear regular blocking store
-        DeviceActivityService.shared.stopAppRestrictions()
-        
-        // Clear regular blocking state
-        DeviceActivityScheduleService.stopSchedule()
-        SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
-        SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
-        SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endHour)
-        SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endMinutes)
-        SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.unlockDate)
-        
-        // After main block ends, restart interruption monitoring if enabled
-        let interruptionsEnabled = SharedData.userDefaults?.bool(forKey: SharedData.ScreenTime.isInterruptionsEnabled) ?? false
-        if interruptionsEnabled {
-          startInterruptionMonitoring()
+        // Check if blocking should really end (unlock date might be in the future still)
+        let shouldClearState: Bool
+        if let unlockDate = SharedData.userDefaults?.object(forKey: SharedData.AppBlocking.unlockDate) as? Date {
+          shouldClearState = unlockDate <= Date()
+        } else {
+          shouldClearState = true
         }
-      }
+        
+        if shouldClearState {
+          LocalNotificationManager.scheduleExtensionNotification(
+            title: "✅ Apps Unblocked",
+            details: "You can use your apps again"
+          )
+          
+          // Clear regular blocking store
+          DeviceActivityService.shared.stopAppRestrictions()
+
+          // Clear regular blocking state only if unlock date has passed
+          DeviceActivityScheduleService.stopSchedule()
+          SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
+          SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
+          SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endHour)
+          SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endMinutes)
+          SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.unlockDate)
+        } else {
+          // Blocking should continue - don't clear timestamp
+          logger.log("intervalDidEnd called but unlock date is in future, keeping blocking state")
+        }
+//      }
       
     } else if activity == .appBlockingInterruption {
       // Interruption block ending

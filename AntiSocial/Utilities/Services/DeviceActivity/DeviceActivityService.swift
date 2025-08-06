@@ -11,14 +11,14 @@ struct AppEntity: Codable, Identifiable {
 
 
 extension ManagedSettingsStore.Name {
-  static let mySettingStore = Self("mySettingStore")
+//  static let mySettingStore = Self("mySettingStore")
   static let appBlocking = Self("appBlocking")
   static let interruption = Self("interruption")
 }
 
 class DeviceActivityService: ObservableObject {
   // MARK: - Settings Store
-  let store = ManagedSettingsStore(named: .mySettingStore)
+  let store = ManagedSettingsStore(named: .appBlocking)
   static let shared = DeviceActivityService()
 
   // MARK: - Published Properties
@@ -250,10 +250,14 @@ class DeviceActivityService: ObservableObject {
   }
   
   func stopAppRestrictions() {
+    print("stopAppRestrictions")
+
     store.clearAllSettings()
   }
   
   func stopAppRestrictions(storeName: ManagedSettingsStore.Name) {
+    print("stopAppRestrictions(storeName")
+
     let customStore = ManagedSettingsStore(named: storeName)
     customStore.clearAllSettings()
   }

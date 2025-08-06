@@ -18,8 +18,8 @@ struct AppBlockingSectionView: View {
   @State var hours: Int = 0
   @State var minutes: Int = 0
   
-  @State private var isStrictBlock: Bool = false
-  @State private var isBlocked: Bool = false
+  @State private var isStrictBlock: Bool = SharedData.userDefaults?.bool(forKey: SharedData.Widget.isStricted) ?? false
+  @State private var isBlocked: Bool = SharedData.userDefaults?.bool(forKey: SharedData.Widget.isBlocked) ?? false
   
   @State private var noCategoriesAlert = false
   @State private var maxCategoriesAlert = false
@@ -172,9 +172,7 @@ struct AppBlockingSectionView: View {
       }
     }
     .onAppear {
-      // Восстанавливаем isUnlocked из UserDefaults
-      isStrictBlock = SharedData.userDefaults?.bool(forKey: SharedData.Widget.isStricted) ?? false
-      isBlocked = SharedData.userDefaults?.bool(forKey: SharedData.Widget.isBlocked) ?? false
+      // isBlocked и isStrictBlock уже инициализированы правильными значениями из SharedData
       
       // Reload saved app selection
       deviceActivityService.loadSelection()
@@ -188,11 +186,28 @@ struct AppBlockingSectionView: View {
       
       // Проверяем состояние блокировки
       if isBlocked {
+        // Перезагружаем unlock date из SharedData на случай если синглтон не успел загрузиться
+        deviceActivityService.loadUnlockDate()
+        
         // Check if we have a valid unlock date
         if let unlockDate = deviceActivityService.unlockDate, unlockDate > Date() {
           // Блокировка еще активна - восстанавливаем состояние
+          
+          // Проверяем и восстанавливаем timestamp если он отсутствует
+          if SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp) == nil || 
+             SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp) == 0 {
+            // Устанавливаем текущее время как время начала блокировки
+            // Это не точно, но лучше чем 0
+            SharedData.userDefaults?.set(Date().timeIntervalSince1970, forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
+            AppLogger.notice("Restored blocking start timestamp with current time")
+          }
+          
           timeBlockedString = calculateBlockedTime()
           currentSessionSavedTime = formatSavedTime()
+          
+          // Восстанавливаем ограничения приложений если они не активны
+          deviceActivityService.setShieldRestrictions()
+          
           AppLogger.notice("Restored active blocking state on app start")
         } else {
           // Блокировка истекла или нет unlockDate - завершаем ее
@@ -229,6 +244,9 @@ struct AppBlockingSectionView: View {
       
       // Start timer if already blocked
       if isBlocked {
+        // Перезагружаем unlock date еще раз перед запуском таймера
+        deviceActivityService.loadUnlockDate()
+        
         if let unlockDate = deviceActivityService.unlockDate, unlockDate > Date() {
           // If we have a timestamp, calculate current blocked time
           if SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp) != nil {
@@ -236,6 +254,11 @@ struct AppBlockingSectionView: View {
           }
           startTimer()
           AppLogger.notice("Restored timer for active blocking")
+        } else {
+          // Если unlock date все еще нет или она истекла, сбрасываем блокировку
+          isBlocked = false
+          SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
+          AppLogger.notice("Timer not started - blocking invalid")
         }
       }
     }
@@ -523,8 +546,7 @@ struct AppBlockingSectionView: View {
                       isStrictBlock: $isStrictBlock,
                       onBlockingStateChanged: { newState in
                         if newState {
-                          // Set timestamp immediately when blocking starts
-                          SharedData.userDefaults?.set(Date().timeIntervalSince1970, forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
+                          // Timestamp теперь устанавливается в BlockingNotificationService.startBlocking
                           
                           BlockingNotificationService.shared.startBlocking(
                             hours: hours,
