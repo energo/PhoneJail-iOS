@@ -31,11 +31,9 @@ final class LocalNotificationManager {
     content.categoryIdentifier = "customIdentifier"
     content.userInfo = ["customData": "fizzbuzz"]
     content.sound = .default
-    
-    let timestamp = Date().timeIntervalSince1970
 
     let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
-    let request = UNNotificationRequest(identifier: "blocking-start-\(timestamp)", content: content, trigger: trigger)
+    let request = UNNotificationRequest(identifier: "blocking-start", content: content, trigger: trigger)
     
     notificationCenter.add(request) { error in
       if let error = error {
@@ -51,11 +49,9 @@ final class LocalNotificationManager {
     content.categoryIdentifier = "customIdentifier"
     content.userInfo = ["customData": "fizzbuzz"]
     content.sound = .default
-    
-    let timestamp = Date().timeIntervalSince1970
 
     let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: false)
-    let request = UNNotificationRequest(identifier: "blocking-end-\(timestamp)", content: content, trigger: trigger)
+    let request = UNNotificationRequest(identifier: "blocking-end", content: content, trigger: trigger)
     
     notificationCenter.add(request) { error in
       if let error = error {
