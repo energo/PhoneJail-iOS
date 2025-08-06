@@ -7,6 +7,7 @@ struct StatsActivityReport: DeviceActivityReportScene {
   
   func makeConfiguration(representing data: DeviceActivityResults<DeviceActivityData>) async -> StatsData {
     var sessions: [AppUsageSession] = []
+    var reportDate: Date? = nil
     
     // Calculate total duration correctly - same as TotalActivityReport
     let totalDuration = await data.flatMap { $0.activitySegments }.reduce(0) {
@@ -17,6 +18,11 @@ struct StatsActivityReport: DeviceActivityReportScene {
       for await segment in d.activitySegments {
         // Use segment's actual date interval if available
         let segmentInterval = segment.dateInterval
+        
+        // Сохраняем дату из первого сегмента
+        if reportDate == nil {
+          reportDate = segmentInterval.start
+        }
         
         for await category in segment.categories {
           for await app in category.applications {
@@ -44,11 +50,12 @@ struct StatsActivityReport: DeviceActivityReportScene {
       }
     }
     
-    let chartData = generateChartBars(from: sessions)
+    let chartData = generateChartBars(from: sessions, reportDate: reportDate ?? Date())
     
     // Calculate focused and distracted durations from chart data
     let focusedDuration = chartData.reduce(0.0) { $0 + Double($1.focusedMinutes * 60) }
     let distractedDuration = chartData.reduce(0.0) { $0 + Double($1.distractedMinutes * 60) }
+    
     let top3AppUsages = topAppUsages(from: sessions, count: 3)
     
     var filledChartData = chartData
@@ -67,12 +74,16 @@ struct StatsActivityReport: DeviceActivityReportScene {
     )
   }
   
-  func generateChartBars(from sessions: [AppUsageSession]) -> [ChartBar] {
+  func generateChartBars(from sessions: [AppUsageSession], reportDate: Date) -> [ChartBar] {
       var hourly = Array(repeating: (focused: 0.0, distracted: 0.0), count: 24)
       let calendar = Calendar.current
       
-      // Получаем часовые данные блокировки из SharedData
-      let hourlyBlockingData = SharedData.getHourlyBlockingData()
+      // Используем переданную дату отчета
+      let chartDate = calendar.startOfDay(for: reportDate)
+      
+      // Получаем сессии блокировки для конкретной даты
+      let blockingSessions = SharedData.getBlockingSessions(for: chartDate)
+      
 
       for session in sessions {
           var t1 = session.start
@@ -100,15 +111,57 @@ struct StatsActivityReport: DeviceActivityReportScene {
           }
       }
       
-      // Добавляем focused time из блокировок
-      for hour in 0..<24 {
-          let blockedSeconds = hourlyBlockingData[hour]
-          let blockedMinutes = blockedSeconds / 60.0
+      // Добавляем focused time из сессий блокировки
+      for session in blockingSessions {
+          let startTime = session.startTime
+          let endTime = session.endTime ?? Date()
           
-          // Перемещаем время из distracted в focused
-          let transferMinutes = min(blockedMinutes, hourly[hour].distracted)
-          hourly[hour].focused += transferMinutes
-          hourly[hour].distracted -= transferMinutes
+          // Проверяем, что сессия пересекается с выбранным днем
+          let dayStart = calendar.startOfDay(for: chartDate)
+          let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? chartDate
+          
+          // Если сессия закончилась до начала дня или началась после конца дня - пропускаем
+          if endTime <= dayStart || startTime >= dayEnd {
+              continue
+          }
+          
+          // Ограничиваем время сессии рамками дня
+          let sessionStart = max(startTime, dayStart)
+          let sessionEnd = min(endTime, dayEnd)
+          
+          // Распределяем время сессии по часам
+          var currentTime = sessionStart
+          while currentTime < sessionEnd {
+              let hour = calendar.component(.hour, from: currentTime)
+              
+              // Создаем границу следующего часа правильно
+              var components = calendar.dateComponents([.year, .month, .day, .hour], from: currentTime)
+              components.hour = hour + 1
+              components.minute = 0
+              components.second = 0
+              let nextHour = calendar.date(from: components) ?? currentTime
+              
+              let intervalEnd = min(nextHour, sessionEnd)
+              
+              let minutes = intervalEnd.timeIntervalSince(currentTime) / 60.0
+              
+              if hour >= 0 && hour < 24 {
+                  // Перемещаем время из distracted в focused
+                  let availableDistracted = hourly[hour].distracted
+                  let transferMinutes = min(minutes, availableDistracted)
+                  
+                  if transferMinutes > 0 {
+                      // Есть distracted время для переноса
+                      hourly[hour].focused += transferMinutes
+                      hourly[hour].distracted -= transferMinutes
+                  } else {
+                      // Нет distracted времени, добавляем focused напрямую
+                      hourly[hour].focused += minutes
+                  }
+              }
+              
+              currentTime = intervalEnd
+          }
       }
 
       return (0..<24).map { hour in

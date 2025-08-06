@@ -64,6 +64,11 @@ final class AppBlockingLogger: ObservableObject {
         
         await loadActiveSessions()
         
+        // Обновляем SharedData чтобы активная сессия сразу отобразилась в графике
+        Task {
+            await saveBlockingSessionsToSharedData()
+        }
+        
         AppLogger.notice("Started blocking session for \(appDisplayName), duration: \(plannedDuration)s")
         
         return session
@@ -157,9 +162,10 @@ final class AppBlockingLogger: ObservableObject {
         SharedData.userDefaults?.set(completedCount, forKey: SharedData.AppBlocking.todayCompletedSessions)
         SharedData.userDefaults?.set(totalCount, forKey: SharedData.AppBlocking.todayTotalSessions)
         
-        // Сохраняем часовые данные
+        // Сохраняем часовые данные и сессии
         Task {
             await saveHourlyBlockingDataToSharedData()
+            await saveBlockingSessionsToSharedData()
         }
         
         SharedData.userDefaults?.synchronize() // Форсируем синхронизацию
@@ -319,6 +325,66 @@ final class AppBlockingLogger: ObservableObject {
         return SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.lifetimeTotalBlockingTime) ?? 0
     }
     
+    /// Сохранить данные о сессиях блокировки в SharedData
+    private func saveBlockingSessionsToSharedData() async {
+        var sessionInfos: [SharedData.BlockingSessionInfo] = []
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        
+        do {
+            guard let currentUser = Storage.shared.user else { return }
+            
+            // Получаем все сессии за сегодня
+            let allSessions = try await Storage.shared.getBlockingSessions(for: currentUser.id)
+            let todaySessions = allSessions.filter { session in
+                let sessionEnd = session.endDate ?? Date()
+                return session.startDate >= today || sessionEnd >= today
+            }
+            
+            // Преобразуем в BlockingSessionInfo
+            for session in todaySessions {
+                let info = SharedData.BlockingSessionInfo(
+                    startTime: session.startDate,
+                    endTime: session.endDate,
+                    appName: session.appDisplayName
+                )
+                sessionInfos.append(info)
+            }
+        } catch {
+            AppLogger.critical(error, details: "Failed to load blocking sessions for SharedData")
+        }
+        
+        // Сохраняем в SharedData
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        let dateKey = formatter.string(from: Date())
+        
+        if let sessionData = try? JSONEncoder().encode(sessionInfos) {
+            SharedData.userDefaults?.set(sessionData, forKey: "blockingSessions_\(dateKey)")
+            SharedData.userDefaults?.synchronize()
+            
+            AppLogger.notice("🔹 Saved \(sessionInfos.count) blocking sessions for date \(dateKey)")
+            for (index, session) in sessionInfos.enumerated() {
+                let duration = (session.endTime ?? Date()).timeIntervalSince(session.startTime)
+                let startHour = Calendar.current.component(.hour, from: session.startTime)
+                let endHour = Calendar.current.component(.hour, from: session.endTime ?? Date())
+                AppLogger.notice("🔹 Session \(index + 1): \(session.appName), \(startHour):00-\(endHour):00, duration: \(Int(duration/60)) minutes")
+            }
+            
+          // Убираем частое уведомление - оставляем только в логах
+          // LocalNotificationManager.scheduleExtensionNotification(
+          //   title:  "💾 Blocking Sessions Saved",
+          //   details: "Saved \(sessionInfos.count) sessions for \(dateKey)"
+          // )
+        } else {
+            AppLogger.alert("Failed to encode blocking sessions")
+          // LocalNotificationManager.scheduleExtensionNotification(
+          //   title:  "❌ Failed to save sessions",
+          //   details: "Encoding failed for \(dateKey)"
+          // )
+        }
+    }
+    
     /// Получить часовые данные блокировок за сегодня и сохранить в SharedData
     func saveHourlyBlockingDataToSharedData() async {
         // Создаем массив для 24 часов
@@ -385,11 +451,18 @@ final class AppBlockingLogger: ObservableObject {
             }
         }
         
-        // Сохраняем в SharedData
+        // Сохраняем в SharedData с датой в ключе
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        let dateKey = formatter.string(from: Date())
+        
         if let jsonData = try? JSONEncoder().encode(hourlyData) {
-            SharedData.userDefaults?.set(jsonData, forKey: SharedData.AppBlocking.hourlyBlockingData)
+            SharedData.userDefaults?.set(jsonData, forKey: "hourlyBlockingData_\(dateKey)")
             SharedData.userDefaults?.synchronize()
         }
+        
+        // Также сохраняем информацию о сессиях
+        await saveBlockingSessionsToSharedData()
     }
     
     /// Получить часовые данные блокировок из SharedData (для расширений)

@@ -44,7 +44,32 @@ struct ScreenTimeSectionView: View {
   /// Временная функция для получения данных из SharedData (использует те же ключи что и AppBlockingLogger)
   private static func getTodayTotalBlockingTimeFromSharedData() -> TimeInterval {
     let groupDefaults = SharedData.userDefaults
-    return groupDefaults?.double(forKey: SharedData.AppBlocking.todayTotalBlockingTime) ?? 0
+    let completedTime = groupDefaults?.double(forKey: SharedData.AppBlocking.todayTotalBlockingTime) ?? 0
+    
+    // Добавляем время из активных сессий
+    let activeTime = getActiveSessionsTime()
+    
+    return completedTime + activeTime
+  }
+  
+  /// Получить время из активных сессий блокировки
+  private static func getActiveSessionsTime() -> TimeInterval {
+    let calendar = Calendar.current
+    let today = calendar.startOfDay(for: Date())
+    
+    // Получаем сессии за сегодня
+    let sessions = SharedData.getBlockingSessions(for: today)
+    
+    // Считаем время только для активных сессий (где endTime == nil)
+    var activeTime: TimeInterval = 0
+    for session in sessions {
+      if session.endTime == nil {
+        // Активная сессия - считаем время от начала до текущего момента
+        activeTime += Date().timeIntervalSince(session.startTime)
+      }
+    }
+    
+    return activeTime
   }
   
   private var bottomView: some View {

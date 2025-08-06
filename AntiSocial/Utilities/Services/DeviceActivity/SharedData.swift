@@ -155,13 +155,45 @@ public class SharedData {
   
   // MARK: - Bridge Methods for Extensions
   
-  /// Get hourly blocking data from SharedData (for extensions)
-  public static func getHourlyBlockingData() -> [Double] {
-    guard let jsonData = userDefaults?.data(forKey: AppBlocking.hourlyBlockingData),
-          let hourlyData = try? JSONDecoder().decode([Double].self, from: jsonData) else {
-      return Array(repeating: 0.0, count: 24)
+  /// Get hourly blocking data from SharedData for a specific date
+  public static func getHourlyBlockingData(for date: Date) -> [Double] {
+    let formatter = DateFormatter()
+    formatter.dateFormat = "yyyy-MM-dd"
+    let dateKey = formatter.string(from: date)
+    
+    // Получаем данные для конкретной даты
+    if let jsonData = userDefaults?.data(forKey: "hourlyBlockingData_\(dateKey)"),
+       let hourlyData = try? JSONDecoder().decode([Double].self, from: jsonData) {
+      return hourlyData
     }
-    return hourlyData
+    
+    return Array(repeating: 0.0, count: 24)
+  }
+  
+  /// Get hourly blocking data from SharedData (for extensions) - для сегодняшнего дня
+  public static func getHourlyBlockingData() -> [Double] {
+    return getHourlyBlockingData(for: Date())
+  }
+  
+  /// Структура для хранения данных о сессиях блокировки
+  public struct BlockingSessionInfo: Codable {
+    public let startTime: Date
+    public let endTime: Date?
+    public let appName: String
+  }
+  
+  /// Get blocking sessions for a specific date
+  public static func getBlockingSessions(for date: Date) -> [BlockingSessionInfo] {
+    let formatter = DateFormatter()
+    formatter.dateFormat = "yyyy-MM-dd"
+    let dateKey = formatter.string(from: date)
+    
+    if let sessionData = userDefaults?.data(forKey: "blockingSessions_\(dateKey)"),
+       let sessions = try? JSONDecoder().decode([BlockingSessionInfo].self, from: sessionData) {
+      return sessions
+    }
+    
+    return []
   }
   
   /// Get today's total blocking time from SharedData (for extensions)

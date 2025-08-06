@@ -30,8 +30,36 @@ struct CachedScreenTimeView: View {
     }
     
     private func loadBlockingStats() {
+        totalBlockingTime = getTodayTotalBlockingTimeWithActive()
+    }
+    
+    private func getTodayTotalBlockingTimeWithActive() -> TimeInterval {
         let groupDefaults = UserDefaults(suiteName: "group.com.app.antisocial.sharedData")
-        totalBlockingTime = groupDefaults?.double(forKey: "todayTotalBlockingTime") ?? 0
+        let completedTime = groupDefaults?.double(forKey: "todayTotalBlockingTime") ?? 0
+        
+        // Добавляем время из активных сессий
+        let activeTime = getActiveSessionsTime()
+        
+        return completedTime + activeTime
+    }
+    
+    private func getActiveSessionsTime() -> TimeInterval {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        
+        // Получаем сессии за сегодня
+        let sessions = SharedData.getBlockingSessions(for: today)
+        
+        // Считаем время только для активных сессий (где endTime == nil)
+        var activeTime: TimeInterval = 0
+        for session in sessions {
+            if session.endTime == nil {
+                // Активная сессия - считаем время от начала до текущего момента
+                activeTime += Date().timeIntervalSince(session.startTime)
+            }
+        }
+        
+        return activeTime
     }
     
     private var bottomView: some View {
