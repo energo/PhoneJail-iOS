@@ -333,9 +333,11 @@ final class AppBlockingLogger: ObservableObject {
             let startHour = 0 // Можно улучшить, если хранить время начала в статистике
             let endHour = min(23, Int(hoursBlocked))
             
-            for hour in startHour...endHour {
-                if hour < 24 {
-                    hourlyData[hour] += min(3600, stat.totalBlockedDuration - Double(hour * 3600))
+            if startHour <= endHour {
+                for hour in startHour...endHour {
+                    if hour < 24 {
+                        hourlyData[hour] += min(3600, stat.totalBlockedDuration - Double(hour * 3600))
+                    }
                 }
             }
         }
@@ -349,16 +351,34 @@ final class AppBlockingLogger: ObservableObject {
                 let duration = Date().timeIntervalSince(session.startDate)
                 
                 // Распределяем время по часам
-                for hour in startHour...currentHour {
-                    if hour < 24 {
-                        let hourStart = calendar.date(bySettingHour: hour, minute: 0, second: 0, of: session.startDate) ?? session.startDate
-                        let hourEnd = calendar.date(bySettingHour: hour + 1, minute: 0, second: 0, of: session.startDate) ?? Date()
-                        
-                        let sessionStart = max(session.startDate, hourStart)
-                        let sessionEnd = min(Date(), hourEnd)
-                        
-                        if sessionEnd > sessionStart {
-                            hourlyData[hour] += sessionEnd.timeIntervalSince(sessionStart)
+                // Проверяем, если сессия началась вчера
+                if startHour > currentHour {
+                    // Сессия началась вчера, обрабатываем только сегодняшние часы
+                    for hour in 0...currentHour {
+                        if hour < 24 {
+                            let hourStart = calendar.date(bySettingHour: hour, minute: 0, second: 0, of: Date()) ?? Date()
+                            let hourEnd = calendar.date(bySettingHour: hour + 1, minute: 0, second: 0, of: Date()) ?? Date()
+                            
+                            let sessionEnd = min(Date(), hourEnd)
+                            
+                            if sessionEnd > hourStart {
+                                hourlyData[hour] += sessionEnd.timeIntervalSince(hourStart)
+                            }
+                        }
+                    }
+                } else {
+                    // Обычный случай - сессия началась сегодня
+                    for hour in startHour...currentHour {
+                        if hour < 24 {
+                            let hourStart = calendar.date(bySettingHour: hour, minute: 0, second: 0, of: session.startDate) ?? session.startDate
+                            let hourEnd = calendar.date(bySettingHour: hour + 1, minute: 0, second: 0, of: session.startDate) ?? Date()
+                            
+                            let sessionStart = max(session.startDate, hourStart)
+                            let sessionEnd = min(Date(), hourEnd)
+                            
+                            if sessionEnd > sessionStart {
+                                hourlyData[hour] += sessionEnd.timeIntervalSince(sessionStart)
+                            }
                         }
                     }
                 }

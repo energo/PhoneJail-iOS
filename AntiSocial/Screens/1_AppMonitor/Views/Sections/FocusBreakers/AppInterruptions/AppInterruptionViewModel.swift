@@ -89,7 +89,8 @@ class AppInterruptionViewModel: ObservableObject {
       applications: enabledTokens,
       categories: model.activitySelection.categoryTokens,
       webDomains: model.activitySelection.webDomainTokens,
-      threshold: DateComponents(minute: timeLimitMinutes)
+      threshold: DateComponents(minute: timeLimitMinutes),
+      includesPastActivity: true
     )
     
     events[DeviceActivityEvent.Name.interruption] = event

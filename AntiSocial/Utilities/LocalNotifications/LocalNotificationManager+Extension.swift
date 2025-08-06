@@ -25,8 +25,9 @@ extension LocalNotificationManager {
         
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: delay, repeats: false)
         
-        // Use deterministic identifier to prevent duplicates
-        let identifier = "\(title)-\(details)".replacingOccurrences(of: " ", with: "-")
+        // Create unique identifier with timestamp for screen time alerts
+        let timestamp = Date().timeIntervalSince1970
+        let identifier = "\(title)-\(details)-\(timestamp)".replacingOccurrences(of: " ", with: "-")
         let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
         
         center.add(request) { error in

@@ -38,6 +38,7 @@ struct AntiSocialApp: App {
   @StateObject private var subscriptionManager = SubscriptionManager.shared
   @StateObject private var deviceActivityService = DeviceActivityService.shared
   @StateObject private var familyControlsManager = FamilyControlsManager.shared
+  @State private var midnightTimer: Timer?
 
     var body: some Scene {
         WindowGroup {
@@ -61,6 +62,9 @@ struct AntiSocialApp: App {
               
               // Обновляем статистику блокировок при запуске приложения
               await AppBlockingLogger.shared.refreshAllData()
+              
+              // Setup midnight timer for resetting usage counters
+              setupMidnightTimer()
             }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
               Task {
@@ -92,6 +96,30 @@ struct AntiSocialApp: App {
               }
           }
       }
+  }
+  
+  private func setupMidnightTimer() {
+    // Cancel existing timer if any
+    midnightTimer?.invalidate()
+    
+    // Calculate time until midnight
+    let calendar = Calendar.current
+    let now = Date()
+    
+    guard let tomorrow = calendar.date(byAdding: .day, value: 1, to: now),
+          let midnight = calendar.date(bySettingHour: 0, minute: 0, second: 0, of: tomorrow) else { return }
+    
+    let timeUntilMidnight = midnight.timeIntervalSince(now)
+    
+    // Create timer that fires at midnight
+    midnightTimer = Timer.scheduledTimer(withTimeInterval: timeUntilMidnight, repeats: false) { _ in
+      // Reset app usage counters
+      SharedData.resetAppUsageTimes()
+      AppLogger.notice("Reset app usage counters at midnight")
+      
+      // Setup next midnight timer
+      self.setupMidnightTimer()
+    }
   }
 }
 

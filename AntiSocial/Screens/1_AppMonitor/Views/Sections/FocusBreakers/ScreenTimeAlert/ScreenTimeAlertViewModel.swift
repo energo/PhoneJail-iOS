@@ -76,6 +76,9 @@ class ScreenTimeAlertViewModel: ObservableObject {
     AppLogger.notice("startMonitoring alert with timeLimitMinutes: \(timeLimitMinutes)")
     updateMonitoringState()
     
+    // Reset usage counters when starting fresh monitoring
+    SharedData.resetAppUsageTimes()
+    
     // Save selection before starting monitoring
     SharedData.selectedAlertActivity = model.activitySelection
     AppLogger.notice("Saved alert selection with \(model.activitySelection.applicationTokens.count) apps")
@@ -89,7 +92,8 @@ class ScreenTimeAlertViewModel: ObservableObject {
       applications: enabledTokens,
       categories: model.activitySelection.categoryTokens,
       webDomains: model.activitySelection.webDomainTokens,
-      threshold: DateComponents(minute: timeLimitMinutes)
+      threshold: DateComponents(minute: timeLimitMinutes),
+      includesPastActivity: true
     )
     
     events[DeviceActivityEvent.Name.screenAlert] = event
@@ -122,13 +126,16 @@ class ScreenTimeAlertViewModel: ObservableObject {
   func stopMonitoring() {
     center.stopMonitoring([.appMonitoringAlert])
     
+    // Reset all usage counters when stopping monitoring
+    SharedData.resetAppUsageTimes()
+    
     // Send notification about disabling
     LocalNotificationManager.scheduleExtensionNotification(
       title: "🛑 Screen Time Alerts Disabled",
       details: "You will no longer receive app usage notifications"
     )
     
-    AppLogger.notice("Stopped alert monitoring")
+    AppLogger.notice("Stopped alert monitoring and reset usage counters")
   }
   
   private func updateMonitoredAppsList() {

@@ -106,6 +106,51 @@ public class SharedData {
     
     /// Last refresh timestamp (Double)
     public static let lastScreenTimeRefresh = "lastScreenTimeRefresh"
+    
+    /// App usage time tracking (Dictionary - [String: Double])
+    public static let appUsageTimeToday = "appUsageTimeToday"
+    
+    /// Last alert time for each app (Dictionary - [String: Double])
+    public static let appLastAlertTime = "appLastAlertTime"
+    
+    /// App usage session start times (Dictionary - [String: Double])
+    public static let appSessionStartTimes = "appSessionStartTimes"
+  }
+  
+  // MARK: - App Usage Time Methods
+  
+  /// Get today's usage time for an app
+  public static func getAppUsageTime(for appName: String) -> TimeInterval {
+    let dict = userDefaults?.dictionary(forKey: ScreenTime.appUsageTimeToday) as? [String: Double] ?? [:]
+    return dict[appName] ?? 0
+  }
+  
+  /// Update usage time for an app
+  public static func updateAppUsageTime(for appName: String, additionalTime: TimeInterval) {
+    var dict = userDefaults?.dictionary(forKey: ScreenTime.appUsageTimeToday) as? [String: Double] ?? [:]
+    dict[appName] = (dict[appName] ?? 0) + additionalTime
+    userDefaults?.set(dict, forKey: ScreenTime.appUsageTimeToday)
+  }
+  
+  /// Reset all app usage times (for daily reset)
+  public static func resetAppUsageTimes() {
+    userDefaults?.removeObject(forKey: ScreenTime.appUsageTimeToday)
+    userDefaults?.removeObject(forKey: ScreenTime.appLastAlertTime)
+    userDefaults?.removeObject(forKey: ScreenTime.appSessionStartTimes)
+  }
+  
+  /// Get last alert time for an app
+  public static func getLastAlertTime(for appName: String) -> Date? {
+    let dict = userDefaults?.dictionary(forKey: ScreenTime.appLastAlertTime) as? [String: Double] ?? [:]
+    guard let timestamp = dict[appName] else { return nil }
+    return Date(timeIntervalSince1970: timestamp)
+  }
+  
+  /// Set last alert time for an app
+  public static func setLastAlertTime(for appName: String, date: Date) {
+    var dict = userDefaults?.dictionary(forKey: ScreenTime.appLastAlertTime) as? [String: Double] ?? [:]
+    dict[appName] = date.timeIntervalSince1970
+    userDefaults?.set(dict, forKey: ScreenTime.appLastAlertTime)
   }
   
   // MARK: - Bridge Methods for Extensions

@@ -18,15 +18,75 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   // Track last trigger time to prevent rapid re-triggers
   private var lastInterruptionTrigger: Date?
   private var lastAlertTrigger: Date?
-  private let minimumTriggerInterval: TimeInterval = 60 // 1 minute minimum between triggers
+  private let minimumTriggerInterval: TimeInterval = 120 // 2 minutes minimum between triggers
   
   private let logger = Logger(subsystem: "com.app.antisocial", category: "DeviceActivityMonitor")
+  
+  // MARK: - Helper Methods
+  private func checkAndResetDailyCounters() {
+    let calendar = Calendar.current
+    let now = Date()
+    
+    // Get last reset date
+    let lastResetTimestamp = SharedData.userDefaults?.double(forKey: "lastUsageCounterReset") ?? 0
+    let lastResetDate = Date(timeIntervalSince1970: lastResetTimestamp)
+    
+    // Check if we're in a new day
+    if !calendar.isDateInToday(lastResetDate) {
+      // Reset counters
+      SharedData.resetAppUsageTimes()
+      
+      // Save new reset timestamp
+      SharedData.userDefaults?.set(now.timeIntervalSince1970, forKey: "lastUsageCounterReset")
+      
+    }
+  }
+  
+  private func getPersonalizedMessage(for minutes: Int, appName: String) -> String {
+    
+    switch minutes {
+      case 0..<5:
+        return "You've spent \(minutes) minutes on \(appName) today. Just getting started?"
+      case 5..<10:
+        return "You've spent \(minutes) minutes on \(appName) today. Log off?"
+      case 10..<15:
+        return "You've spent \(minutes) minutes on \(appName) today. Time for a quick check-in."
+      case 15..<20:
+        return "You've spent \(minutes) minutes on \(appName) today. Quarter hour down!"
+      case 20..<25:
+        return "You've spent \(minutes) minutes on \(appName) today. Maybe stretch a bit?"
+      case 25..<30:
+        return "You've spent \(minutes) minutes on \(appName) today. Almost half an hour!"
+      case 30..<35:
+        return "You've spent \(minutes) minutes on \(appName) today. Break time?"
+      case 35..<40:
+        return "You've spent \(minutes) minutes on \(appName) today. Take a break?"
+      case 40..<45:
+        return "You've spent \(minutes) minutes on \(appName) today. Time to refocus?"
+      case 45..<50:
+        return "You've spent \(minutes) minutes on \(appName) today. Time to put the phone down."
+      case 50..<55:
+        return "You've spent \(minutes) minutes on \(appName) today. Almost an hour!"
+      case 55..<60:
+        return "You've spent \(minutes) minutes on \(appName) today. Final warning!"
+      case 60..<90:
+        return "You've spent \(minutes) minutes on \(appName) today. Time for a real break!"
+      case 90..<120:
+        return "You've spent \(minutes) minutes on \(appName) today. Seriously?"
+      case 120..<180:
+        return "You've spent \(minutes) minutes on \(appName) today. This is getting out of hand."
+      default:
+        return "You've spent \(minutes) minutes on \(appName) today. Time to take a long break!"
+    }
+  }
   
   //MARK: - Interval Start/End
   override func intervalDidStart(for activity: DeviceActivityName) {
     super.intervalDidStart(for: activity)
 
-    // Silent start - no notification needed
+    
+    // No need to track individual apps anymore
+    // The threshold event will handle all time tracking
     
     // Interruption monitoring started silently
   }
@@ -131,30 +191,52 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   }
   
   private func handleTresholdScreenAlert(_ event: DeviceActivityEvent.Name) {
-    // Check if enough time has passed since last trigger
     let now = Date()
-//    if let lastTrigger = lastAlertTrigger,
-//       now.timeIntervalSince(lastTrigger) < minimumTriggerInterval {
-//      logger.log("Alert triggered too soon, skipping. Last: \(lastTrigger), Now: \(now)")
-//      return
-//    }
+    
+    // Check if enough time has passed since last alert
+    if let lastTrigger = lastAlertTrigger,
+       now.timeIntervalSince(lastTrigger) < minimumTriggerInterval {
+      return
+    }
     
     lastAlertTrigger = now
-    logger.log("Screen alert event triggered: \(event.rawValue)")
+    
+    // Check if we need to reset counters (new day)
+    checkAndResetDailyCounters()
+    
+    // Get alert interval - force minimum of 1 minute
+    let storedValue = SharedData.userDefaults?.integer(forKey: SharedData.ScreenTime.selectedTime) ?? 0
+    let alertIntervalMinutes = max(storedValue, 1)
     
     if let selection = SharedData.selectedAlertActivity {
-      for application in selection.applications {
-        if let displayName = application.localizedDisplayName {
-          LocalNotificationManager.scheduleExtensionNotification(
-            title: "⏰ Screen Time Alert",
-            details: "Time to take a break from \(displayName)"
-          )
-        } else {
-          LocalNotificationManager.scheduleExtensionNotification(
-            title: "⏰ Screen Time Alert",
-            details: "Time to take a break from your apps"
-          )
-        }
+      // Simple approach - track total time for all monitored apps
+      let appKey = "total_screen_time"
+      let displayName =  selection.applications.first?.localizedDisplayName ?? "your apps"
+      
+      // Add the threshold time
+      let additionalSeconds = Double(alertIntervalMinutes * 60)
+      
+      // Update usage time
+      SharedData.updateAppUsageTime(for: appKey, additionalTime: additionalSeconds)
+      
+      // Get total usage time today
+      let totalUsageSeconds = SharedData.getAppUsageTime(for: appKey)
+      let totalUsageMinutes = Int(totalUsageSeconds / 60)
+      
+      // Get personalized message
+      let message = getPersonalizedMessage(for: totalUsageMinutes, appName: displayName)
+      
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "⏰ Screen Time Alert",
+        details: message
+      )
+      
+      // If no specific apps, send generic message
+      if selection.applicationTokens.isEmpty {
+        LocalNotificationManager.scheduleExtensionNotification(
+          title: "⏰ Screen Time Alert",
+          details: "Time to take a break from your apps"
+        )
       }
     }
   }
@@ -382,6 +464,8 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       try center.startMonitoring(activity, during: schedule, events: events)
       
       // Monitor restarted successfully
+      
+      // No need to track individual apps anymore
     } catch {
       logger.log("Failed to restart monitoring: \(error.localizedDescription)")
     }
