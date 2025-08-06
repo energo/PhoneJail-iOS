@@ -20,24 +20,24 @@ struct LoginView: View {
   
   @State private var selectedCardIndex: Int = 0
   //  @State private var contents: [WelcomeContent] = []
-  @State private var showPaywall = false
-  @AppStorage("hasSeenPaywallAfterOnboarding") var hasSeenPaywallAfterOnboarding: Bool = false
+//  @State private var showPaywall = false
+//  @AppStorage("hasSeenPaywallAfterOnboarding") var hasSeenPaywallAfterOnboarding: Bool = false
   
   //MARK: - Views
   var body: some View {
     BGView(imageRsc: .bgLogin) {
       contentView
     }
-    .task {
-      //      contents = WelcomeContent.example
-      if !hasSeenPaywallAfterOnboarding {
-        showPaywall = true
-      }
-    }
-    .fullScreenCover(isPresented: $showPaywall) {
-      hasSeenPaywallAfterOnboarding = true
-      return PaywallView(displayCloseButton: true)
-    }
+//    .task {
+//      //      contents = WelcomeContent.example
+//      if !hasSeenPaywallAfterOnboarding {
+//        showPaywall = true
+//      }
+//    }
+//    .fullScreenCover(isPresented: $showPaywall) {
+//      hasSeenPaywallAfterOnboarding = true
+//      return PaywallView(displayCloseButton: true)
+//    }
   }
   
   //MARK: - Private Views
