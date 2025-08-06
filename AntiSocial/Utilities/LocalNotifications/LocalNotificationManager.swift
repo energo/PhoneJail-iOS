@@ -32,8 +32,10 @@ final class LocalNotificationManager {
     content.userInfo = ["customData": "fizzbuzz"]
     content.sound = .default
     
+    let timestamp = Date().timeIntervalSince1970
+
     let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
-    let request = UNNotificationRequest(identifier: "blocking-start", content: content, trigger: trigger)
+    let request = UNNotificationRequest(identifier: "blocking-start-\(timestamp)", content: content, trigger: trigger)
     
     notificationCenter.add(request) { error in
       if let error = error {
@@ -50,8 +52,10 @@ final class LocalNotificationManager {
     content.userInfo = ["customData": "fizzbuzz"]
     content.sound = .default
     
+    let timestamp = Date().timeIntervalSince1970
+
     let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: false)
-    let request = UNNotificationRequest(identifier: "blocking-end", content: content, trigger: trigger)
+    let request = UNNotificationRequest(identifier: "blocking-end-\(timestamp)", content: content, trigger: trigger)
     
     notificationCenter.add(request) { error in
       if let error = error {
@@ -67,10 +71,10 @@ final class LocalNotificationManager {
     content.sound = .default
     
     let trigger = UNTimeIntervalNotificationTrigger(timeInterval: delay, repeats: false)
-    
+    let timestamp = Date().timeIntervalSince1970
     // Use deterministic identifier to prevent duplicates
     let notificationId = identifier ?? "\(title)-\(body)".replacingOccurrences(of: " ", with: "-")
-    let request = UNNotificationRequest(identifier: notificationId, content: content, trigger: trigger)
+    let request = UNNotificationRequest(identifier: "\(notificationId)-\(timestamp)", content: content, trigger: trigger)
     
     notificationCenter.add(request) { error in
       if let error = error {
