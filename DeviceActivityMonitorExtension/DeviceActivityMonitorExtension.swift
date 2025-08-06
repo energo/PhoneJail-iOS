@@ -83,12 +83,6 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   //MARK: - Interval Start/End
   override func intervalDidStart(for activity: DeviceActivityName) {
     super.intervalDidStart(for: activity)
-
-    
-    // No need to track individual apps anymore
-    // The threshold event will handle all time tracking
-    
-    // Interruption monitoring started silently
   }
   
   override func intervalDidEnd(for activity: DeviceActivityName) {
@@ -194,10 +188,10 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     let now = Date()
     
     // Check if enough time has passed since last alert
-    if let lastTrigger = lastAlertTrigger,
-       now.timeIntervalSince(lastTrigger) < minimumTriggerInterval {
-      return
-    }
+//    if let lastTrigger = lastAlertTrigger,
+//       now.timeIntervalSince(lastTrigger) < minimumTriggerInterval {
+//      return
+//    }
     
     lastAlertTrigger = now
     
@@ -211,15 +205,23 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     if let selection = SharedData.selectedAlertActivity {
       // Simple approach - track total time for all monitored apps
       let appKey = "total_screen_time"
-      let displayName =  selection.applications.first?.localizedDisplayName ?? "your apps"
+      let displayName = selection.applications.first?.localizedDisplayName ?? "your apps"
       
-      // Add the threshold time
+      // Get current usage
+      let currentUsageSeconds = SharedData.getAppUsageTime(for: appKey)
+      
+      // Skip first trigger completely - don't add time, don't send notification
+      if currentUsageSeconds == 0 {
+        // Mark that we've seen the first trigger by setting a minimal value
+        SharedData.updateAppUsageTime(for: appKey, additionalTime: 0.1)
+        return
+      }
+      
+      // For all subsequent triggers, add the actual interval time
       let additionalSeconds = Double(alertIntervalMinutes * 60)
-      
-      // Update usage time
       SharedData.updateAppUsageTime(for: appKey, additionalTime: additionalSeconds)
       
-      // Get total usage time today
+      // Get total usage time
       let totalUsageSeconds = SharedData.getAppUsageTime(for: appKey)
       let totalUsageMinutes = Int(totalUsageSeconds / 60)
       
@@ -464,8 +466,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       try center.startMonitoring(activity, during: schedule, events: events)
       
       // Monitor restarted successfully
-      
-      // No need to track individual apps anymore
+      // Don't reset lastAlertTrigger here - we want to maintain the timing
     } catch {
       logger.log("Failed to restart monitoring: \(error.localizedDescription)")
     }
