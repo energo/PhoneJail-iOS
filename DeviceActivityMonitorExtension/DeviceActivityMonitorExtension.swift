@@ -213,7 +213,16 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     if let selection = SharedData.selectedAlertActivity {
       // Simple approach - track total time for all monitored apps
       let appKey = "total_screen_time"
-      let displayName = selection.applications.first?.localizedDisplayName ?? "your apps"
+      
+      // Try to get app name from tokenDisplayNameMap by checking all tokens
+      var displayName = "your phone"
+      for token in selection.applicationTokens {
+        let tokenString = String(describing: token)
+        if !SharedData.appName(for: tokenString).isEmpty && SharedData.appName(for: tokenString) != "Приложение" {
+          displayName = SharedData.appName(for: tokenString)
+          break
+        }
+      }
       
       // Get current usage
       let currentUsageSeconds = SharedData.getAppUsageTime(for: appKey)

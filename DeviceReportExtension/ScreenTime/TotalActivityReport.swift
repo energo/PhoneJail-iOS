@@ -104,6 +104,22 @@ struct TotalActivityReport: DeviceActivityReportScene {
     topList = list
     topList = Array(list.sorted(by: sortApps).prefix(3))
     
+    // Save app token to display name mapping for use in extensions
+//    var tokenMap = SharedData.tokenDisplayNameMap
+//    for app in list {
+//      let tokenString = String(describing: app.token)
+//      tokenMap[tokenString] = app.displayName
+//    }
+//    SharedData.tokenDisplayNameMap = tokenMap
+    
+    // Debug notification to show saved apps
+//    let savedApps = SharedData.getAppList()
+//    let debugApps = savedApps.prefix(3).map { $0.displayName }.joined(separator: ", ")
+//    LocalNotificationManager.scheduleExtensionNotification(
+//      title: "DEBUG: TotalReport saved",
+//      details: "Saved:\(storedApps.count) Retrieved:\(savedApps.count) Apps:\(debugApps)"
+//    )
+    
     // Cache the data for future use
     let topAppsForCache = topList.map { app in
       (name: app.displayName, duration: app.duration, bundleId: app.id)
