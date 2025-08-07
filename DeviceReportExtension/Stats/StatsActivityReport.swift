@@ -52,9 +52,12 @@ struct StatsActivityReport: DeviceActivityReportScene {
     
     let chartData = generateChartBars(from: sessions, reportDate: reportDate ?? Date())
     
-    // Calculate focused and distracted durations from chart data
+    // Calculate focused duration from chart data (convert minutes to seconds)
     let focusedDuration = chartData.reduce(0.0) { $0 + Double($1.focusedMinutes * 60) }
-    let distractedDuration = chartData.reduce(0.0) { $0 + Double($1.distractedMinutes * 60) }
+    
+    // Use totalDuration (actual screen time) minus focused time for distracted duration
+    // This avoids double counting overlapping app sessions
+    let distractedDuration = max(0, totalDuration - focusedDuration)
     
     let top3AppUsages = topAppUsages(from: sessions, count: 3)
     

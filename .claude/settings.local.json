@@ -15,7 +15,8 @@
       "Bash(xcrun simctl list:*)",
       "Bash(git checkout:*)",
       "Bash(git stash show:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }
