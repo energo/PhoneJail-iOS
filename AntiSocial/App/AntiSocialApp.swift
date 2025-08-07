@@ -39,6 +39,7 @@ struct AntiSocialApp: App {
   @StateObject private var deviceActivityService = DeviceActivityService.shared
   @StateObject private var familyControlsManager = FamilyControlsManager.shared
   @State private var midnightTimer: Timer?
+  @AppStorage("isFirstRun") private var isFirstRun: Bool = true
 
     var body: some Scene {
         WindowGroup {
@@ -49,10 +50,12 @@ struct AntiSocialApp: App {
             .environmentObject(deviceActivityService)
             .environmentObject(familyControlsManager)
             .task {
-              LocalNotificationManager.shared.requestAuthorization { isNotificationAuthed in
-                AppLogger.trace("isNotificationAuthed \(isNotificationAuthed)")
-                
-                UNUserNotificationCenter.current().delegate = DTNNotificationHandler.shared
+              if !isFirstRun {
+                LocalNotificationManager.shared.requestAuthorization { isNotificationAuthed in
+                  AppLogger.trace("isNotificationAuthed \(isNotificationAuthed)")
+                  
+                  UNUserNotificationCenter.current().delegate = DTNNotificationHandler.shared
+                }
               }
             }
             .onAppear(perform: UIApplication.shared.addTapGestureRecognizer)

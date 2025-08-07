@@ -64,7 +64,7 @@ struct OnboardingScreen: View {
         ) {
           MainGoalQuizView(selectedGoal: $selectedGoal)
         }
-        .tag(1)
+        .tag(0)
         
         OnboardingPage(
           title: "Turn on notifications to experience Phone Jail’s core features",
@@ -74,7 +74,7 @@ struct OnboardingScreen: View {
             Spacer()
           }
         }
-        .tag(2)
+        .tag(1)
         .task {
           try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 секунды
           
@@ -106,7 +106,7 @@ struct OnboardingScreen: View {
   }
   
   private var isLastPage: Bool {
-    currentPage == 2
+    currentPage == 1
   }
   
   func saveConsentAndGoal() {
