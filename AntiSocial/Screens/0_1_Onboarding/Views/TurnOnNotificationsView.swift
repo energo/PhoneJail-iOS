@@ -1,0 +1,41 @@
+//
+//  TurnOnNotificationsView.swift
+//  AntiSocial
+//
+//  Created by D C on 08.08.2025.
+//
+
+import SwiftUI
+
+struct TurnOnNotificationsView: View {
+  @State private var hasRequestedPermission = false
+  
+  var body: some View {
+    VStack {
+      Spacer()
+      
+      Spacer()
+        .frame(minHeight: 200)
+      Spacer()
+        .frame(minHeight: 130)
+
+      Image(.onbgNotificationsAllow) // You'll need to add this image to Assets
+        .resizable()
+        .scaledToFit()
+        .padding(.horizontal, 64)
+        .padding(.top, 24)
+        .transition(.opacity)
+    }
+    .task {
+      if !hasRequestedPermission {
+        hasRequestedPermission = true
+        try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+        
+        LocalNotificationManager.shared.requestAuthorization { isAuthorized in
+          AppLogger.trace("Notifications authorized: \(isAuthorized)")
+          UNUserNotificationCenter.current().delegate = DTNNotificationHandler.shared
+        }
+      }
+    }
+  }
+}

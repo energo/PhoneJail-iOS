@@ -33,7 +33,7 @@ class FamilyControlsManager: ObservableObject {
                     // Consent given
                 } catch {
                     // Consent not given
-                    AppLogger.critical(error, details: "Failed to enroll Aniyah")
+                    AppLogger.critical(error, details: "Failed to enroll")
                     hasScreenTimePermission = false
                     // The user did not allow.
                     // Error Domain=FamilyControls.FamilyControlsError Code=5 "(null)"

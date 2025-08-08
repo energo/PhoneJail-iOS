@@ -28,6 +28,7 @@ struct OnboardingPage<MainContent: View>: View {
     VStack(spacing: 0) {
       if image != nil {
         topImageView
+          .padding(.top, 24)
       }
       
       VStack(spacing: 24) {

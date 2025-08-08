@@ -8,13 +8,15 @@ import RevenueCatUI
 
 struct OnboardingScreen: View {
   @EnvironmentObject var subscriptionManager: SubscriptionManager
-
+  @EnvironmentObject var familyControlsManager: FamilyControlsManager
+  
   @Binding var isShow: Bool
   @State private var currentPage = 0
   
   @State private var agreedToStorage = false
   @State private var agreedToProcessing = false
   @State private var selectedGoal: String? = nil
+  @State private var hasRequestedScreenTime = false
   
   //MARK: - Views
   var body: some View {
@@ -25,40 +27,18 @@ struct OnboardingScreen: View {
         VStack {
           Spacer()
           
-//          if !isLastPage {
-            nextButton
-              .padding(.horizontal, 72)
-              .padding(.bottom, 56)
-//          }
+          nextButton
+            .padding(.horizontal, 72)
+            .padding(.bottom, 56)
         }
       }
     }
     .ignoresSafeArea()
-//    .onChangeWithOldValue(of: isLastPage) { _, newValue in
-//      if newValue {
-//        saveConsentAndGoal()
-//      }
-//    }
-//    .onChangeWithOldValue(of: subscriptionManager.isSubscriptionActive) { oldValue, newValue in
-//      if newValue {
-//        isShow = false
-//      }
-//    }
   }
   
   private var tabView: some View {
     VStack {
       TabView(selection: $currentPage) {
-//        OnboardingPage(
-//          title: "We classify our users’ data as private data.",
-//        ) {
-//          PrivacyConsentView(
-//            agreedToStorage: $agreedToStorage,
-//            agreedToProcessing: $agreedToProcessing
-//          )
-//        }
-//        .tag(0)
-        
         OnboardingPage(
           title: "Help us tailor your screen time journey by telling us your main goal...",
         ) {
@@ -75,23 +55,19 @@ struct OnboardingScreen: View {
         .tag(1)
         
         OnboardingPage(
-          title: "Turn on notifications to experience Phone Jail’s core features",
-          bottomTxt: "Turn on notifications to get reminders, summaries and reports of your activity and enable push notifications.",
+          title: "Connect Phone Jail to Screen Time"
         ) {
-          VStack {
-            Spacer()
-          }
+          ConnectScreenTimeView(showScreenTimeImage: $hasRequestedScreenTime)
         }
         .tag(2)
-        .task {
-          try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 секунды
-          
-          LocalNotificationManager.shared.requestAuthorization { isNotificationAuthed in
-            AppLogger.trace("isNotificationAuthed \(isNotificationAuthed)")
-            
-            UNUserNotificationCenter.current().delegate = DTNNotificationHandler.shared
-          }
+        
+        OnboardingPage(
+          title: "Turn on notifications to experience Phone Jail's core features",
+          bottomTxt: "Turn on notifications to get reminders, summaries and reports of your activity and enable push notifications."
+        ) {
+          TurnOnNotificationsView()
         }
+        .tag(3)
       }
       .tabViewStyle(.page(indexDisplayMode: .never))
       
@@ -103,18 +79,51 @@ struct OnboardingScreen: View {
   }
   
   private var nextButton: some View {
-    ButtonMain(title: "Next") {
-      if isLastPage {
+    ButtonMain(title: buttonTitle) {
+      handleButtonAction()
+    }
+//    .disabled(isButtonDisabled)
+  }
+  
+  private var buttonTitle: String {
+    switch currentPage {
+      case 2:
+        return hasRequestedScreenTime ? "Next" : "Connect Phone Jail"
+      default:
+        return "Next"
+    }
+  }
+  
+//  private var isButtonDisabled: Bool {
+//    currentPage == 2 && hasRequestedScreenTime
+//  }
+  
+  private func handleButtonAction() {
+    switch currentPage {
+      case 2:
+        if !hasRequestedScreenTime {
+          requestScreenTimePermission()
+        } else {
+          currentPage += 1
+        }
+      case 3:
         saveConsentAndGoal()
         isShow = false
-      } else {
+      default:
         currentPage += 1
-      }
+    }
+  }
+  
+  @MainActor
+  private func requestScreenTimePermission() {
+    familyControlsManager.requestAuthorization()
+    withAnimation(.easeIn(duration: 0.3)) {
+      hasRequestedScreenTime = true
     }
   }
   
   private var isLastPage: Bool {
-    currentPage == 1
+    currentPage == 3
   }
   
   func saveConsentAndGoal() {
@@ -139,4 +148,5 @@ struct OnboardingScreen: View {
 //MARK: - Preview
 #Preview {
   OnboardingScreen(isShow: .constant(false))
+    .environmentObject(FamilyControlsManager.shared)
 }
