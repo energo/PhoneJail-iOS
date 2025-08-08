@@ -37,16 +37,21 @@ class SubscriptionManager: ObservableObject, SubscriptionManagerProtocol {
   
 //  @Published public var isSubscriptionActive = (FCUserDefaults.shared.get(key: .isSubscribed) ?? false) as! Bool ? true : false
   @Published public var isSubscriptionActive: Bool
+  @Published public var subscriptionExpirationDate: Date?
+  @Published public var subscriptionPrice: String?
 
   
   private var usageCounters: [String: Int] {
     get {
       if let data = FCUserDefaults.shared.get(key: .usageCounters) as? [String: Int] {
+        AppLogger.trace("usageCounters GET: \(data)")
         return data
       }
+      AppLogger.trace("usageCounters GET: empty")
       return [:]
     }
     set {
+      AppLogger.trace("usageCounters SET: \(newValue)")
       FCUserDefaults.shared.set(newValue, key: .usageCounters)
     }
   }
@@ -55,6 +60,8 @@ class SubscriptionManager: ObservableObject, SubscriptionManagerProtocol {
     AppLogger.notice("SubscriptionManager init")
     let savedStatus = FCUserDefaults.shared.get(key: .isSubscribed) as? Bool ?? false
     self.isSubscriptionActive = savedStatus
+    
+    AppLogger.alert("SubscriptionManager init: savedStatus=\(savedStatus), isSubscriptionActive=\(isSubscriptionActive)")
 
     configureRevenueCat()
     addFirebaseAnalytcis()
@@ -275,7 +282,18 @@ class SubscriptionManager: ObservableObject, SubscriptionManagerProtocol {
         if isSubscriptionActive != isActive {
           self.isSubscriptionActive = isActive
           FCUserDefaults.shared.set(isActive, key: .isSubscribed)
+          
+          // Reset weekly limits when subscription becomes active
+          if isActive {
+            AppLogger.notice("Subscription activated - resetting weekly limits")
+            self.resetUsage(for: .weeklyBlocks)
+            self.resetUsage(for: .weeklyInterruptionDays)
+            self.resetUsage(for: .weeklyAlertDays)
+          }
         }
+        
+        // Update subscription details
+        self.updateSubscriptionDetails(from: customerInfo)
       }
     }
   }
@@ -291,7 +309,18 @@ class SubscriptionManager: ObservableObject, SubscriptionManagerProtocol {
               if self.isSubscriptionActive != isActive {
                   self.isSubscriptionActive = isActive
                   FCUserDefaults.shared.set(isActive, key: .isSubscribed)
+                  
+                  // Reset weekly limits when subscription becomes active
+                  if isActive {
+                      AppLogger.notice("Subscription activated (refresh) - resetting weekly limits")
+                      self.resetUsage(for: .weeklyBlocks)
+                      self.resetUsage(for: .weeklyInterruptionDays)
+                      self.resetUsage(for: .weeklyAlertDays)
+                  }
               }
+              
+              // Update subscription details
+              self.updateSubscriptionDetails(from: customerInfo)
           }
       }
   }
@@ -340,6 +369,7 @@ class SubscriptionManager: ObservableObject, SubscriptionManagerProtocol {
   func canStartNewBlock() -> Bool {
     // Check if subscription is active
     if isSubscriptionActive {
+      AppLogger.alert("canStartNewBlock: Subscription is active, returning true")
       return true
     }
     
@@ -347,11 +377,16 @@ class SubscriptionManager: ObservableObject, SubscriptionManagerProtocol {
     let blocksThisWeek = currentUsage(for: .weeklyBlocks)
     let limit = limit(for: .weeklyBlocks)
     
+    AppLogger.alert("canStartNewBlock: blocksThisWeek=\(blocksThisWeek), limit=\(limit.count)")
+    
     return blocksThisWeek < limit.count
   }
   
   func incrementBlockUsage() {
+    let before = currentUsage(for: .weeklyBlocks)
     incrementUsage(for: .weeklyBlocks)
+    let after = currentUsage(for: .weeklyBlocks)
+    AppLogger.alert("incrementBlockUsage: before=\(before), after=\(after)")
   }
   
   // MARK: - Interruption/Alert Day Tracking
@@ -431,5 +466,32 @@ class SubscriptionManager: ObservableObject, SubscriptionManagerProtocol {
     let limit = self.limit(for: .weeklyAlertDays)
     let used = currentUsage(for: .weeklyAlertDays)
     return max(0, limit.count - used)
+  }
+  
+  // MARK: - Subscription Details
+  private func updateSubscriptionDetails(from customerInfo: CustomerInfo) {
+    guard let entitlement = customerInfo.entitlements.all[Constants.entitlementID],
+          entitlement.isActive else {
+      subscriptionExpirationDate = nil
+      subscriptionPrice = nil
+      return
+    }
+    
+    // Get expiration date
+    subscriptionExpirationDate = entitlement.expirationDate
+    
+    // Get price string from the product identifier
+    let productIdentifier = entitlement.productIdentifier
+    if !productIdentifier.isEmpty {
+      // Try to get price from active subscriptions
+      Task {
+        let products = await Purchases.shared.products([productIdentifier])
+        if let product = products.first {
+          await MainActor.run {
+            self.subscriptionPrice = product.localizedPriceString
+          }
+        }
+      }
+    }
   }
 }

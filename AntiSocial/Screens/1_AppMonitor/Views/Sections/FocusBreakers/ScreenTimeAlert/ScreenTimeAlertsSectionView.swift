@@ -12,6 +12,7 @@ import RevenueCatUI
 
 struct ScreenTimeAlertsSectionView: View {
   @ObservedObject var viewModel: ScreenTimeAlertViewModel
+  @EnvironmentObject var subscriptionManager: SubscriptionManager
   @State private var isExpanded: Bool = true
   @State private var showPaywall = false
   
@@ -25,6 +26,10 @@ struct ScreenTimeAlertsSectionView: View {
       })
       .fullScreenCover(isPresented: $showPaywall) {
         PaywallView(displayCloseButton: true)
+          .onDisappear {
+            // Force refresh subscription status after paywall closes
+            SubscriptionManager.shared.refreshSubscription()
+          }
       }
   }
   
@@ -196,7 +201,7 @@ struct ScreenTimeAlertsSectionView: View {
   
   private var startMonitorButton: some View {
     return Group {
-      let canUse = SubscriptionManager.shared.canUseAlertsToday()
+      let canUse = subscriptionManager.canUseAlertsToday()
 
       if !canUse && !viewModel.isAlertEnabled {
         Button(action: {

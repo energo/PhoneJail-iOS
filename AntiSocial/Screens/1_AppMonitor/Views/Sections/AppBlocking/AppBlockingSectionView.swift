@@ -304,6 +304,10 @@ struct AppBlockingSectionView: View {
     }
     .fullScreenCover(isPresented: $showPaywall) {
       PaywallView(displayCloseButton: true)
+        .onDisappear {
+          // Force refresh subscription status after paywall closes
+          subscriptionManager.refreshSubscription()
+        }
     }
   }
   
@@ -550,7 +554,7 @@ struct AppBlockingSectionView: View {
   private var swipeBlockView: some View {
     SlideToTurnOnView(isBlocked: $isBlocked,
                       isStrictBlock: $isStrictBlock,
-                      isLimitReached: !subscriptionManager.canStartNewBlock() && !isBlocked,
+                      isLimitReached: !subscriptionManager.canStartNewBlock(),
                       onBlockingStateChanged: { newState in
                         if newState {
                           // Check subscription limits first
@@ -595,7 +599,7 @@ struct AppBlockingSectionView: View {
                       onPurchaseTap: {
                         showPaywall = true
                       })
-      .disabled(isBlockButtonDisabled && !(!subscriptionManager.canStartNewBlock() && !isBlocked))
+      .disabled(isBlockButtonDisabled)
   }
   
   private var isBlockButtonDisabled: Bool {

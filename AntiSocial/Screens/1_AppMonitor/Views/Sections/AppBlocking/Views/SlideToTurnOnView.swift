@@ -190,12 +190,13 @@ private extension SlideToTurnOnView {
   }
   
   func handleTap() {
+    guard isEnabled else { return }
+
     if isLimitReached {
       onPurchaseTap?()
       return
     }
     
-    guard isEnabled else { return }
     
     if isStrictBlock && isBlocked {
       shakeNow()

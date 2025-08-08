@@ -11,6 +11,7 @@ import RevenueCatUI
 struct ProfileScreen: View {
   @Environment(\.dismiss) var dismiss
   @EnvironmentObject var authVM: AuthenticationViewModel
+  @EnvironmentObject var subscriptionManager: SubscriptionManager
   
   @State private var showPaywall = false
   @State private var showDeleteConfirmation = false
@@ -27,7 +28,11 @@ struct ProfileScreen: View {
       ScrollView {
         VStack(spacing: 16) {
           profileHeader
-          planBanner
+          if !subscriptionManager.isSubscriptionActive {
+            planBanner
+          } else {
+            proPlanBanner
+          }
           settingsSection
         }
         .padding()
@@ -44,9 +49,17 @@ struct ProfileScreen: View {
     }
     .fullScreenCover(isPresented: $showPaywall) {
       return PaywallView(displayCloseButton: true)
+        .onDisappear {
+          // Force refresh subscription status after paywall closes
+          subscriptionManager.refreshSubscription()
+        }
     }
     .fullScreenCover(isPresented: $isShowNotifcations) {
       NotificationsScreen()
+    }
+    .onAppear {
+      // Refresh subscription data when screen appears
+      subscriptionManager.refreshSubscription()
     }
   }
   
@@ -129,6 +142,55 @@ struct ProfileScreen: View {
       }.opacity(0.3)
     )
     .frame(height: 138)
+  }
+  
+  private var proPlanBanner: some View {
+    VStack(alignment: .leading, spacing: 4) {
+      HStack {
+        if let expirationDate = subscriptionManager.subscriptionExpirationDate {
+          Text("Subscription ends on \(formatDate(expirationDate))")
+            .font(.system(size: 20, weight: .bold))
+            .foregroundColor(.white)
+        } else {
+          Text("Pro Plan Active")
+            .font(.system(size: 20, weight: .bold))
+            .foregroundColor(.white)
+        }
+        
+        Spacer()
+      }
+      
+      HStack {
+        if let price = subscriptionManager.subscriptionPrice {
+          Text("You will be billed \(price) automatically")
+            .font(.system(size: 14, weight: .regular))
+            .foregroundColor(.white)
+        } else {
+          Text("You have unlimited access to all features")
+            .font(.system(size: 14, weight: .regular))
+            .foregroundColor(.white)
+        }
+        
+        Spacer()
+      }
+    }
+    .padding()
+    .background(
+      ZStack {
+        BackdropBlurView(isBlack: false, radius: 32)
+        RoundedRectangle(cornerRadius: 32)
+          .fill(Color(hex: "F2AFAF").opacity(31))
+          .stroke(Color.white, lineWidth: 1)
+      }.opacity(0.3)
+    )
+    .frame(height: 96)
+  }
+  
+  private func formatDate(_ date: Date) -> String {
+    let formatter = DateFormatter()
+    formatter.dateStyle = .medium
+    formatter.timeStyle = .none
+    return formatter.string(from: date)
   }
   
   private var purchaseButton: some View {

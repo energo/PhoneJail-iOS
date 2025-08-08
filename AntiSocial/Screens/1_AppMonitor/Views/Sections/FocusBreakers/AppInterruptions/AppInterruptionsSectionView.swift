@@ -12,6 +12,7 @@ import RevenueCatUI
 
 struct AppInterruptionsSectionView: View {
   @ObservedObject var viewModel: AppInterruptionViewModel
+  @EnvironmentObject var subscriptionManager: SubscriptionManager
   @State private var isExpanded: Bool = true
   @State private var showPaywall = false
   
@@ -25,6 +26,10 @@ struct AppInterruptionsSectionView: View {
       })
       .fullScreenCover(isPresented: $showPaywall) {
         PaywallView(displayCloseButton: true)
+          .onDisappear {
+            // Force refresh subscription status after paywall closes
+            SubscriptionManager.shared.refreshSubscription()
+          }
       }
   }
   
@@ -194,7 +199,7 @@ struct AppInterruptionsSectionView: View {
   
   private var startMonitorButton: some View {
     Group {
-      let canUse = SubscriptionManager.shared.canUseInterruptionsToday()
+      let canUse = subscriptionManager.canUseInterruptionsToday()
       
       if !canUse && !viewModel.isInterruptionsEnabled {
         Button(action: {
