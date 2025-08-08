@@ -18,6 +18,7 @@ struct ScreenTimeSectionView: View {
       Text("Screen Time Today")
         .font(.system(size: 18, weight: .medium))
         .foregroundColor(.white)
+        .padding(.top, 8)
       
       screenTimeView
       bottomView
@@ -85,7 +86,7 @@ struct ScreenTimeSectionView: View {
             .font(.title2)
             .foregroundColor(.white)
         }
-
+        
         Text("TIME IN FOCUS")
           .font(.caption)
           .foregroundColor(.as_gray_light)
