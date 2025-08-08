@@ -49,6 +49,6 @@ struct MainGoalQuizView: View {
         }
       }
     }
-    .padding(.horizontal, 24)
+    .padding(.horizontal, 16)
   }
 }

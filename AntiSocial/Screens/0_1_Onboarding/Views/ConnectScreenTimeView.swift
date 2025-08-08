@@ -9,7 +9,7 @@ import SwiftUI
 //import FamilyControls
 
 struct ConnectScreenTimeView: View {
-//  @EnvironmentObject var familyControlsManager: FamilyControlsManager
+  //  @EnvironmentObject var familyControlsManager: FamilyControlsManager
   @Binding var showScreenTimeImage: Bool
   
   var body: some View {
@@ -18,28 +18,27 @@ struct ConnectScreenTimeView: View {
         .font(.system(size: 16, weight: .regular))
         .foregroundColor(.white)
         .multilineTextAlignment(.center)
-
-      Spacer()
-      if showScreenTimeImage {
+        .padding(.horizontal, 16)
+        .padding(.top, 16)
+      
+      if !showScreenTimeImage {
         Spacer()
-      } else {
-        Image(.onbgScreentime) // You'll need to add this image to Assets
+        Image(.onbgScreentime)
           .resizable()
           .scaledToFit()
           .padding(.horizontal, 48)
           .transition(.opacity)
+        Spacer()
       }
       
       if showScreenTimeImage {
-        Image(.onbgScreentimeAllow) // You'll need to add this image to Assets
+        Image(.onbgScreentimeAllow)
           .resizable()
           .scaledToFit()
           .padding(.horizontal, 64)
-          .padding(.top, 140)
+          .position(x: UIScreen.main.bounds.width / 2, y: UIScreen.main.bounds.height / 2 - 24)
           .transition(.opacity)
       }
-      
-      Spacer()
     }
   }
 }

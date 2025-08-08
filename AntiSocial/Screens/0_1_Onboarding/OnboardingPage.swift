@@ -64,7 +64,7 @@ struct OnboardingPage<MainContent: View>: View {
         .font(.system(size: 16, weight: .regular))
         .foregroundColor(.white)
     }
-    .padding(.horizontal, 24)
+    .padding(.horizontal, 8)
     .padding(.bottom, 64)
     .opacity(showText ? 1 : 0)
   }
@@ -80,7 +80,7 @@ struct OnboardingPage<MainContent: View>: View {
       .multilineTextAlignment(.center)
       .font(.system(size: 24, weight: .semibold))
       .foregroundColor(.white)
-      .padding(.horizontal, 24)
+      .padding(.horizontal, 8)
       .padding(.top, image == nil ? 24 : 16)
       .opacity(showText ? 1 : 0)
   }

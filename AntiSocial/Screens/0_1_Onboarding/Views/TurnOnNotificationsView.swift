@@ -14,17 +14,11 @@ struct TurnOnNotificationsView: View {
     VStack {
       Spacer()
       
-      Spacer()
-        .frame(minHeight: 200)
-      Spacer()
-        .frame(minHeight: 130)
-
-      Image(.onbgNotificationsAllow) // You'll need to add this image to Assets
+      Image(.onbgNotificationsAllow)
         .resizable()
         .scaledToFit()
         .padding(.horizontal, 64)
-        .padding(.top, 24)
-        .transition(.opacity)
+        .position(x: UIScreen.main.bounds.width / 2, y: UIScreen.main.bounds.height / 2)
     }
     .task {
       if !hasRequestedPermission {
