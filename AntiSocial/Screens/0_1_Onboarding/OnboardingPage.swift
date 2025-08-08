@@ -10,25 +10,38 @@ struct OnboardingPage<MainContent: View>: View {
   
   let title: String
   var bottomTxt: String
+  var image: ImageResource?
   let mainView: MainContent
   
-  init(title: String, bottomTxt: String = "", @ViewBuilder mainView: () -> MainContent) {
+  init(
+    title: String, bottomTxt: String = "",
+    image: ImageResource? = nil,
+    @ViewBuilder mainView: () -> MainContent
+  ) {
     self.title = title
+    self.image = image
     self.bottomTxt = bottomTxt
     self.mainView = mainView()
   }
   
   var body: some View {
-    VStack(spacing: 24) {
-      topTextView
-      mainView
-        .opacity(showText ? 1 : 0)
-
-      if !bottomTxt.isEmpty {
-        bottomTextView
+    VStack(spacing: 0) {
+      if image != nil {
+        topImageView
       }
       
-      Spacer()
+      VStack(spacing: 24) {
+        
+        topTextView
+        mainView
+          .opacity(showText ? 1 : 0)
+        
+        if !bottomTxt.isEmpty {
+          bottomTextView
+        }
+        
+        Spacer()
+      }
     }
     .frame(maxWidth: .infinity)
     .onAppear {
@@ -55,13 +68,19 @@ struct OnboardingPage<MainContent: View>: View {
     .opacity(showText ? 1 : 0)
   }
   
+  private var topImageView: some View {
+    Image(image!)
+      .resizable()
+      .frame(width: 128, height: 131)
+  }
+  
   private var topTextView: some View {
     Text(title)
       .multilineTextAlignment(.center)
       .font(.system(size: 24, weight: .semibold))
       .foregroundColor(.white)
       .padding(.horizontal, 24)
-      .padding(.top, 24)
+      .padding(.top, image == nil ? 24 : 16)
       .opacity(showText ? 1 : 0)
   }
 }

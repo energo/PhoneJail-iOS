@@ -67,6 +67,14 @@ struct OnboardingScreen: View {
         .tag(0)
         
         OnboardingPage(
+          title: "How Phone Jail works",
+          image: .onbgHwLock
+        ) {
+          HowWorksView()
+        }
+        .tag(1)
+        
+        OnboardingPage(
           title: "Turn on notifications to experience Phone Jail’s core features",
           bottomTxt: "Turn on notifications to get reminders, summaries and reports of your activity and enable push notifications.",
         ) {
@@ -74,7 +82,7 @@ struct OnboardingScreen: View {
             Spacer()
           }
         }
-        .tag(1)
+        .tag(2)
         .task {
           try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 секунды
           
