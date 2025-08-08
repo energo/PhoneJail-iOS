@@ -38,8 +38,6 @@ class AppInterruptionViewModel: ObservableObject {
   @Published var pickerIsPresented = false
   @Published var showSocialMediaHint = false
   @Published var monitoredApps: [MonitoredApp] = []
-  @Published var showSubscriptionAlert = false
-  @Published var subscriptionAlertMessage = ""
   
   let center = DeviceActivityCenter()
   private let subscriptionManager = SubscriptionManager.shared
@@ -83,9 +81,6 @@ class AppInterruptionViewModel: ObservableObject {
   
   private func checkSubscriptionAndStart() -> Bool {
     if !subscriptionManager.canUseInterruptionsToday() {
-      let remainingDays = subscriptionManager.remainingInterruptionDaysThisWeek()
-      subscriptionAlertMessage = "You've used your free interruption day this week (\(remainingDays) days remaining). Upgrade to Pro for unlimited interruptions."
-      showSubscriptionAlert = true
       return false
     }
     

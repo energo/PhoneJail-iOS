@@ -38,8 +38,6 @@ class ScreenTimeAlertViewModel: ObservableObject {
   @Published var pickerIsPresented = false
   @Published var showSocialMediaHint = false
   @Published var monitoredApps: [MonitoredApp] = []
-  @Published var showSubscriptionAlert = false
-  @Published var subscriptionAlertMessage = ""
   
   let center = DeviceActivityCenter()
   private let subscriptionManager = SubscriptionManager.shared
@@ -83,9 +81,6 @@ class ScreenTimeAlertViewModel: ObservableObject {
   
   private func checkSubscriptionAndStart() -> Bool {
     if !subscriptionManager.canUseAlertsToday() {
-      let remainingDays = subscriptionManager.remainingAlertDaysThisWeek()
-      subscriptionAlertMessage = "You've used your free alert day this week (\(remainingDays) days remaining). Upgrade to Pro for unlimited alerts."
-      showSubscriptionAlert = true
       return false
     }
     

@@ -35,8 +35,6 @@ struct AppBlockingSectionView: View {
   @State private var blockingCount = 0 // Счетчик блокировок
   @State private var totalSavedTime: TimeInterval = 0 // Общее время за сегодня
   @State private var currentSessionSavedTime: String = "0h 00m" // Текущая сессия
-  @State private var showSubscriptionAlert = false
-  @State private var subscriptionAlertMessage = ""
   @State private var showPaywall = false
   
   // MARK: - Constants
@@ -304,14 +302,6 @@ struct AppBlockingSectionView: View {
     .alert("Too many categories selected", isPresented: $maxCategoriesAlert) {
       Button("OK", role: .cancel) { }
     }
-    .alert("Subscription Required", isPresented: $showSubscriptionAlert) {
-      Button("Upgrade to Pro") {
-        showPaywall = true
-      }
-      Button("Cancel", role: .cancel) { }
-    } message: {
-      Text(subscriptionAlertMessage)
-    }
     .fullScreenCover(isPresented: $showPaywall) {
       PaywallView(displayCloseButton: true)
     }
@@ -560,17 +550,12 @@ struct AppBlockingSectionView: View {
   private var swipeBlockView: some View {
     SlideToTurnOnView(isBlocked: $isBlocked,
                       isStrictBlock: $isStrictBlock,
+                      isLimitReached: !subscriptionManager.canStartNewBlock() && !isBlocked,
                       onBlockingStateChanged: { newState in
                         if newState {
                           // Check subscription limits first
                           if !subscriptionManager.canStartNewBlock() {
-                            let remainingBlocks = subscriptionManager.remainingBlocksThisWeek()
-                            subscriptionAlertMessage = "You've used all your free blocks this week (\(remainingBlocks) remaining). Upgrade to Pro for unlimited app blocking."
-                            showSubscriptionAlert = true
-                            // Reset the toggle
-                            DispatchQueue.main.async {
-                              isBlocked = false
-                            }
+                            // This shouldn't happen as button is disabled, but just in case
                             return
                           }
                           
@@ -606,8 +591,11 @@ struct AppBlockingSectionView: View {
                           BlockingNotificationService.shared.stopBlocking(selection: deviceActivityService.selectionToDiscourage)
                           // Don't reset hours and minutes - keep last used values
                         }
+                      },
+                      onPurchaseTap: {
+                        showPaywall = true
                       })
-      .disabled(isBlockButtonDisabled)
+      .disabled(isBlockButtonDisabled && !(!subscriptionManager.canStartNewBlock() && !isBlocked))
   }
   
   private var isBlockButtonDisabled: Bool {

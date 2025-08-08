@@ -23,14 +23,6 @@ struct AppInterruptionsSectionView: View {
       .onChangeWithOldValue(of: viewModel.model.activitySelection, perform: { _, newValue in
         viewModel.onActivitySelectionChange()
       })
-      .alert("Subscription Required", isPresented: $viewModel.showSubscriptionAlert) {
-        Button("Upgrade to Pro") {
-          showPaywall = true
-        }
-        Button("Cancel", role: .cancel) { }
-      } message: {
-        Text(viewModel.subscriptionAlertMessage)
-      }
       .fullScreenCover(isPresented: $showPaywall) {
         PaywallView(displayCloseButton: true)
       }
@@ -201,9 +193,30 @@ struct AppInterruptionsSectionView: View {
   }
   
   private var startMonitorButton: some View {
-    Toggle("", isOn: $viewModel.isInterruptionsEnabled)
-      .foregroundStyle(Color.white)
-      .toggleStyle(SwitchToggleStyle(tint: .purple))
+    Group {
+      let canUse = SubscriptionManager.shared.canUseInterruptionsToday()
+      
+      if !canUse && !viewModel.isInterruptionsEnabled {
+        Button(action: {
+          showPaywall = true
+        }) {
+          HStack(spacing: 6) {
+            Image(.icLockPurchase)
+              .resizable()
+              .frame(width: 16, height: 18)
+            Text("Purchase to unlock")
+              .foregroundStyle(Color.white)
+              .font(.system(size: 12, weight: .regular))
+          }
+          .padding(.horizontal, 12)
+          .padding(.vertical, 6)
+        }
+      } else {
+        Toggle("", isOn: $viewModel.isInterruptionsEnabled)
+          .foregroundStyle(Color.white)
+          .toggleStyle(SwitchToggleStyle(tint: .purple))
+      }
+    }
   }
   
   //  private var monitoredAppsListView: some View {
