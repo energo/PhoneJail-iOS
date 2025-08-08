@@ -60,6 +60,7 @@ class SubscriptionManager: ObservableObject, SubscriptionManagerProtocol {
     addFirebaseAnalytcis()
   
     refreshSubscription()
+    checkAndResetWeeklyLimits()
     Task {
 //      async let _: () = self.syncPurchases()
       async let _: () = self.listenUpdates()
@@ -303,5 +304,132 @@ class SubscriptionManager: ObservableObject, SubscriptionManagerProtocol {
     } else {
       AppLogger.critical(SubscriptionManagerError.firebaseAnalticsError, details: "Firebase Analytics instance ID not found!")
     }
+  }
+  
+  // MARK: - Weekly Reset Logic
+  private func checkAndResetWeeklyLimits() {
+    let now = Date()
+    let calendar = Calendar.current
+    
+    // Get the last reset date or set it to a week ago if not exists
+    let lastResetDate = FCUserDefaults.shared.get(key: .weeklyResetDate) as? Date ?? calendar.date(byAdding: .weekOfYear, value: -1, to: now)!
+    
+    // Check if a week has passed since last reset
+    if let daysSinceReset = calendar.dateComponents([.day], from: lastResetDate, to: now).day, daysSinceReset >= 7 {
+      // Reset weekly counters
+      resetUsage(for: .weeklyBlocks)
+      resetUsage(for: .weeklyInterruptionDays)
+      resetUsage(for: .weeklyAlertDays)
+      
+      // Clear last interruption and alert dates
+      FCUserDefaults.shared.set(nil, key: .lastInterruptionDate)
+      FCUserDefaults.shared.set(nil, key: .lastAlertDate)
+      
+      // Update last reset date to start of current week
+      if let startOfWeek = calendar.dateInterval(of: .weekOfYear, for: now)?.start {
+        FCUserDefaults.shared.set(startOfWeek, key: .weeklyResetDate)
+      } else {
+        FCUserDefaults.shared.set(now, key: .weeklyResetDate)
+      }
+      
+      AppLogger.notice("Weekly limits have been reset")
+    }
+  }
+  
+  // MARK: - Block Tracking
+  func canStartNewBlock() -> Bool {
+    // Check if subscription is active
+    if isSubscriptionActive {
+      return true
+    }
+    
+    // Check weekly limit
+    let blocksThisWeek = currentUsage(for: .weeklyBlocks)
+    let limit = limit(for: .weeklyBlocks)
+    
+    return blocksThisWeek < limit.count
+  }
+  
+  func incrementBlockUsage() {
+    incrementUsage(for: .weeklyBlocks)
+  }
+  
+  // MARK: - Interruption/Alert Day Tracking
+  func canUseInterruptionsToday() -> Bool {
+    // Check if subscription is active
+    if isSubscriptionActive {
+      return true
+    }
+    
+    // Check if already used today
+    let lastUsedDate = FCUserDefaults.shared.get(key: .lastInterruptionDate) as? Date
+    if let lastUsed = lastUsedDate, Calendar.current.isDateInToday(lastUsed) {
+      return true // Already activated today, can continue using
+    }
+    
+    // Check weekly limit
+    let daysUsedThisWeek = currentUsage(for: .weeklyInterruptionDays)
+    let limit = limit(for: .weeklyInterruptionDays)
+    
+    return daysUsedThisWeek < limit.count
+  }
+  
+  func canUseAlertsToday() -> Bool {
+    // Check if subscription is active
+    if isSubscriptionActive {
+      return true
+    }
+    
+    // Check if already used today
+    let lastUsedDate = FCUserDefaults.shared.get(key: .lastAlertDate) as? Date
+    if let lastUsed = lastUsedDate, Calendar.current.isDateInToday(lastUsed) {
+      return true // Already activated today, can continue using
+    }
+    
+    // Check weekly limit
+    let daysUsedThisWeek = currentUsage(for: .weeklyAlertDays)
+    let limit = limit(for: .weeklyAlertDays)
+    
+    return daysUsedThisWeek < limit.count
+  }
+  
+  func markInterruptionDayUsed() {
+    let today = Date()
+    let lastUsedDate = FCUserDefaults.shared.get(key: .lastInterruptionDate) as? Date
+    
+    // Only increment if not already used today
+    if lastUsedDate == nil || !Calendar.current.isDateInToday(lastUsedDate!) {
+      incrementUsage(for: .weeklyInterruptionDays)
+      FCUserDefaults.shared.set(today, key: .lastInterruptionDate)
+    }
+  }
+  
+  func markAlertDayUsed() {
+    let today = Date()
+    let lastUsedDate = FCUserDefaults.shared.get(key: .lastAlertDate) as? Date
+    
+    // Only increment if not already used today
+    if lastUsedDate == nil || !Calendar.current.isDateInToday(lastUsedDate!) {
+      incrementUsage(for: .weeklyAlertDays)
+      FCUserDefaults.shared.set(today, key: .lastAlertDate)
+    }
+  }
+  
+  func remainingBlocksThisWeek() -> Int {
+    let limit = self.limit(for: .weeklyBlocks)
+    let used = currentUsage(for: .weeklyBlocks)
+    return max(0, limit.count - used)
+  }
+  
+  func remainingInterruptionDaysThisWeek() -> Int {
+    let limit = self.limit(for: .weeklyInterruptionDays)
+    let used = currentUsage(for: .weeklyInterruptionDays)
+    return max(0, limit.count - used)
+  }
+  
+  func remainingAlertDaysThisWeek() -> Int {
+    let limit = self.limit(for: .weeklyAlertDays)
+    let used = currentUsage(for: .weeklyAlertDays)
+    return max(0, limit.count - used)
   }
 }

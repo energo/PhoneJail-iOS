@@ -15,7 +15,15 @@ class ScreenTimeAlertViewModel: ObservableObject {
     didSet {
       if oldValue != isAlertEnabled {
         if oldValue == false && isAlertEnabled == true {
-          startMonitoring()
+          // Check subscription before starting
+          if checkSubscriptionAndStart() {
+            startMonitoring()
+          } else {
+            // Reset toggle if subscription check fails
+            DispatchQueue.main.async {
+              self.isAlertEnabled = false
+            }
+          }
         } else if oldValue == true && isAlertEnabled == false {
           stopMonitoring()
         }
@@ -30,8 +38,11 @@ class ScreenTimeAlertViewModel: ObservableObject {
   @Published var pickerIsPresented = false
   @Published var showSocialMediaHint = false
   @Published var monitoredApps: [MonitoredApp] = []
+  @Published var showSubscriptionAlert = false
+  @Published var subscriptionAlertMessage = ""
   
   let center = DeviceActivityCenter()
+  private let subscriptionManager = SubscriptionManager.shared
   
   //MARK: - Init
   init() {
@@ -68,6 +79,19 @@ class ScreenTimeAlertViewModel: ObservableObject {
       monitoredApps[index].isMonitored.toggle()
       updateMonitoringState()
     }
+  }
+  
+  private func checkSubscriptionAndStart() -> Bool {
+    if !subscriptionManager.canUseAlertsToday() {
+      let remainingDays = subscriptionManager.remainingAlertDaysThisWeek()
+      subscriptionAlertMessage = "You've used your free alert day this week (\(remainingDays) days remaining). Upgrade to Pro for unlimited alerts."
+      showSubscriptionAlert = true
+      return false
+    }
+    
+    // Mark the day as used
+    subscriptionManager.markAlertDayUsed()
+    return true
   }
   
   func startMonitoring() {
@@ -162,7 +186,15 @@ class ScreenTimeAlertViewModel: ObservableObject {
         let oldValue = self.model.isEnabled
         self.model.isEnabled = newValue
         if oldValue == false && newValue == true {
-          self.startMonitoring()
+          // Check subscription before starting
+          if self.checkSubscriptionAndStart() {
+            self.startMonitoring()
+          } else {
+            // Reset toggle if subscription check fails
+            DispatchQueue.main.async {
+              self.model.isEnabled = false
+            }
+          }
         } else if oldValue == true && newValue == false {
           self.stopMonitoring()
         }

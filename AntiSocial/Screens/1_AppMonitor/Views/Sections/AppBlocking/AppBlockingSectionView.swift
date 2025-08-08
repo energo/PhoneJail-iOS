@@ -9,10 +9,12 @@ import SwiftUI
 import WidgetKit
 import FamilyControls
 import Combine
+import RevenueCatUI
 
 
 struct AppBlockingSectionView: View {
   @EnvironmentObject var deviceActivityService: DeviceActivityService
+  @EnvironmentObject var subscriptionManager: SubscriptionManager
   @ObservedObject var restrictionModel: MyRestrictionModel
   
   @State var hours: Int = 0
@@ -33,6 +35,9 @@ struct AppBlockingSectionView: View {
   @State private var blockingCount = 0 // Счетчик блокировок
   @State private var totalSavedTime: TimeInterval = 0 // Общее время за сегодня
   @State private var currentSessionSavedTime: String = "0h 00m" // Текущая сессия
+  @State private var showSubscriptionAlert = false
+  @State private var subscriptionAlertMessage = ""
+  @State private var showPaywall = false
   
   // MARK: - Constants
   private enum Constants {
@@ -299,6 +304,17 @@ struct AppBlockingSectionView: View {
     .alert("Too many categories selected", isPresented: $maxCategoriesAlert) {
       Button("OK", role: .cancel) { }
     }
+    .alert("Subscription Required", isPresented: $showSubscriptionAlert) {
+      Button("Upgrade to Pro") {
+        showPaywall = true
+      }
+      Button("Cancel", role: .cancel) { }
+    } message: {
+      Text(subscriptionAlertMessage)
+    }
+    .fullScreenCover(isPresented: $showPaywall) {
+      PaywallView(displayCloseButton: true)
+    }
   }
   
   //MARK: - Views
@@ -546,6 +562,21 @@ struct AppBlockingSectionView: View {
                       isStrictBlock: $isStrictBlock,
                       onBlockingStateChanged: { newState in
                         if newState {
+                          // Check subscription limits first
+                          if !subscriptionManager.canStartNewBlock() {
+                            let remainingBlocks = subscriptionManager.remainingBlocksThisWeek()
+                            subscriptionAlertMessage = "You've used all your free blocks this week (\(remainingBlocks) remaining). Upgrade to Pro for unlimited app blocking."
+                            showSubscriptionAlert = true
+                            // Reset the toggle
+                            DispatchQueue.main.async {
+                              isBlocked = false
+                            }
+                            return
+                          }
+                          
+                          // Increment block usage
+                          subscriptionManager.incrementBlockUsage()
+                          
                           // Timestamp теперь устанавливается в BlockingNotificationService.startBlocking
                           
                           BlockingNotificationService.shared.startBlocking(

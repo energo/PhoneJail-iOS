@@ -8,10 +8,12 @@
 import SwiftUI
 import FamilyControls
 import ManagedSettings
+import RevenueCatUI
 
 struct ScreenTimeAlertsSectionView: View {
   @ObservedObject var viewModel: ScreenTimeAlertViewModel
   @State private var isExpanded: Bool = true
+  @State private var showPaywall = false
   
   var body: some View {
     contentView
@@ -21,6 +23,17 @@ struct ScreenTimeAlertsSectionView: View {
       .onChangeWithOldValue(of: viewModel.model.activitySelection, perform: { _, _ in
         viewModel.onActivitySelectionChange()
       })
+      .alert("Subscription Required", isPresented: $viewModel.showSubscriptionAlert) {
+        Button("Upgrade to Pro") {
+          showPaywall = true
+        }
+        Button("Cancel", role: .cancel) { }
+      } message: {
+        Text(viewModel.subscriptionAlertMessage)
+      }
+      .fullScreenCover(isPresented: $showPaywall) {
+        PaywallView(displayCloseButton: true)
+      }
   }
   
   private var contentView: some View {

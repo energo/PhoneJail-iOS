@@ -18,6 +18,9 @@ class FCUserDefaults {
     case lastStudyDate
     case lastImportDate
     case usageCounters
+    case weeklyResetDate
+    case lastInterruptionDate
+    case lastAlertDate
   }
 
   static let shared = FCUserDefaults()
