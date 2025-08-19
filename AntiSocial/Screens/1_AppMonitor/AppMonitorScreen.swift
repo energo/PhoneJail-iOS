@@ -110,7 +110,7 @@ private extension AppMonitorScreen {
   }
   
   func contentSections(screenGeometry: GeometryProxy) -> some View {
-    VStack(spacing: Constants.sectionSpacing) {
+    VStack(spacing: headerHeight) { //to ensure that prevuios page will scroll out from current screen
       appBlockingSection(screenGeometry: screenGeometry)
       statsSection(screenGeometry: screenGeometry)
       focusBreaksSection(screenGeometry: screenGeometry)
