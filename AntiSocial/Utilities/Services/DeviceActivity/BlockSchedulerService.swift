@@ -17,6 +17,16 @@ extension DeviceActivityName {
     }
 }
 
+extension DeviceActivityEvent.Name {
+    static func scheduledBlockStart(id: String) -> Self {
+        Self("scheduledBlockStart_\(id)")
+    }
+    
+    static func scheduledBlockEnd(id: String) -> Self {
+        Self("scheduledBlockEnd_\(id)")
+    }
+}
+
 extension ManagedSettingsStore.Name {
     static func scheduledBlock(id: String) -> Self {
         Self("scheduledBlock_\(id)")
@@ -40,14 +50,37 @@ class BlockSchedulerService: ObservableObject {
     func activateSchedule(_ schedule: BlockSchedule) {
         guard schedule.isActive else { return }
         
-        // Create device activity schedule
+        // Create unique activity and event names for this schedule
         let activityName = DeviceActivityName.scheduledBlock(id: schedule.id)
+        let startEventName = DeviceActivityEvent.Name.scheduledBlockStart(id: schedule.id)
+        let endEventName = DeviceActivityEvent.Name.scheduledBlockEnd(id: schedule.id)
+        
+        // Create device activity schedule
         let deviceSchedule = schedule.createDeviceActivitySchedule()
         
-        // Start monitoring
+        // Create events for start and end
+        let events: [DeviceActivityEvent.Name: DeviceActivityEvent] = [
+            startEventName: DeviceActivityEvent(
+                applications: schedule.selection.applicationTokens,
+                categories: schedule.selection.categoryTokens,
+                webDomains: schedule.selection.webDomainTokens,
+                threshold: DateComponents(second: 0)
+            ),
+            endEventName: DeviceActivityEvent(
+                applications: schedule.selection.applicationTokens,
+                categories: schedule.selection.categoryTokens,
+                webDomains: schedule.selection.webDomainTokens,
+                threshold: DateComponents(second: 0)
+            )
+        ]
+        
+        // Start monitoring with events
         do {
-            try center.startMonitoring(activityName, during: deviceSchedule)
+            try center.startMonitoring(activityName, during: deviceSchedule, events: events)
             activeMonitors.insert(schedule.id)
+            
+            // Save schedule data to SharedData for extension access
+            saveScheduleToSharedData(schedule)
             
             // Apply restrictions if schedule is currently active
             if isScheduleActiveNow(schedule) {
@@ -163,24 +196,54 @@ class BlockSchedulerService: ObservableObject {
         }
     }
     
+    private func saveScheduleToSharedData(_ schedule: BlockSchedule) {
+        // Save schedule data to SharedData for extension access
+        let encoder = PropertyListEncoder()
+        if let data = try? encoder.encode(schedule.selection) {
+            SharedData.userDefaults?.set(data, forKey: "schedule_\(schedule.id)_selection")
+        }
+        SharedData.userDefaults?.set(schedule.name, forKey: "schedule_\(schedule.id)_name")
+        SharedData.userDefaults?.set(schedule.isStrictBlock, forKey: "schedule_\(schedule.id)_strict")
+        
+        // Save schedule times
+        if let startHour = schedule.startTime.hour,
+           let startMinute = schedule.startTime.minute,
+           let endHour = schedule.endTime.hour,
+           let endMinute = schedule.endTime.minute {
+            SharedData.userDefaults?.set(startHour, forKey: "schedule_\(schedule.id)_startHour")
+            SharedData.userDefaults?.set(startMinute, forKey: "schedule_\(schedule.id)_startMinute")
+            SharedData.userDefaults?.set(endHour, forKey: "schedule_\(schedule.id)_endHour")
+            SharedData.userDefaults?.set(endMinute, forKey: "schedule_\(schedule.id)_endMinute")
+        }
+    }
+    
     private func applyRestrictions(for schedule: BlockSchedule) {
         let storeName = ManagedSettingsStore.Name.scheduledBlock(id: schedule.id)
         let store = ManagedSettingsStore(named: storeName)
         
+        // Clear existing settings first
+        store.clearAllSettings()
+        
         // Apply app restrictions
         store.shield.applications = schedule.selection.applicationTokens
-        store.shield.applicationCategories = ShieldSettings.ActivityCategoryPolicy.specific(schedule.selection.categoryTokens)
-        store.shield.webDomains = schedule.selection.webDomainTokens
         
-        // Configure shield behavior
         if schedule.isStrictBlock {
-            // Strict mode - no way to bypass
-            store.shield.applicationCategories = ShieldSettings.ActivityCategoryPolicy.all(except: Set())
+            // Strict mode - block all categories
+            store.shield.applicationCategories = ShieldSettings.ActivityCategoryPolicy.all()
+        } else {
+            // Normal mode - only block selected categories
+            store.shield.applicationCategories = ShieldSettings.ActivityCategoryPolicy.specific(schedule.selection.categoryTokens)
         }
+        
+        store.shield.webDomains = schedule.selection.webDomainTokens
         
         // Save to SharedData for extensions
         SharedData.userDefaults?.set(true, forKey: "schedule_\(schedule.id)_active")
-        SharedData.userDefaults?.set(schedule.isStrictBlock, forKey: "schedule_\(schedule.id)_strict")
+        SharedData.userDefaults?.set(true, forKey: SharedData.Widget.isBlocked)
+        SharedData.userDefaults?.set(schedule.isStrictBlock, forKey: SharedData.Widget.isStricted)
+        
+        // Set the blocking timestamp for this schedule
+        SharedData.userDefaults?.set(Date().timeIntervalSince1970, forKey: "schedule_\(schedule.id)_startTimestamp")
         
         AppLogger.trace("Applied restrictions for schedule: \(schedule.name)")
     }
@@ -195,6 +258,20 @@ class BlockSchedulerService: ObservableObject {
         // Clear from SharedData
         SharedData.userDefaults?.removeObject(forKey: "schedule_\(schedule.id)_active")
         SharedData.userDefaults?.removeObject(forKey: "schedule_\(schedule.id)_strict")
+        SharedData.userDefaults?.removeObject(forKey: "schedule_\(schedule.id)_selection")
+        SharedData.userDefaults?.removeObject(forKey: "schedule_\(schedule.id)_name")
+        SharedData.userDefaults?.removeObject(forKey: "schedule_\(schedule.id)_startHour")
+        SharedData.userDefaults?.removeObject(forKey: "schedule_\(schedule.id)_startMinute")
+        SharedData.userDefaults?.removeObject(forKey: "schedule_\(schedule.id)_endHour")
+        SharedData.userDefaults?.removeObject(forKey: "schedule_\(schedule.id)_endMinute")
+        SharedData.userDefaults?.removeObject(forKey: "schedule_\(schedule.id)_startTimestamp")
+        
+        // Check if any other schedules are active, if not, clear global blocking state
+        let activeSchedules = BlockSchedule.loadAll().filter { $0.isActive && $0.id != schedule.id }
+        if activeSchedules.isEmpty {
+            SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
+            SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isStricted)
+        }
         
         AppLogger.trace("Removed restrictions for schedule: \(schedule.name)")
     }

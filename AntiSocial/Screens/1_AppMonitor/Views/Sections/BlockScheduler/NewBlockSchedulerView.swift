@@ -25,6 +25,7 @@ struct NewBlockSchedulerView: View {
     @State private var selection: FamilyActivitySelection = FamilyActivitySelection()
     @State private var isStrictBlock: Bool = false
     @State private var showingActivityPicker = false
+    @State private var isActive: Bool = false
     
     init(schedule: BlockSchedule?, onSave: @escaping (BlockSchedule) -> Void, onDelete: (() -> Void)?) {
         self.schedule = schedule
@@ -68,13 +69,13 @@ struct NewBlockSchedulerView: View {
             Spacer()
             
             HStack(spacing: 8) {
-                Image(systemName: "lock.open.fill")
-                    .foregroundStyle(Color.green)
+                Image(systemName: isActive ? "lock.fill" : "lock.open.fill")
+                    .foregroundStyle(isActive ? Color.as_red : Color.green)
                     .frame(width: 24, height: 24)
                     .padding(8)
                     .background(
                         Circle()
-                            .fill(Color.green.opacity(0.2))
+                            .fill(isActive ? Color.as_red.opacity(0.2) : Color.green.opacity(0.2))
                     )
                 
                 Text(schedule != nil ? name : "New Block Scheduler")
@@ -268,32 +269,67 @@ struct NewBlockSchedulerView: View {
     }
     
     private var bottomButtons: some View {
-        Button(action: {
+        VStack(spacing: 12) {
             if schedule != nil {
-                saveSchedule(isActive: schedule?.isActive ?? false)
+                // For existing schedule, show activate/deactivate toggle
+                Toggle(isOn: $isActive) {
+                    Text(isActive ? "Schedule Active" : "Schedule Inactive")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(Color.white)
+                }
+                .toggleStyle(SwitchToggleStyle(tint: .green))
+                .padding(.horizontal)
+                .onChange(of: isActive) { _, newValue in
+                    // Update the schedule without dismissing
+                    var startComponents = DateComponents()
+                    startComponents.hour = startHour
+                    startComponents.minute = startMinute
+                    
+                    var endComponents = DateComponents()
+                    endComponents.hour = endHour
+                    endComponents.minute = endMinute
+                    
+                    let updatedSchedule = BlockSchedule(
+                        id: schedule?.id ?? UUID().uuidString,
+                        name: name.isEmpty ? generateDefaultName() : name,
+                        startTime: startComponents,
+                        endTime: endComponents,
+                        daysOfWeek: selectedDays,
+                        selection: selection,
+                        isStrictBlock: isStrictBlock,
+                        isActive: newValue,
+                        createdAt: schedule?.createdAt ?? Date(),
+                        updatedAt: Date()
+                    )
+                    
+                    onSave(updatedSchedule)
+                }
             } else {
-                saveSchedule(isActive: true)
+                // For new schedule, show activate button
+                Button(action: {
+                    activateAndSaveSchedule()
+                }) {
+                    HStack {
+                        Spacer()
+                        Text("Activate")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(Color.white)
+                        Spacer()
+                    }
+                    .padding(.vertical, 20)
+                    .background(
+                        LinearGradient(
+                            colors: [Color(hex: "C87BFF"), Color(hex: "FF7B9C")],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 9999))
+                }
+                .disabled(!isValidSchedule)
             }
-        }) {
-            HStack {
-                Spacer()
-                Text(schedule != nil ? "Save Changes" : "Activate")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(Color.white)
-                Spacer()
-            }
-            .padding(.vertical, 20)
-            .background(
-                LinearGradient(
-                    colors: [Color(hex: "C87BFF"), Color(hex: "FF7B9C")],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 9999))
         }
         .padding()
-        .disabled(!isValidSchedule)
     }
     
     private var stackedAppIcons: some View {
@@ -356,6 +392,7 @@ struct NewBlockSchedulerView: View {
             selectedDays = schedule.daysOfWeek
             selection = schedule.selection
             isStrictBlock = schedule.isStrictBlock
+            isActive = schedule.isActive
         } else {
             // Default values for new schedule
             name = generateDefaultName()
@@ -383,7 +420,12 @@ struct NewBlockSchedulerView: View {
         return "Schedule \(counter)"
     }
     
-    private func saveSchedule(isActive: Bool) {
+    private func activateAndSaveSchedule() {
+        saveScheduleWithStatus(isActive: true)
+        dismiss()
+    }
+    
+    private func saveScheduleWithStatus(isActive activeStatus: Bool) {
         var startComponents = DateComponents()
         startComponents.hour = startHour
         startComponents.minute = startMinute
@@ -400,13 +442,12 @@ struct NewBlockSchedulerView: View {
             daysOfWeek: selectedDays,
             selection: selection,
             isStrictBlock: isStrictBlock,
-            isActive: isActive,
+            isActive: activeStatus,
             createdAt: schedule?.createdAt ?? Date(),
             updatedAt: Date()
         )
         
         onSave(newSchedule)
-        dismiss()
     }
     
     // MARK: - Helper Types
@@ -430,39 +471,82 @@ struct NewBlockSchedulerView: View {
     }
 }
 
-// MARK: - Compact Time Picker
+// MARK: - Wheel Time Picker
 struct TimePickerCompact: View {
     @Binding var hour: Int
     @Binding var minute: Int
+    @State private var showingPicker = false
+    
+    var timeString: String {
+        let displayHour = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour)
+        let period = hour < 12 ? "AM" : "PM"
+        return String(format: "%d:%02d %@", displayHour, minute, period)
+    }
     
     var body: some View {
-        HStack(spacing: 4) {
-            Text(String(format: "%d", hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour)))
-                .font(.system(size: 20, weight: .semibold, design: .monospaced))
-                .foregroundStyle(Color.white)
-            
-            Text(":")
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(Color.white)
-            
-            Text(String(format: "%02d", minute))
-                .font(.system(size: 20, weight: .semibold, design: .monospaced))
-                .foregroundStyle(Color.white)
-            
-            Text(hour < 12 ? "AM" : "PM")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(Color.as_gray_light)
+        Button(action: {
+            showingPicker = true
+        }) {
+            HStack(spacing: 4) {
+                Text(timeString)
+                    .font(.system(size: 20, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(Color.white)
+                
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color.as_gray_light)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(Color.white.opacity(0.07))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(Color.white.opacity(0.07))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .onTapGesture {
-            // In a real implementation, this would show a time picker
-            // For now, we'll just cycle through some values
-            minute = (minute + 15) % 60
-            if minute == 0 {
-                hour = (hour + 1) % 24
+        .sheet(isPresented: $showingPicker) {
+            TimePickerSheet(hour: $hour, minute: $minute, isPresented: $showingPicker)
+        }
+    }
+}
+
+// MARK: - Time Picker Sheet
+struct TimePickerSheet: View {
+    @Binding var hour: Int
+    @Binding var minute: Int
+    @Binding var isPresented: Bool
+    
+    @State private var selectedDate: Date = Date()
+    
+    var body: some View {
+        NavigationView {
+            VStack {
+                DatePicker("", selection: $selectedDate, displayedComponents: .hourAndMinute)
+                    .datePickerStyle(WheelDatePickerStyle())
+                    .labelsHidden()
+                    .onAppear {
+                        // Set initial date from hour and minute
+                        var components = Calendar.current.dateComponents([.year, .month, .day], from: Date())
+                        components.hour = hour
+                        components.minute = minute
+                        if let date = Calendar.current.date(from: components) {
+                            selectedDate = date
+                        }
+                    }
+                    .onChange(of: selectedDate) { _, newDate in
+                        let components = Calendar.current.dateComponents([.hour, .minute], from: newDate)
+                        hour = components.hour ?? 0
+                        minute = components.minute ?? 0
+                    }
+                
+                Spacer()
+            }
+            .navigationTitle("Select Time")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        isPresented = false
+                    }
+                    .foregroundStyle(Color.blue)
+                }
             }
         }
     }

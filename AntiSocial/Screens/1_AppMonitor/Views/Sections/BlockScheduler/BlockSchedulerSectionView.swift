@@ -230,23 +230,31 @@ struct BlockSchedulerSectionView: View {
     }
     
     private func addSchedule(_ schedule: BlockSchedule) {
+        // Save the schedule
         BlockSchedule.add(schedule)
-        loadSchedules()
         
+        // Activate it immediately if it's marked as active
         if schedule.isActive {
-            activateSchedule(schedule)
+            schedulerService.activateSchedule(schedule)
         }
+        
+        // Reload schedules to update UI
+        loadSchedules()
     }
     
     private func updateSchedule(_ schedule: BlockSchedule) {
+        // Update the schedule
         BlockSchedule.update(schedule)
-        loadSchedules()
         
+        // Handle activation state change
         if schedule.isActive {
-            activateSchedule(schedule)
+            schedulerService.activateSchedule(schedule)
         } else {
-            deactivateSchedule(schedule)
+            schedulerService.deactivateSchedule(schedule)
         }
+        
+        // Reload schedules to update UI
+        loadSchedules()
     }
     
     private func deleteSchedule(_ schedule: BlockSchedule) {
