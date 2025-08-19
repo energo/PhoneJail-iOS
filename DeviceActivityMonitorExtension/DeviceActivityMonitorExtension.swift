@@ -46,37 +46,71 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     
     switch minutes {
       case 0..<5:
-        return "You've spent \(minutes) minutes on \(appName) today. Just getting started?"
+        return "Your thumb needs a break. Put down your phone."
       case 5..<10:
-        return "You've spent \(minutes) minutes on \(appName) today. Log off?"
+        return "Still scrolling? Time to stop."
       case 10..<15:
-        return "You've spent \(minutes) minutes on \(appName) today. Time for a quick check-in."
+        return "Screens won’t cuddle you back. Block your phone."
       case 15..<20:
-        return "You've spent \(minutes) minutes on \(appName) today. Quarter hour down!"
+        return "Put down your phone. Go touch grass. Seriously."
       case 20..<25:
-        return "You've spent \(minutes) minutes on \(appName) today. Maybe stretch a bit?"
+        return "Your future self just rolled their eyes. Log off?"
       case 25..<30:
-        return "You've spent \(minutes) minutes on \(appName) today. Almost half an hour!"
+        return "Plot twist: nothing new on your feed."
       case 30..<35:
-        return "You've spent \(minutes) minutes on \(appName) today. Break time?"
+        return "Why not get dopamine from the real world?"
       case 35..<40:
-        return "You've spent \(minutes) minutes on \(appName) today. Take a break?"
+        return "This app thinks you’re cute offline."
       case 40..<45:
-        return "You've spent \(minutes) minutes on \(appName) today. Time to refocus?"
+        return "Congrats. You just beat your high score in procrastination."
       case 45..<50:
-        return "You've spent \(minutes) minutes on \(appName) today. Time to put the phone down."
+        return "Spoiler: You won’t find meaning here."
       case 50..<55:
-        return "You've spent \(minutes) minutes on \(appName) today. Almost an hour!"
+        return "Breaking news: Your life is happening elsewhere."
       case 55..<60:
-        return "You've spent \(minutes) minutes on \(appName) today. Final warning!"
-      case 60..<90:
-        return "You've spent \(minutes) minutes on \(appName) today. Time for a real break!"
-      case 90..<120:
-        return "You've spent \(minutes) minutes on \(appName) today. Seriously?"
-      case 120..<180:
-        return "You've spent \(minutes) minutes on \(appName) today. This is getting out of hand."
+        return "Your screen time is judging you."
+      case 60..<70:
+        return "Achievement unlocked: Wasted time."
+      case 70..<80:
+        return "Even your battery is tired of this. Block your phone."
+      case 80..<90:
+        return "If scrolling burned calories, you’d be ripped."
+      case 90..<100:
+        return "Real life has better graphics. Go live it."
+      case 100..<110:
+        return "Stop scrolling. Start strolling. (Go take a walk, buddy)"
+      case 110..<120:
+        return "Go do literally anything cooler than this."
+      case 120..<130:
+        return "Life > feed. Choose wisely."
+      case 130..<140:
+        return "Go outside. The graphics are insane."
+      case 140..<150:
+        return "You’re one scroll away from nothing. Stop."
+      case 150..<160:
+        return "Endless feed. Endless waste. Stop."
+      case 160..<170:
+        return "You’re in a loop. Break it."
+      case 170..<180:
+        return "One more scroll and you officially qualify as furniture."
+      case 180..<190:
+        return "Breaking news: Your thumb has filed a complaint."
+      case 190..<200:
+        return "This feed is junk food. Go eat real life."
+      case 200..<210:
+        return "Nothing new here. Even your feed is bored."
+      case 210..<220:
+        return "Too much screen time shrinks your attention span to 8 seconds."
+      case 220..<230:
+        return "Studies show phone use kills focus. But hey, you’re really focused on scrolling."
+      case 230..<240:
+        return "Life expectancy = ~80 years. You’ll spend 9 of them staring at a rectangle."
+      case 240..<250:
+        return "Phone addiction raises anxiety by 30%. Keep scrolling if you’re into that."
+      case 250..<260:
+        return "Heavy phone users sleep an hour less. Worth it?"
       default:
-        return "You've spent \(minutes) minutes on \(appName) today. Time to take a long break!"
+        return "Go live your life — your feed will still be here."
     }
   }
   
@@ -91,34 +125,8 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     logger.log("intervalDidEnd called for activity: \(activity.rawValue)")
     
     // Interval ended silently
-    
     // Handle different activities differently
     if activity == .appBlocking {
-      // Check if this was an interruption block
-//      let wasInterruptionBlock = SharedData.userDefaults?.bool(forKey: SharedData.ScreenTime.isInterruptionBlock) ?? false
-//      
-//      if wasInterruptionBlock {
-//        // This is interruption block ending
-//        LocalNotificationManager.scheduleExtensionNotification(
-//          title: "✅ Break Over",
-//          details: "You can use your apps again"
-//        )
-//        
-//        // Clear interruption store
-//        DeviceActivityService.shared.stopAppRestrictions(storeName: .interruption)
-//        
-//        // Clear interruption block flag
-//        SharedData.userDefaults?.removeObject(forKey: SharedData.ScreenTime.isInterruptionBlock)
-//        
-//        // Restart interruption monitoring if still enabled and no main block active
-//        let isEnabled = SharedData.userDefaults?.bool(forKey: SharedData.ScreenTime.isInterruptionsEnabled) ?? false
-//        let isMainBlockActive = SharedData.userDefaults?.bool(forKey: SharedData.Widget.isBlocked) ?? false
-//        if isEnabled && !isMainBlockActive {
-//          startInterruptionMonitoring()
-//        }
-//      } else {
-        // This is regular What2Block ending
-        
         // Check if blocking should really end (unlock date might be in the future still)
         let shouldClearState: Bool
         if let unlockDate = SharedData.userDefaults?.object(forKey: SharedData.AppBlocking.unlockDate) as? Date {
@@ -195,12 +203,6 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   private func handleTresholdScreenAlert(_ event: DeviceActivityEvent.Name) {
     let now = Date()
     
-    // Check if enough time has passed since last alert
-//    if let lastTrigger = lastAlertTrigger,
-//       now.timeIntervalSince(lastTrigger) < minimumTriggerInterval {
-//      return
-//    }
-    
     lastAlertTrigger = now
     
     // Check if we need to reset counters (new day)
@@ -211,6 +213,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     let alertIntervalMinutes = max(storedValue, 1)
     
     if let selection = SharedData.selectedAlertActivity {
+      
       // Simple approach - track total time for all monitored apps
       let appKey = "total_screen_time"
       
@@ -273,22 +276,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       // Already in interruption block, skip
       return
     }
-    
-    // Check if What2Block is active
-//      let isMainBlockActive = SharedData.userDefaults?.bool(forKey: SharedData.Widget.isBlocked) ?? false
-//      if isMainBlockActive {
-//        logger.log("What2Block is active, cannot start interruption block")
-//        // Don't start interruption block when main block is active
-//        // Just show notification
-//        if let selection = SharedData.selectedInterruptionsActivity {
-//          LocalNotificationManager.scheduleExtensionNotification(
-//            title: "⏰ Time for a break",
-//            details: "But apps are already blocked"
-//          )
-//        }
-//        return
-//      }
-    
+        
     // Check if enough time has passed since last trigger
     let now = Date()
     if let lastTrigger = lastInterruptionTrigger,
