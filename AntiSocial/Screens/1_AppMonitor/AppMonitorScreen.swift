@@ -63,7 +63,7 @@ struct AppMonitorScreen: View {
     .task {
       await setupInitialData()
     }
-    .onChange(of: scenePhase) { newPhase in
+    .onChangeWithOldValue(of: scenePhase) { _, newPhase in
       handleScenePhaseChange(newPhase)
     }
     .presentPaywallIfNeeded(
@@ -93,7 +93,7 @@ private extension AppMonitorScreen {
       .refreshable {
         refreshScreenTime()
       }
-      .onChange(of: currentSection) { newSection in
+      .onChangeWithOldValue(of: currentSection) { _, newSection in
         scrollToSection(newSection, scrollProxy: scrollProxy, screenGeometry: screenGeometry)
       }
       .simultaneousGesture(swipeGesture)
@@ -273,10 +273,10 @@ private extension AppMonitorScreen {
     }
     .padding(.vertical, 16)
     .padding(.horizontal, 2)
-//    .background(
-//      RoundedRectangle(cornerRadius: 16)
-//        .fill(.ultraThinMaterial)
-//    )
+    //    .background(
+    //      RoundedRectangle(cornerRadius: 16)
+    //        .fill(.ultraThinMaterial)
+    //    )
   }
   
   func navigationButton(for section: Int) -> some View {
