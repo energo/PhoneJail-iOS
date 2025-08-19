@@ -50,15 +50,17 @@ struct AppMonitorScreen: View {
   // MARK: - Section Management
   private enum SectionType: Int, CaseIterable {
     case appBlocking = 0
-    case stats = 1
-    case appInterruptions = 2
-    case screenTimeAlerts = 3
+    case blockScheduler = 1
+    case stats = 2
+    case appInterruptions = 3
+    case screenTimeAlerts = 4
     
     var id: Int { rawValue }
     
     var iconName: String {
       switch self {
         case .appBlocking: return "ic_nav_app_block"
+        case .blockScheduler: return "ic_nav_schedule"
         case .stats: return "ic_nav_stats"
         case .appInterruptions: return "ic_nav_app_interrupt"
         case .screenTimeAlerts: return "ic_nav_screen_alert"
@@ -68,6 +70,7 @@ struct AppMonitorScreen: View {
     var title: String {
       switch self {
         case .appBlocking: return "App Blocking"
+        case .blockScheduler: return "Block Scheduler"
         case .stats: return "Statistics"
         case .appInterruptions: return "App Interruptions"
         case .screenTimeAlerts: return "Screen Time Alerts"
@@ -176,6 +179,9 @@ private extension AppMonitorScreen {
       case .appBlocking:
         content = AnyView(appBlockingContent)
         needsTopSpacer = false
+      case .blockScheduler:
+        content = AnyView(blockSchedulerContent)
+        needsTopSpacer = true
       case .stats:
         content = AnyView(statsContent)
         needsTopSpacer = true
@@ -231,6 +237,10 @@ private extension AppMonitorScreen {
 private extension AppMonitorScreen {
   var appBlockingContent: some View {
     AppBlockingSectionView(restrictionModel: restrictionModel)
+  }
+  
+  var blockSchedulerContent: some View {
+    BlockSchedulerSectionView()
   }
   
   var statsContent: some View {
@@ -447,7 +457,7 @@ private extension AppMonitorScreen {
         switch sectionInfo.type {
           case .appBlocking:
             scrollProxy.scrollTo("header", anchor: .bottom)
-          case .stats, .appInterruptions, .screenTimeAlerts:
+          case .blockScheduler, .stats, .appInterruptions, .screenTimeAlerts:
             scrollProxy.scrollTo(section, anchor: .top)
         }
       }
