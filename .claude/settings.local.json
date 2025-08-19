@@ -16,7 +16,15 @@
       "Bash(git checkout:*)",
       "Bash(git stash show:*)",
       "Bash(mv:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(npm i:*)",
+      "Bash(TERM=dumb claude doctor:*)",
+      "Bash(claude update)",
+      "Bash(claude migrate-installer:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(claude mcp add:*)",
+      "Bash(swiftc:*)",
+      "Bash(swift build:*)"
     ],
     "deny": []
   }

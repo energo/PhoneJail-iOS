@@ -30,6 +30,14 @@ struct AppMonitorScreen: View {
   @State private var screenTimeID = UUID() // используется как .id
   @State private var lastRefreshDate = Date()
   
+  // Navigation state
+  @State private var currentSection = 0
+  @State private var scrollOffset: CGFloat = 0
+  @State private var isDragging = false
+  
+  // Добавляем состояние для отслеживания позиций секций
+  @State private var sectionPositions: [CGFloat] = [0, 0, 0]
+  
   var body: some View {
     BGView(imageRsc: .bgMain) {
       GeometryReader { screenGeometry in
@@ -37,40 +45,182 @@ struct AppMonitorScreen: View {
           
           //          Color.clear
           
-          ScrollView(showsIndicators: false) {
-            VStack(spacing: 16) {
-              // Spacer-заполнитель под header
-              Color.clear
-                .frame(height: headerHeight)
-                .overlay() {
-                  headerOverlayView(screenGeometry: screenGeometry)
-                }
-              
-              VStack {
-                appBlockingSection
-                statsSection
-                focusBreaksSection
-              }
-              .padding(.horizontal, 20)
-            }
-            .background(
-              GeometryReader { proxy in
+          ScrollViewReader { scrollProxy in
+            ScrollView(.vertical, showsIndicators: false) {
+              VStack(spacing: 0) {
+                // Spacer-заполнитель под header
                 Color.clear
-                  .onAppear {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
-                      offsetY = screenGeometry.safeAreaInsets.top
-                    }
+                  .frame(height: headerHeight)
+                  .overlay() {
+                    headerOverlayView(screenGeometry: screenGeometry)
                   }
-                  .onChange(of: proxy.frame(in: .global).minY) { newValue in
-                    offsetY = newValue
-                  }
+                  .id("header") // Добавляем id для header
                 
+                VStack(spacing: 0) {
+                  // App Blocking Section
+                  VStack {
+                    appBlockingSection
+                    Spacer(minLength: 0)
+                  }
+                  .frame(minHeight: screenGeometry.size.height - headerHeight - 20)
+                  .padding(.horizontal, 20)
+                  .padding(.top, 20)
+                  .id(0)
+                  .background(
+                    GeometryReader { proxy in
+                      Color.clear
+                        .onAppear {
+                          updateSectionPosition(0, position: proxy.frame(in: .global).minY)
+                        }
+                        .onChange(of: proxy.frame(in: .global).minY) { newValue in
+                          updateSectionPosition(0, position: newValue)
+                        }
+                    }
+                  )
+                  
+                  // Stats Section
+                  VStack {
+                    Spacer()
+                      .frame(height: headerHeight + 20) // Header height + padding
+                    statsSection
+                    Spacer(minLength: 0)
+                  }
+                  .frame(minHeight: screenGeometry.size.height)
+                  .padding(.horizontal, 20)
+                  .id(1)
+                  .background(
+                    GeometryReader { proxy in
+                      Color.clear
+                        .onAppear {
+                          updateSectionPosition(1, position: proxy.frame(in: .global).minY)
+                        }
+                        .onChange(of: proxy.frame(in: .global).minY) { newValue in
+                          updateSectionPosition(1, position: newValue)
+                        }
+                    }
+                  )
+                  
+                  // Focus Breaks Section
+                  VStack {
+                    Spacer()
+                      .frame(height: headerHeight + 20) // Header height + padding
+                    focusBreaksSection
+                    Spacer(minLength: 0)
+                  }
+                  .frame(minHeight: screenGeometry.size.height)
+                  .padding(.horizontal, 20)
+                  .id(2)
+                  .background(
+                    GeometryReader { proxy in
+                      Color.clear
+                        .onAppear {
+                          updateSectionPosition(2, position: proxy.frame(in: .global).minY)
+                        }
+                        .onChange(of: proxy.frame(in: .global).minY) { newValue in
+                          updateSectionPosition(2, position: newValue)
+                        }
+                    }
+                  )
+                }
               }
+              .background(
+                GeometryReader { proxy in
+                  Color.clear
+                    .onAppear {
+                      DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
+                        offsetY = screenGeometry.safeAreaInsets.top
+                      }
+                    }
+                    .onChange(of: proxy.frame(in: .global).minY) { newValue in
+                      offsetY = newValue
+                    }
+                  
+                }
+              )
+              //            .padding(.horizontal, 20)
+            }
+            .refreshable {
+              refreshScreenTime()
+            }
+            .onChange(of: currentSection) { newSection in
+              scrollToSection(newSection, scrollProxy: scrollProxy, screenGeometry: screenGeometry)
+            }
+            .simultaneousGesture(
+              DragGesture()
+                .onEnded { value in
+                  let threshold: CGFloat = 50 // minimum swipe distance
+                  
+                  if value.translation.height < -threshold && currentSection < 2 {
+                    // Swipe up - next section
+                    currentSection += 1
+                  } else if value.translation.height > threshold && currentSection > 0 {
+                    // Swipe down - previous section
+                    currentSection -= 1
+                  }
+                }
             )
-            //            .padding(.horizontal, 20)
           }
-          .refreshable {
-            refreshScreenTime()
+          
+          // Side Navigation on the right
+          HStack {
+            Spacer()
+            VStack(spacing: 24) {
+              Spacer()
+              
+              // Navigation buttons
+              VStack(spacing: 20) {
+                // App Blocking button
+                Button(action: { 
+                  currentSection = 0
+                }) {
+                  Image(systemName: "apps.iphone")
+                    .font(.system(size: 24))
+                    .foregroundColor(currentSection == 0 ? .white : .white.opacity(0.5))
+                    .frame(width: 50, height: 50)
+                    .background(
+                      RoundedRectangle(cornerRadius: 12)
+                        .fill(currentSection == 0 ? Color.white.opacity(0.2) : Color.clear)
+                    )
+                }
+                
+                // Stats button
+                Button(action: { 
+                  currentSection = 1
+                }) {
+                  Image(systemName: "chart.bar.fill")
+                    .font(.system(size: 24))
+                    .foregroundColor(currentSection == 1 ? .white : .white.opacity(0.5))
+                    .frame(width: 50, height: 50)
+                    .background(
+                      RoundedRectangle(cornerRadius: 12)
+                        .fill(currentSection == 1 ? Color.white.opacity(0.2) : Color.clear)
+                    )
+                }
+                
+                // Focus Breaks button
+                Button(action: { 
+                  currentSection = 2
+                }) {
+                  Image(systemName: "brain.head.profile")
+                    .font(.system(size: 24))
+                    .foregroundColor(currentSection == 2 ? .white : .white.opacity(0.5))
+                    .frame(width: 50, height: 50)
+                    .background(
+                      RoundedRectangle(cornerRadius: 12)
+                        .fill(currentSection == 2 ? Color.white.opacity(0.2) : Color.clear)
+                    )
+                }
+              }
+              .padding(.vertical, 16)
+              .padding(.horizontal, 8)
+              .background(
+                RoundedRectangle(cornerRadius: 16)
+                  .fill(.ultraThinMaterial)
+              )
+              
+              Spacer()
+            }
+            .padding(.trailing, 16)
           }
           
         }
@@ -202,6 +352,44 @@ struct AppMonitorScreen: View {
       .frame(maxWidth: .infinity)
       .frame(minHeight: 500)
       .frame(maxHeight: .infinity)
+  }
+  
+  // MARK: - Navigation Helper
+  private func scrollToSection(_ section: Int, scrollProxy: ScrollViewProxy, screenGeometry: GeometryProxy) {
+    withAnimation(.easeInOut(duration: 0.6)) {
+      switch section {
+      case 0: // App Blocking - скроллим к позиции сразу после header
+        // Используем специальный id для позиционирования после header
+        scrollProxy.scrollTo("header", anchor: .bottom)
+      case 1: // Stats - скроллим к секции с учетом header
+        scrollProxy.scrollTo(1, anchor: .top)
+      case 2: // Focus Breaks - скроллим к секции с учетом header
+        scrollProxy.scrollTo(2, anchor: .top)
+      default:
+        break
+      }
+    }
+  }
+  
+  // MARK: - Section Position Tracking
+  private func updateSectionPosition(_ section: Int, position: CGFloat) {
+    guard section >= 0 && section < sectionPositions.count else { return }
+    sectionPositions[section] = position
+  }
+  
+  private func getOptimalScrollPosition(for section: Int, in screenGeometry: GeometryProxy) -> CGFloat {
+    let headerOffset = headerHeight + screenGeometry.safeAreaInsets.top
+    
+    switch section {
+    case 0: // App Blocking - учитываем header
+      return headerOffset + 20 // +20 для padding
+    case 1: // Stats - стандартная позиция
+      return headerOffset + 20
+    case 2: // Focus Breaks - стандартная позиция
+      return headerOffset + 20
+    default:
+      return headerOffset + 20
+    }
   }
 }
 
