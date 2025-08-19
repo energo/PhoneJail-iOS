@@ -15,214 +15,44 @@ import RevenueCatUI
 import RevenueCat
 
 struct AppMonitorScreen: View {
+  // MARK: - Environment Objects
   @EnvironmentObject var subscriptionManager: SubscriptionManager
   @EnvironmentObject var familyControlsManager: FamilyControlsManager
-  @StateObject private var restrictionModel = MyRestrictionModel()
   @Environment(\.scenePhase) var scenePhase
   
+  // MARK: - View Models
+  @StateObject private var restrictionModel = MyRestrictionModel()
   @StateObject var vmScreenInteraption = AppInterruptionViewModel()
   @StateObject var vmScreenAlert = ScreenTimeAlertViewModel()
-
+  
+  // MARK: - UI State
   @State private var isShowingProfile: Bool = false
   @State private var offsetY: CGFloat = .zero
   @State private var headerHeight: CGFloat = UIScreen.main.bounds.height * 0.35
-  
-  @State private var screenTimeID = UUID() // используется как .id
+  @State private var screenTimeID = UUID()
   @State private var lastRefreshDate = Date()
   
-  // Navigation state
+  // MARK: - Navigation State
   @State private var currentSection = 0
   @State private var scrollOffset: CGFloat = 0
   @State private var isDragging = false
-  
-  // Добавляем состояние для отслеживания позиций секций
   @State private var sectionPositions: [CGFloat] = [0, 0, 0]
+  
+  // MARK: - Constants
+  private enum Constants {
+    static let swipeThreshold: CGFloat = 50
+    static let animationDuration: Double = 0.6
+    static let headerPadding: CGFloat = 20
+    static let horizontalPadding: CGFloat = 32
+    static let sectionSpacing: CGFloat = 0
+  }
   
   var body: some View {
     BGView(imageRsc: .bgMain) {
       GeometryReader { screenGeometry in
         ZStack(alignment: .top) {
-          
-          //          Color.clear
-          
-          ScrollViewReader { scrollProxy in
-            ScrollView(.vertical, showsIndicators: false) {
-              VStack(spacing: 0) {
-                // Spacer-заполнитель под header
-                Color.clear
-                  .frame(height: headerHeight)
-                  .overlay() {
-                    headerOverlayView(screenGeometry: screenGeometry)
-                  }
-                  .id("header") // Добавляем id для header
-                
-                VStack(spacing: 0) {
-                  // App Blocking Section
-                  VStack {
-                    appBlockingSection
-                    Spacer(minLength: 0)
-                  }
-                  .frame(minHeight: screenGeometry.size.height - headerHeight - 20)
-                  .padding(.horizontal, 20)
-                  .padding(.top, 20)
-                  .id(0)
-                  .background(
-                    GeometryReader { proxy in
-                      Color.clear
-                        .onAppear {
-                          updateSectionPosition(0, position: proxy.frame(in: .global).minY)
-                        }
-                        .onChange(of: proxy.frame(in: .global).minY) { newValue in
-                          updateSectionPosition(0, position: newValue)
-                        }
-                    }
-                  )
-                  
-                  // Stats Section
-                  VStack {
-                    Spacer()
-                      .frame(height: headerHeight + 20) // Header height + padding
-                    statsSection
-                    Spacer(minLength: 0)
-                  }
-                  .frame(minHeight: screenGeometry.size.height)
-                  .padding(.horizontal, 20)
-                  .id(1)
-                  .background(
-                    GeometryReader { proxy in
-                      Color.clear
-                        .onAppear {
-                          updateSectionPosition(1, position: proxy.frame(in: .global).minY)
-                        }
-                        .onChange(of: proxy.frame(in: .global).minY) { newValue in
-                          updateSectionPosition(1, position: newValue)
-                        }
-                    }
-                  )
-                  
-                  // Focus Breaks Section
-                  VStack {
-                    Spacer()
-                      .frame(height: headerHeight + 20) // Header height + padding
-                    focusBreaksSection
-                    Spacer(minLength: 0)
-                  }
-                  .frame(minHeight: screenGeometry.size.height)
-                  .padding(.horizontal, 20)
-                  .id(2)
-                  .background(
-                    GeometryReader { proxy in
-                      Color.clear
-                        .onAppear {
-                          updateSectionPosition(2, position: proxy.frame(in: .global).minY)
-                        }
-                        .onChange(of: proxy.frame(in: .global).minY) { newValue in
-                          updateSectionPosition(2, position: newValue)
-                        }
-                    }
-                  )
-                }
-              }
-              .background(
-                GeometryReader { proxy in
-                  Color.clear
-                    .onAppear {
-                      DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
-                        offsetY = screenGeometry.safeAreaInsets.top
-                      }
-                    }
-                    .onChange(of: proxy.frame(in: .global).minY) { newValue in
-                      offsetY = newValue
-                    }
-                  
-                }
-              )
-              //            .padding(.horizontal, 20)
-            }
-            .refreshable {
-              refreshScreenTime()
-            }
-            .onChange(of: currentSection) { newSection in
-              scrollToSection(newSection, scrollProxy: scrollProxy, screenGeometry: screenGeometry)
-            }
-            .simultaneousGesture(
-              DragGesture()
-                .onEnded { value in
-                  let threshold: CGFloat = 50 // minimum swipe distance
-                  
-                  if value.translation.height < -threshold && currentSection < 2 {
-                    // Swipe up - next section
-                    currentSection += 1
-                  } else if value.translation.height > threshold && currentSection > 0 {
-                    // Swipe down - previous section
-                    currentSection -= 1
-                  }
-                }
-            )
-          }
-          
-          // Side Navigation on the right
-          HStack {
-            Spacer()
-            VStack(spacing: 24) {
-              Spacer()
-              
-              // Navigation buttons
-              VStack(spacing: 20) {
-                // App Blocking button
-                Button(action: { 
-                  currentSection = 0
-                }) {
-                  Image(systemName: "apps.iphone")
-                    .font(.system(size: 24))
-                    .foregroundColor(currentSection == 0 ? .white : .white.opacity(0.5))
-                    .frame(width: 50, height: 50)
-                    .background(
-                      RoundedRectangle(cornerRadius: 12)
-                        .fill(currentSection == 0 ? Color.white.opacity(0.2) : Color.clear)
-                    )
-                }
-                
-                // Stats button
-                Button(action: { 
-                  currentSection = 1
-                }) {
-                  Image(systemName: "chart.bar.fill")
-                    .font(.system(size: 24))
-                    .foregroundColor(currentSection == 1 ? .white : .white.opacity(0.5))
-                    .frame(width: 50, height: 50)
-                    .background(
-                      RoundedRectangle(cornerRadius: 12)
-                        .fill(currentSection == 1 ? Color.white.opacity(0.2) : Color.clear)
-                    )
-                }
-                
-                // Focus Breaks button
-                Button(action: { 
-                  currentSection = 2
-                }) {
-                  Image(systemName: "brain.head.profile")
-                    .font(.system(size: 24))
-                    .foregroundColor(currentSection == 2 ? .white : .white.opacity(0.5))
-                    .frame(width: 50, height: 50)
-                    .background(
-                      RoundedRectangle(cornerRadius: 12)
-                        .fill(currentSection == 2 ? Color.white.opacity(0.2) : Color.clear)
-                    )
-                }
-              }
-              .padding(.vertical, 16)
-              .padding(.horizontal, 8)
-              .background(
-                RoundedRectangle(cornerRadius: 16)
-                  .fill(.ultraThinMaterial)
-              )
-              
-              Spacer()
-            }
-            .padding(.trailing, 16)
-          }
-          
+          mainScrollView(screenGeometry: screenGeometry)
+          sideNavigationPanel
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
       }
@@ -231,26 +61,10 @@ struct AppMonitorScreen: View {
       ProfileScreen()
     }
     .task {
-      await AppBlockingLogger.shared.refreshAllData()
-      await MainActor.run {
-        familyControlsManager.requestAuthorization()
-      }
+      await setupInitialData()
     }
     .onChange(of: scenePhase) { newPhase in
-      switch newPhase {
-      case .active:
-        // Check if enough time passed since last refresh (at least 5 seconds)
-        let timeSinceLastRefresh = Date().timeIntervalSince(lastRefreshDate)
-        if timeSinceLastRefresh > 5 {
-          // Refresh screen time data when app becomes active
-          refreshScreenTime()
-          lastRefreshDate = Date()
-        }
-      case .inactive, .background:
-        break
-      @unknown default:
-        break
-      }
+      handleScenePhaseChange(newPhase)
     }
     .presentPaywallIfNeeded(
       requiredEntitlementIdentifier: SubscriptionManager.Constants.entitlementID,
@@ -262,72 +76,121 @@ struct AppMonitorScreen: View {
       }
     )
   }
+}
+
+// MARK: - Main Content Views
+private extension AppMonitorScreen {
   
-  // MARK: - Header View (Floating)
-  @ViewBuilder
-  private func headerOverlayView(screenGeometry: GeometryProxy) -> some View {
-    VStack(spacing: 8) {
-      headerView
-      screenTimeSection
-    }
-    .background(
-      GeometryReader { proxy in
-        Color.clear.onAppear {
-          headerHeight = proxy.size.height
+  func mainScrollView(screenGeometry: GeometryProxy) -> some View {
+    ScrollViewReader { scrollProxy in
+      ScrollView(.vertical, showsIndicators: false) {
+        VStack(spacing: Constants.sectionSpacing) {
+          headerSection(screenGeometry: screenGeometry)
+          contentSections(screenGeometry: screenGeometry)
         }
+        .background(scrollOffsetReader(screenGeometry: screenGeometry))
       }
-    )
-    .offset(y: max(0, screenGeometry.safeAreaInsets.top - offsetY))
+      .refreshable {
+        refreshScreenTime()
+      }
+      .onChange(of: currentSection) { newSection in
+        scrollToSection(newSection, scrollProxy: scrollProxy, screenGeometry: screenGeometry)
+      }
+      .simultaneousGesture(swipeGesture)
+    }
   }
   
-  // MARK: - Header (Top-right profile)
-  private var headerView: some View {
-    HStack {
+  func headerSection(screenGeometry: GeometryProxy) -> some View {
+    Color.clear
+      .frame(height: headerHeight)
+      .overlay {
+        headerOverlayView(screenGeometry: screenGeometry)
+      }
+      .id("header")
+  }
+  
+  func contentSections(screenGeometry: GeometryProxy) -> some View {
+    VStack(spacing: Constants.sectionSpacing) {
+      appBlockingSection(screenGeometry: screenGeometry)
+      statsSection(screenGeometry: screenGeometry)
+      focusBreaksSection(screenGeometry: screenGeometry)
+    }
+  }
+  
+  var sideNavigationPanel: some View {
+    HStack(spacing: 0) {
       Spacer()
-      profileButton
-    }
-    .padding(.horizontal)
-  }
-  
-  private var profileButton: some View {
-    Button(action: { isShowingProfile = true }) {
-      Image(systemName: "person.fill")
-        .font(.system(size: 18))
-        .foregroundStyle(Color.white)
-        .padding()
-        .contentShape(Rectangle())
-    }
-  }
-  
-  // MARK: - ScreenTime Today Section
-  private var screenTimeSection: some View {
-    ScreenTimeTodayView(id: screenTimeID)
-  }
-  
-  private func refreshScreenTime() {
-    screenTimeID = UUID()
-  }
-  
-  // MARK: - App Blocking
-  private var appBlockingSection: some View {
-    VStack {
-      AppBlockingSectionView(restrictionModel: restrictionModel)
-    }
-  }
-  
-  // MARK: - Focus Breaks Section
-  private var focusBreaksSectionHeaderView: some View {
-    HStack {
-      Text("Focus Breaks")
-        .foregroundColor(.white)
-        .font(.system(size: 19, weight: .medium))
+      VStack(spacing: 20) {
+        Spacer()
+        navigationButtons
+          .padding(.top,120)
+        Spacer()
+      }
       Spacer()
+        .frame(width: 4)
     }
   }
+}
+
+// MARK: - Section Views
+private extension AppMonitorScreen {
   
-  private var focusBreaksSection: some View {
+  func appBlockingSection(screenGeometry: GeometryProxy) -> some View {
     VStack {
-      focusBreaksSectionHeaderView
+      appBlockingContent
+      Spacer(minLength: 0)
+    }
+    .frame(minHeight: screenGeometry.size.height - headerHeight - Constants.headerPadding)
+    .padding(.horizontal, Constants.horizontalPadding)
+    .padding(.top, Constants.headerPadding)
+    .id(0)
+    .background(sectionPositionTracker(for: 0))
+  }
+  
+  func statsSection(screenGeometry: GeometryProxy) -> some View {
+    VStack {
+      Spacer()
+        .frame(height: headerHeight + Constants.headerPadding)
+      statsContent
+      Spacer(minLength: 0)
+    }
+    .frame(minHeight: screenGeometry.size.height)
+    .padding(.horizontal, Constants.horizontalPadding)
+    .id(1)
+    .background(sectionPositionTracker(for: 1))
+  }
+  
+  func focusBreaksSection(screenGeometry: GeometryProxy) -> some View {
+    VStack {
+      Spacer()
+        .frame(height: headerHeight + Constants.headerPadding)
+      focusBreaksContent
+      Spacer(minLength: 0)
+    }
+    .frame(minHeight: screenGeometry.size.height)
+    .padding(.horizontal, Constants.horizontalPadding)
+    .id(2)
+    .background(sectionPositionTracker(for: 2))
+  }
+}
+
+// MARK: - Content Views
+private extension AppMonitorScreen {
+  
+  var appBlockingContent: some View {
+    AppBlockingSectionView(restrictionModel: restrictionModel)
+  }
+  
+  var statsContent: some View {
+    ActivityReportView()
+      .frame(maxWidth: .infinity)
+      .frame(minHeight: 500)
+      .frame(maxHeight: .infinity)
+  }
+  
+  var focusBreaksContent: some View {
+    VStack {
+      focusBreaksHeader
         .padding(.top)
         .padding(.horizontal)
       
@@ -342,57 +205,200 @@ struct AppMonitorScreen: View {
     .blurBackground()
   }
   
-  private var separatorView: some View {
-    SeparatorView()
-  }
-  
-  // MARK: - Stats Section
-  private var statsSection: some View {
-    ActivityReportView()
-      .frame(maxWidth: .infinity)
-      .frame(minHeight: 500)
-      .frame(maxHeight: .infinity)
-  }
-  
-  // MARK: - Navigation Helper
-  private func scrollToSection(_ section: Int, scrollProxy: ScrollViewProxy, screenGeometry: GeometryProxy) {
-    withAnimation(.easeInOut(duration: 0.6)) {
-      switch section {
-      case 0: // App Blocking - скроллим к позиции сразу после header
-        // Используем специальный id для позиционирования после header
-        scrollProxy.scrollTo("header", anchor: .bottom)
-      case 1: // Stats - скроллим к секции с учетом header
-        scrollProxy.scrollTo(1, anchor: .top)
-      case 2: // Focus Breaks - скроллим к секции с учетом header
-        scrollProxy.scrollTo(2, anchor: .top)
-      default:
-        break
-      }
+  var focusBreaksHeader: some View {
+    HStack {
+      Text("Focus Breaks")
+        .foregroundColor(.white)
+        .font(.system(size: 19, weight: .medium))
+      Spacer()
     }
   }
   
-  // MARK: - Section Position Tracking
-  private func updateSectionPosition(_ section: Int, position: CGFloat) {
-    guard section >= 0 && section < sectionPositions.count else { return }
-    sectionPositions[section] = position
+  var separatorView: some View {
+    SeparatorView()
+  }
+}
+
+// MARK: - Header Views
+private extension AppMonitorScreen {
+  
+  func headerOverlayView(screenGeometry: GeometryProxy) -> some View {
+    VStack(spacing: 8) {
+      headerView
+      screenTimeSection
+    }
+    .background(headerHeightReader)
+    .offset(y: max(0, screenGeometry.safeAreaInsets.top - offsetY))
   }
   
-  private func getOptimalScrollPosition(for section: Int, in screenGeometry: GeometryProxy) -> CGFloat {
-    let headerOffset = headerHeight + screenGeometry.safeAreaInsets.top
-    
-    switch section {
-    case 0: // App Blocking - учитываем header
-      return headerOffset + 20 // +20 для padding
-    case 1: // Stats - стандартная позиция
-      return headerOffset + 20
-    case 2: // Focus Breaks - стандартная позиция
-      return headerOffset + 20
-    default:
-      return headerOffset + 20
+  var headerView: some View {
+    HStack {
+      Spacer()
+      profileButton
+    }
+    .padding(.horizontal)
+  }
+  
+  var profileButton: some View {
+    Button(action: { isShowingProfile = true }) {
+      Image(systemName: "person.fill")
+        .font(.system(size: 18))
+        .foregroundStyle(Color.white)
+        .padding()
+        .contentShape(Rectangle())
+    }
+  }
+  
+  var screenTimeSection: some View {
+    ScreenTimeTodayView(id: screenTimeID)
+  }
+  
+  var headerHeightReader: some View {
+    GeometryReader { proxy in
+      Color.clear.onAppear {
+        headerHeight = proxy.size.height
+      }
     }
   }
 }
 
+// MARK: - Navigation
+private extension AppMonitorScreen {
+  
+  var navigationButtons: some View {
+    VStack(spacing: 20) {
+      ForEach(0..<3) { section in
+        navigationButton(for: section)
+      }
+    }
+    .padding(.vertical, 16)
+    .padding(.horizontal, 2)
+//    .background(
+//      RoundedRectangle(cornerRadius: 16)
+//        .fill(.ultraThinMaterial)
+//    )
+  }
+  
+  func navigationButton(for section: Int) -> some View {
+    Button(action: { currentSection = section }) {
+      Image(iconName(for: section))
+        .resizable()
+        .renderingMode(.template)
+        .foregroundColor(currentSection == section ? .white : .white.opacity(0.5))
+        .frame(width: currentSection == section ? 20 : 16, height: currentSection == section ? 20 : 16)
+    }
+  }
+  
+  func iconName(for section: Int) -> String {
+    switch section {
+      case 0: return "ic_nav_app_block"
+      case 1: return "ic_nav_stats"
+      case 2: return "ic_nav_app_interrupt"
+      case 3: return "ic_nav_schedule"
+      case 4: return "ic_nav_screen_alert"
+      default: return "questionmark"
+    }
+  }
+  
+  var swipeGesture: some Gesture {
+    DragGesture()
+      .onEnded { value in
+        handleSwipeGesture(value)
+      }
+  }
+}
+
+// MARK: - Helper Views
+private extension AppMonitorScreen {
+  
+  func scrollOffsetReader(screenGeometry: GeometryProxy) -> some View {
+    GeometryReader { proxy in
+      Color.clear
+        .onAppear {
+          DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
+            offsetY = screenGeometry.safeAreaInsets.top
+          }
+        }
+        .onChange(of: proxy.frame(in: .global).minY) { newValue in
+          offsetY = newValue
+        }
+    }
+  }
+  
+  func sectionPositionTracker(for section: Int) -> some View {
+    GeometryReader { proxy in
+      Color.clear
+        .onAppear {
+          updateSectionPosition(section, position: proxy.frame(in: .global).minY)
+        }
+        .onChange(of: proxy.frame(in: .global).minY) { newValue in
+          updateSectionPosition(section, position: newValue)
+        }
+    }
+  }
+}
+
+// MARK: - Helper Functions
+private extension AppMonitorScreen {
+  
+  func setupInitialData() async {
+    await AppBlockingLogger.shared.refreshAllData()
+    await MainActor.run {
+      familyControlsManager.requestAuthorization()
+    }
+  }
+  
+  func handleScenePhaseChange(_ newPhase: ScenePhase) {
+    switch newPhase {
+      case .active:
+        let timeSinceLastRefresh = Date().timeIntervalSince(lastRefreshDate)
+        if timeSinceLastRefresh > 5 {
+          refreshScreenTime()
+          lastRefreshDate = Date()
+        }
+      case .inactive, .background:
+        break
+      @unknown default:
+        break
+    }
+  }
+  
+  func handleSwipeGesture(_ value: DragGesture.Value) {
+    let threshold = Constants.swipeThreshold
+    
+    if value.translation.height < -threshold && currentSection < 2 {
+      currentSection += 1
+    } else if value.translation.height > threshold && currentSection > 0 {
+      currentSection -= 1
+    }
+  }
+  
+  func scrollToSection(_ section: Int, scrollProxy: ScrollViewProxy, screenGeometry: GeometryProxy) {
+    withAnimation(.easeInOut(duration: Constants.animationDuration)) {
+      switch section {
+        case 0:
+          scrollProxy.scrollTo("header", anchor: .bottom)
+        case 1, 2:
+          scrollProxy.scrollTo(section, anchor: .top)
+        default:
+          break
+      }
+    }
+  }
+  
+  func updateSectionPosition(_ section: Int, position: CGFloat) {
+    guard section >= 0 && section < sectionPositions.count else { return }
+    sectionPositions[section] = position
+  }
+  
+  func refreshScreenTime() {
+    screenTimeID = UUID()
+  }
+}
+
+// MARK: - Preview
 #Preview {
   AppMonitorScreen()
+    .environmentObject(SubscriptionManager())
+    .environmentObject(FamilyControlsManager.shared)
 }
