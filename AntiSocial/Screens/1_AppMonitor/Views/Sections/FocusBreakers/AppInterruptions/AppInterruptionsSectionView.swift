@@ -13,7 +13,6 @@ import RevenueCatUI
 struct AppInterruptionsSectionView: View {
   @ObservedObject var viewModel: AppInterruptionViewModel
   @EnvironmentObject var subscriptionManager: SubscriptionManager
-  @State private var isExpanded: Bool = true
   @State private var showPaywall = false
   
   var body: some View {
@@ -51,51 +50,32 @@ struct AppInterruptionsSectionView: View {
   }
   
   private var bottomTextView: some View {
-    Text("During use, chosen apps will be blocked for 2 minutes at selected intervals.")
+    Text("Phone Jail will block the apps you select for for a set up period of time.")
       .foregroundColor(Color.as_light_blue)
       .font(.system(size: 10, weight: .regular))
   }
   
   private var whatToMonitorView: some View {
     VStack(alignment: .leading, spacing: 16) {
-      HStack {
-        Button(action: {
-          withAnimation(.easeInOut(duration: 0.3)) {
-            isExpanded.toggle()
-          }
-        }) {
-          HStack(spacing: 8) {
-            Text("App Interruptions")
-              .foregroundColor(.white)
-              .font(.system(size: 16, weight: .regular))
-            
-            Image(systemName: isExpanded ? "chevron.down" : "chevron.up")
-              .foregroundColor(.white)
-              .font(.system(size: 16, weight: .semibold))
-          }
-        }
-        
-        Spacer()
-        
-        startMonitorButton
-      }
-      
-      if isExpanded {
-        Group {
-          selectorAppsView
-          bottomTextView
-          frequencyView
-        }
-        .transition(
-          .asymmetric(
-            insertion: .opacity.combined(with: .scale(scale: 0.95, anchor: .top)),
-            removal: .opacity.combined(with: .scale(scale: 0.95, anchor: .top))
-          )
-        )
-      }
+      headerView
+      selectorAppsView
+      bottomTextView
+      frequencyView
     }
   }
-
+  
+  private var headerView: some View {
+    HStack {
+      Text("App Interruptions")
+        .foregroundColor(.white)
+        .font(.system(size: 16, weight: .regular))
+      
+      Spacer()
+      
+      startMonitorButton
+    }
+  }
+  
   private var selectorAppsView: some View {
     Button(action: {
       viewModel.showSelectApps()
@@ -223,44 +203,6 @@ struct AppInterruptionsSectionView: View {
       }
     }
   }
-  
-  //  private var monitoredAppsListView: some View {
-  //    VStack(alignment: .leading, spacing: 8) {
-  //      Text("Tracking apps")
-  //        .font(.headline)
-  //
-  //      ForEach(0..<viewModel.monitoredApps.count, id: \.self) { index in
-  //        monitoredAppRow(app: viewModel.monitoredApps[index])
-  //      }
-  //
-  //      Button("Add more apps") {
-  //        viewModel.showSelectApps()
-  //      }
-  //      .padding(.top, 8)
-  //    }
-  //    .padding()
-  //    .background(Color.gray.opacity(0.1))
-  //    .cornerRadius(10)
-  //  }
-  //
-  //  private func monitoredAppRow(app: MonitoredApp) -> some View {
-  //    HStack {
-  //      Label(app.token)
-  //        .lineLimit(1)
-  //        .truncationMode(.tail)
-  //
-  //      Spacer()
-  //
-  //      Toggle("", isOn: Binding(
-  //        get: { app.isMonitored },
-  //        set: { _ in
-  //          viewModel.toggleAppMonitoring(app: app)
-  //        }
-  //      ))
-  //      .labelsHidden()
-  //    }
-  //    .padding(.vertical, 4)
-  //  }
 }
 
 #Preview {

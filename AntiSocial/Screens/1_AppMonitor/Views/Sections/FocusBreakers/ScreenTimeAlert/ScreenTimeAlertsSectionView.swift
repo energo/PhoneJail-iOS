@@ -13,7 +13,6 @@ import RevenueCatUI
 struct ScreenTimeAlertsSectionView: View {
   @ObservedObject var viewModel: ScreenTimeAlertViewModel
   @EnvironmentObject var subscriptionManager: SubscriptionManager
-  @State private var isExpanded: Bool = true
   @State private var showPaywall = false
   
   var body: some View {
@@ -39,61 +38,41 @@ struct ScreenTimeAlertsSectionView: View {
     }
     .padding(.horizontal, 20)
     .padding(.vertical, 16)
-//    .padding()
-//    .blurBackground()
   }
   
   private var notifyView: some View {
     RoundedPicker(
-        title: "Notify me every",
-        options: TimeIntervalOption.timeOptions,
-        selected: $viewModel.selectedTime,
-        labelProvider: { $0.label }
+      title: "Notify me every",
+      options: TimeIntervalOption.timeOptions,
+      selected: $viewModel.selectedTime,
+      labelProvider: { $0.label }
     )
   }
-
+  
   private var whatToMonitorView: some View {
     VStack(alignment: .leading, spacing: 16) {
-      HStack {
-        Button(action: {
-          withAnimation(.easeInOut(duration: 0.3)) {
-            isExpanded.toggle()
-          }
-        }) {
-          HStack(spacing: 8) {
-            Text("Screen Time Alerts")
-              .foregroundColor(.white)
-              .font(.system(size: 16, weight: .regular))
-            
-            Image(systemName: isExpanded ? "chevron.down" : "chevron.up")
-              .foregroundColor(.white)
-              .font(.system(size: 16, weight: .semibold))
-          }
-        }
-        
-        Spacer()
-        
-        startMonitorButton
-      }
+      headerView
+      selectAppView
+      bottomTextView
+      notifyView
+    }
+  }
+  
+  private var headerView: some View {
+    HStack() {
+      Text("Screen Time Alerts")
+        .foregroundColor(.white)
+        .font(.system(size: 16, weight: .regular))
       
-      if isExpanded {
-        Group {
-          selectAppView
-          bottomTextView
-          notifyView
-        }
-        .transition(
-          .asymmetric(
-            insertion: .opacity.combined(with: .scale(scale: 0.95, anchor: .top)),
-            removal: .opacity.combined(with: .scale(scale: 0.95, anchor: .top))
-          )
-        )
-      }
+      
+      Spacer()
+      
+      startMonitorButton
     }
   }
   
   private var bottomTextView: some View {
-    Text("The app will send a reminder after you've used a selected app for a set up period of time time.")
+    Text("Phone Jail will send you notifications telling you how long you've used the apps you've selected")
       .foregroundColor(Color.as_light_blue)
       .font(.system(size: 10, weight: .regular))
   }
@@ -202,7 +181,7 @@ struct ScreenTimeAlertsSectionView: View {
   private var startMonitorButton: some View {
     return Group {
       let canUse = subscriptionManager.canUseAlertsToday()
-
+      
       if !canUse && !viewModel.isAlertEnabled {
         Button(action: {
           showPaywall = true

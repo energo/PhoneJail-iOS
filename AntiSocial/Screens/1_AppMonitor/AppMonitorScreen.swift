@@ -36,7 +36,7 @@ struct AppMonitorScreen: View {
   @State private var currentSection = 0
   @State private var scrollOffset: CGFloat = 0
   @State private var isDragging = false
-  @State private var sectionPositions: [CGFloat] = [0, 0, 0, 0]
+  @State private var sectionPositions: [CGFloat] = []
   
   // MARK: - Constants
   private enum Constants {
@@ -45,6 +45,52 @@ struct AppMonitorScreen: View {
     static let headerPadding: CGFloat = 20
     static let horizontalPadding: CGFloat = 32
     static let sectionSpacing: CGFloat = 0
+  }
+  
+  // MARK: - Section Management
+  private enum SectionType: Int, CaseIterable {
+    case appBlocking = 0
+    case stats = 1
+    case appInterruptions = 2
+    case screenTimeAlerts = 3
+    
+    var id: Int { rawValue }
+    
+    var iconName: String {
+      switch self {
+        case .appBlocking: return "ic_nav_app_block"
+        case .stats: return "ic_nav_stats"
+        case .appInterruptions: return "ic_nav_app_interrupt"
+        case .screenTimeAlerts: return "ic_nav_screen_alert"
+      }
+    }
+    
+    var title: String {
+      switch self {
+        case .appBlocking: return "App Blocking"
+        case .stats: return "Statistics"
+        case .appInterruptions: return "App Interruptions"
+        case .screenTimeAlerts: return "Screen Time Alerts"
+      }
+    }
+  }
+  
+  private struct SectionInfo {
+    let type: SectionType
+    let id: Int
+    let iconName: String
+    let title: String
+    
+    init(_ type: SectionType) {
+      self.type = type
+      self.id = type.id
+      self.iconName = type.iconName
+      self.title = type.title
+    }
+  }
+  
+  private var sections: [SectionInfo] {
+    SectionType.allCases.map { SectionInfo($0) }
   }
   
   var body: some View {
@@ -111,12 +157,53 @@ private extension AppMonitorScreen {
   
   func contentSections(screenGeometry: GeometryProxy) -> some View {
     VStack(spacing: headerHeight) { //to ensure that prevuios page will scroll out from current screen
-      appBlockingSection(screenGeometry: screenGeometry)
-      statsSection(screenGeometry: screenGeometry)
-      //      focusBreaksSection(screenGeometry: screenGeometry)
-      appInterruptionSection(screenGeometry: screenGeometry)
-      screenTimeAlertsSection(screenGeometry: screenGeometry)
+      ForEach(sections, id: \.id) { section in
+        sectionView(for: section, screenGeometry: screenGeometry)
+      }
     }
+  }
+  
+  @ViewBuilder
+  private func sectionView(for section: SectionInfo, screenGeometry: GeometryProxy) -> some View {
+    createSection(for: section.type, screenGeometry: screenGeometry)
+  }
+  
+  private func createSection(for type: SectionType, screenGeometry: GeometryProxy) -> AnyView {
+    let content: AnyView
+    let needsTopSpacer: Bool
+    
+    switch type {
+      case .appBlocking:
+        content = AnyView(appBlockingContent)
+        needsTopSpacer = false
+      case .stats:
+        content = AnyView(statsContent)
+        needsTopSpacer = true
+      case .appInterruptions:
+        content = AnyView(appInterruptionsContent)
+        needsTopSpacer = true
+      case .screenTimeAlerts:
+        content = AnyView(screenTimeAlertContent)
+        needsTopSpacer = true
+    }
+    
+    return AnyView(
+      VStack {
+        if needsTopSpacer {
+          Spacer()
+            .frame(height: headerHeight + Constants.headerPadding)
+        }
+        content
+        Spacer(minLength: 0)
+      }
+      .frame(minHeight: type == .appBlocking ? 
+             screenGeometry.size.height - headerHeight - Constants.headerPadding : 
+             screenGeometry.size.height)
+      .padding(.horizontal, Constants.horizontalPadding)
+      .padding(.top, type == .appBlocking ? Constants.headerPadding : 0)
+      .id(type.id)
+      .background(sectionPositionTracker(for: type.id))
+    )
   }
   
   var sideNavigationPanel: some View {
@@ -137,56 +224,7 @@ private extension AppMonitorScreen {
 // MARK: - Section Views
 private extension AppMonitorScreen {
   
-  func appBlockingSection(screenGeometry: GeometryProxy) -> some View {
-    VStack {
-      appBlockingContent
-      Spacer(minLength: 0)
-    }
-    .frame(minHeight: screenGeometry.size.height - headerHeight - Constants.headerPadding)
-    .padding(.horizontal, Constants.horizontalPadding)
-    .padding(.top, Constants.headerPadding)
-    .id(0)
-    .background(sectionPositionTracker(for: 0))
-  }
-  
-  func statsSection(screenGeometry: GeometryProxy) -> some View {
-    VStack {
-      Spacer()
-        .frame(height: headerHeight + Constants.headerPadding)
-      statsContent
-      Spacer(minLength: 0)
-    }
-    .frame(minHeight: screenGeometry.size.height)
-    .padding(.horizontal, Constants.horizontalPadding)
-    .id(1)
-    .background(sectionPositionTracker(for: 1))
-  }
-  
-  func screenTimeAlertsSection(screenGeometry: GeometryProxy) -> some View {
-    VStack {
-      Spacer()
-        .frame(height: headerHeight + Constants.headerPadding)
-      screenTimeAlertContent
-      Spacer(minLength: 0)
-    }
-    .frame(minHeight: screenGeometry.size.height)
-    .padding(.horizontal, Constants.horizontalPadding)
-    .id(3)
-    .background(sectionPositionTracker(for: 2))
-  }
-  
-  func appInterruptionSection(screenGeometry: GeometryProxy) -> some View {
-    VStack {
-      Spacer()
-        .frame(height: headerHeight + Constants.headerPadding)
-      appInterruptionsContent
-      Spacer(minLength: 0)
-    }
-    .frame(minHeight: screenGeometry.size.height)
-    .padding(.horizontal, Constants.horizontalPadding)
-    .id(2)
-    .background(sectionPositionTracker(for: 3))
-  }
+
 }
 
 // MARK: - Content Views
@@ -217,6 +255,11 @@ private extension AppMonitorScreen {
   
   var screenTimeAlertHeader: some View {
     HStack {
+      Image(.icNavScreenAlert)
+        .resizable()
+        .frame(width: 24, height: 24)
+        .foregroundColor(.white)
+
       Text("Screen time alerts")
         .foregroundColor(.white)
         .font(.system(size: 19, weight: .medium))
@@ -239,6 +282,11 @@ private extension AppMonitorScreen {
   
   var appInterruptionsHeader: some View {
     HStack {
+      Image(.icNavAppInterrupt)
+        .resizable()
+        .frame(width: 24, height: 24)
+        .foregroundColor(.white)
+
       Text("App interruptions")
         .foregroundColor(.white)
         .font(.system(size: 19, weight: .medium))
@@ -297,9 +345,9 @@ private extension AppMonitorScreen {
 // MARK: - Navigation
 private extension AppMonitorScreen {
   
-  var navigationButtons: some View {
+    var navigationButtons: some View {
     VStack(spacing: 20) {
-      ForEach(0..<4) { section in
+      ForEach(sections, id: \.id) { section in
         navigationButton(for: section)
       }
     }
@@ -307,25 +355,13 @@ private extension AppMonitorScreen {
     .padding(.horizontal, 2)
   }
   
-  func navigationButton(for section: Int) -> some View {
-    Button(action: { currentSection = section }) {
-      Image(iconName(for: section))
+  private func navigationButton(for section: SectionInfo) -> some View {
+    Button(action: { currentSection = section.id }) {
+      Image(section.iconName)
         .resizable()
         .renderingMode(.template)
-        .foregroundColor(currentSection == section ? .white : .white.opacity(0.5))
-        .frame(width: currentSection == section ? 20 : 16, height: currentSection == section ? 20 : 16)
-    }
-  }
-  
-  func iconName(for section: Int) -> String {
-    switch section {
-      case 0: return "ic_nav_app_block"
-      case 1: return "ic_nav_stats"
-      case 2: return "ic_nav_app_interrupt"
-      case 3: return "ic_nav_screen_alert"
-      case 4: return "ic_nav_schedule"
-        
-      default: return "questionmark"
+        .foregroundColor(currentSection == section.id ? .white : .white.opacity(0.5))
+        .frame(width: currentSection == section.id ? 20 : 16, height: currentSection == section.id ? 20 : 16)
     }
   }
   
@@ -374,6 +410,8 @@ private extension AppMonitorScreen {
     await AppBlockingLogger.shared.refreshAllData()
     await MainActor.run {
       familyControlsManager.requestAuthorization()
+      // Инициализируем массив позиций секций
+      sectionPositions = Array(repeating: 0, count: sections.count)
     }
   }
   
@@ -394,8 +432,9 @@ private extension AppMonitorScreen {
   
   func handleSwipeGesture(_ value: DragGesture.Value) {
     let threshold = Constants.swipeThreshold
+    let maxSection = sections.count - 1
     
-    if value.translation.height < -threshold && currentSection < 3 {
+    if value.translation.height < -threshold && currentSection < maxSection {
       currentSection += 1
     } else if value.translation.height > threshold && currentSection > 0 {
       currentSection -= 1
@@ -404,13 +443,13 @@ private extension AppMonitorScreen {
   
   func scrollToSection(_ section: Int, scrollProxy: ScrollViewProxy, screenGeometry: GeometryProxy) {
     withAnimation(.easeInOut(duration: Constants.animationDuration)) {
-      switch section {
-        case 0:
-          scrollProxy.scrollTo("header", anchor: .bottom)
-        case 1, 2, 3:
-          scrollProxy.scrollTo(section, anchor: .top)
-        default:
-          break
+      if let sectionInfo = sections.first(where: { $0.id == section }) {
+        switch sectionInfo.type {
+          case .appBlocking:
+            scrollProxy.scrollTo("header", anchor: .bottom)
+          case .stats, .appInterruptions, .screenTimeAlerts:
+            scrollProxy.scrollTo(section, anchor: .top)
+        }
       }
     }
   }
