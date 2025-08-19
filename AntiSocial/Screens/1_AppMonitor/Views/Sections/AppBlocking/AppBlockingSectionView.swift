@@ -419,9 +419,18 @@ struct AppBlockingSectionView: View {
   }
   
   private var headerView: some View {
-    Text("App Blocking")
-      .foregroundColor(.white)
-      .font(.system(size: 19, weight: .medium))
+    HStack {
+      Image(.icNavAppBlock)
+        .resizable()
+        .frame(width: 24, height: 24)
+        .foregroundColor(.white)
+
+      Text("App Blocking")
+        .foregroundColor(.white)
+        .font(.system(size: 24, weight: .semibold))
+
+      Spacer()
+    }
   }
   
   private var durationSection: some View {

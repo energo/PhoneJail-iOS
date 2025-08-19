@@ -262,7 +262,7 @@ private extension AppMonitorScreen {
 
       Text("Screen time alerts")
         .foregroundColor(.white)
-        .font(.system(size: 19, weight: .medium))
+        .font(.system(size: 24, weight: .semibold))
       Spacer()
     }
   }
@@ -289,7 +289,7 @@ private extension AppMonitorScreen {
 
       Text("App interruptions")
         .foregroundColor(.white)
-        .font(.system(size: 19, weight: .medium))
+        .font(.system(size: 24, weight: .semibold))
       Spacer()
     }
   }

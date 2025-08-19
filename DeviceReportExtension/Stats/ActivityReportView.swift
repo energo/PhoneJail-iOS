@@ -33,13 +33,18 @@ struct ActivityReportView: View {
     VStack(alignment: .center, spacing: 0) {
       
       HStack {
+        Image(.icNavAppBlock)
+          .resizable()
+          .frame(width: 24, height: 24)
+          .foregroundColor(.white)
+
         Text("Stats")
           .foregroundColor(.white)
-          .font(.system(size: 19, weight: .medium))
+          .font(.system(size: 24, weight: .semibold))
         Spacer()
         Text(formatLifetimeTime())
           .foregroundColor(.as_light_green)
-          .font(.system(size: 14))
+          .font(.system(size: 11))
           .lineLimit(1)
       }
 

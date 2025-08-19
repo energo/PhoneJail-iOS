@@ -156,6 +156,7 @@
 		4741381D2E1571FB0099F20A /* Exceptions for "AntiSocial" folder in "DeviceReportExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				App/Assets.xcassets,
 				Models/AppUsage.swift,
 				Models/ChartBar.swift,
 				Models/DeviceActivity/StatsData.swift,
