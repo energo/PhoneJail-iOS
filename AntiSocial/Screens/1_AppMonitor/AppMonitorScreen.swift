@@ -36,7 +36,7 @@ struct AppMonitorScreen: View {
   @State private var currentSection = 0
   @State private var scrollOffset: CGFloat = 0
   @State private var isDragging = false
-  @State private var sectionPositions: [CGFloat] = [0, 0, 0]
+  @State private var sectionPositions: [CGFloat] = [0, 0, 0, 0]
   
   // MARK: - Constants
   private enum Constants {
@@ -113,7 +113,9 @@ private extension AppMonitorScreen {
     VStack(spacing: headerHeight) { //to ensure that prevuios page will scroll out from current screen
       appBlockingSection(screenGeometry: screenGeometry)
       statsSection(screenGeometry: screenGeometry)
-      focusBreaksSection(screenGeometry: screenGeometry)
+      //      focusBreaksSection(screenGeometry: screenGeometry)
+      appInterruptionSection(screenGeometry: screenGeometry)
+      screenTimeAlertsSection(screenGeometry: screenGeometry)
     }
   }
   
@@ -160,23 +162,35 @@ private extension AppMonitorScreen {
     .background(sectionPositionTracker(for: 1))
   }
   
-  func focusBreaksSection(screenGeometry: GeometryProxy) -> some View {
+  func screenTimeAlertsSection(screenGeometry: GeometryProxy) -> some View {
     VStack {
       Spacer()
         .frame(height: headerHeight + Constants.headerPadding)
-      focusBreaksContent
+      screenTimeAlertContent
+      Spacer(minLength: 0)
+    }
+    .frame(minHeight: screenGeometry.size.height)
+    .padding(.horizontal, Constants.horizontalPadding)
+    .id(3)
+    .background(sectionPositionTracker(for: 2))
+  }
+  
+  func appInterruptionSection(screenGeometry: GeometryProxy) -> some View {
+    VStack {
+      Spacer()
+        .frame(height: headerHeight + Constants.headerPadding)
+      appInterruptionsContent
       Spacer(minLength: 0)
     }
     .frame(minHeight: screenGeometry.size.height)
     .padding(.horizontal, Constants.horizontalPadding)
     .id(2)
-    .background(sectionPositionTracker(for: 2))
+    .background(sectionPositionTracker(for: 3))
   }
 }
 
 // MARK: - Content Views
 private extension AppMonitorScreen {
-  
   var appBlockingContent: some View {
     AppBlockingSectionView(restrictionModel: restrictionModel)
   }
@@ -188,15 +202,11 @@ private extension AppMonitorScreen {
       .frame(maxHeight: .infinity)
   }
   
-  var focusBreaksContent: some View {
+  var screenTimeAlertContent: some View {
     VStack {
-      focusBreaksHeader
+      screenTimeAlertHeader
         .padding(.top)
         .padding(.horizontal)
-      
-      separatorView.padding(.horizontal, 20)
-      
-      AppInterruptionsSectionView(viewModel: vmScreenInteraption)
       
       separatorView.padding(.horizontal, 20)
       
@@ -205,9 +215,31 @@ private extension AppMonitorScreen {
     .blurBackground()
   }
   
-  var focusBreaksHeader: some View {
+  var screenTimeAlertHeader: some View {
     HStack {
-      Text("Focus Breaks")
+      Text("Screen time alerts")
+        .foregroundColor(.white)
+        .font(.system(size: 19, weight: .medium))
+      Spacer()
+    }
+  }
+  
+  var appInterruptionsContent: some View {
+    VStack {
+      appInterruptionsHeader
+        .padding(.top)
+        .padding(.horizontal)
+      
+      separatorView.padding(.horizontal, 20)
+      
+      AppInterruptionsSectionView(viewModel: vmScreenInteraption)
+    }
+    .blurBackground()
+  }
+  
+  var appInterruptionsHeader: some View {
+    HStack {
+      Text("App interruptions")
         .foregroundColor(.white)
         .font(.system(size: 19, weight: .medium))
       Spacer()
@@ -267,16 +299,12 @@ private extension AppMonitorScreen {
   
   var navigationButtons: some View {
     VStack(spacing: 20) {
-      ForEach(0..<3) { section in
+      ForEach(0..<4) { section in
         navigationButton(for: section)
       }
     }
     .padding(.vertical, 16)
     .padding(.horizontal, 2)
-    //    .background(
-    //      RoundedRectangle(cornerRadius: 16)
-    //        .fill(.ultraThinMaterial)
-    //    )
   }
   
   func navigationButton(for section: Int) -> some View {
@@ -294,8 +322,9 @@ private extension AppMonitorScreen {
       case 0: return "ic_nav_app_block"
       case 1: return "ic_nav_stats"
       case 2: return "ic_nav_app_interrupt"
-      case 3: return "ic_nav_schedule"
-      case 4: return "ic_nav_screen_alert"
+      case 3: return "ic_nav_screen_alert"
+      case 4: return "ic_nav_schedule"
+        
       default: return "questionmark"
     }
   }
@@ -319,7 +348,7 @@ private extension AppMonitorScreen {
             offsetY = screenGeometry.safeAreaInsets.top
           }
         }
-        .onChange(of: proxy.frame(in: .global).minY) { newValue in
+        .onChangeWithOldValue(of: proxy.frame(in: .global).minY) { _, newValue in
           offsetY = newValue
         }
     }
@@ -331,7 +360,7 @@ private extension AppMonitorScreen {
         .onAppear {
           updateSectionPosition(section, position: proxy.frame(in: .global).minY)
         }
-        .onChange(of: proxy.frame(in: .global).minY) { newValue in
+        .onChangeWithOldValue(of: proxy.frame(in: .global).minY) { _, newValue in
           updateSectionPosition(section, position: newValue)
         }
     }
@@ -366,7 +395,7 @@ private extension AppMonitorScreen {
   func handleSwipeGesture(_ value: DragGesture.Value) {
     let threshold = Constants.swipeThreshold
     
-    if value.translation.height < -threshold && currentSection < 2 {
+    if value.translation.height < -threshold && currentSection < 3 {
       currentSection += 1
     } else if value.translation.height > threshold && currentSection > 0 {
       currentSection -= 1
@@ -378,7 +407,7 @@ private extension AppMonitorScreen {
       switch section {
         case 0:
           scrollProxy.scrollTo("header", anchor: .bottom)
-        case 1, 2:
+        case 1, 2, 3:
           scrollProxy.scrollTo(section, anchor: .top)
         default:
           break
