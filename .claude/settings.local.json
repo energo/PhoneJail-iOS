@@ -24,7 +24,9 @@
       "Bash(npm uninstall:*)",
       "Bash(claude mcp add:*)",
       "Bash(swiftc:*)",
-      "Bash(swift build:*)"
+      "Bash(swift build:*)",
+      "Bash(swift:*)",
+      "WebSearch"
     ],
     "deny": []
   }

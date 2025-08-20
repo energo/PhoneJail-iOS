@@ -76,6 +76,7 @@ struct BlockSchedulerSectionView: View {
       }
       
       if !inactiveSchedules.isEmpty {
+        separatorView
         inactiveBlocksSection
       }
       
@@ -103,7 +104,7 @@ struct BlockSchedulerSectionView: View {
       HStack {
         Text("Active Blocks (\(activeSchedules.count))")
           .font(.system(size: 16, weight: .regular))
-          .foregroundStyle(Color.as_gray_light)
+          .foregroundStyle(Color.white)
         Spacer()
         Image(systemName: "chevron.right")
           .font(.system(size: 14))
@@ -157,34 +158,11 @@ struct BlockSchedulerSectionView: View {
         
         Spacer()
         
-        // App count and icons
-        HStack(spacing: 4) {
-          Text("\(schedule.selection.applicationTokens.count)")
-            .font(.system(size: 14, weight: .regular))
-            .foregroundStyle(Color.as_white_light)
-          
-          stackedAppIcons(for: schedule)
-            .alignmentGuide(.leading) { d in d[VerticalAlignment.center] }
-        }
-      }
-      .background(Color.white.opacity(0.07))
-    }
-  }
-  
-  private func stackedAppIcons(for schedule: BlockSchedule) -> some View {
-    let tokens = Array(schedule.selection.applicationTokens.prefix(4))
-    let iconSize: CGFloat = 20
-    let overlap: CGFloat = -8 // Negative value for proper overlap
-    
-    return HStack(spacing: overlap) {
-      ForEach(tokens.indices, id: \.self) { index in
-        let token = tokens[index]
-        Label(token)
-          .labelStyle(.iconOnly)
-          .frame(width: iconSize, height: iconSize)
-          .background(Color.white)
-          .clipShape(RoundedRectangle(cornerRadius: 6))
-          .zIndex(Double(tokens.count - index)) // Left icon on top
+        // App count and icons using reusable component
+        AppTokensView(
+          tokens: schedule.selection.applicationTokens,
+          spacing: 4
+        )
       }
     }
   }
@@ -204,11 +182,12 @@ struct BlockSchedulerSectionView: View {
           .foregroundStyle(Color.white)
         Spacer()
       }
-      .padding(.vertical, 20)
+      .padding(.vertical, 12)
       .background(
         RoundedRectangle(cornerRadius: 9999)
           .stroke(Color.as_gradietn_main_button, lineWidth: 2)
       )
+      .frame(height: 42)
     }
     .padding(.top, 8)
   }

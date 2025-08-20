@@ -197,12 +197,10 @@ struct NewBlockSchedulerView: View {
                         
                         Spacer()
                         
-                        Text("\(selection.applicationTokens.count)")
-                            .foregroundStyle(Color.as_white_light)
-                        
-                        if !selection.applicationTokens.isEmpty {
-                            stackedAppIcons
-                        }
+                        AppTokensView(
+                            tokens: selection.applicationTokens,
+                            spacing: 4
+                        )
                         
                         Image(systemName: "chevron.right")
                             .foregroundStyle(Color.as_white_light)
@@ -330,24 +328,6 @@ struct NewBlockSchedulerView: View {
             }
         }
         .padding()
-    }
-    
-    private var stackedAppIcons: some View {
-        let tokens = Array(selection.applicationTokens.prefix(4))
-        let iconSize: CGFloat = 20
-        let overlap: CGFloat = -8 // Negative value for proper overlap
-        
-        return HStack(spacing: overlap) {
-            ForEach(tokens.indices, id: \.self) { index in
-                let token = tokens[index]
-                Label(token)
-                    .labelStyle(.iconOnly)
-                    .frame(width: iconSize, height: iconSize)
-                    .background(Color.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                    .zIndex(Double(tokens.count - index)) // Left icon on top
-            }
-        }
     }
     
     private func dayButton(_ weekDay: WeekDay) -> some View {
