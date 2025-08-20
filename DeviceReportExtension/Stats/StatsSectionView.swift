@@ -9,13 +9,16 @@ struct StatsSectionView: View {
   // Новый блок: загрузка Focused Time
   @State private var focusedTime: TimeInterval = 0
   
+  private let adaptive = AdaptiveValues.current
+  
   var body: some View {
-    VStack(alignment: .center, spacing: 16) {
+    VStack(alignment: .center, spacing: adaptive.spacing.medium) {
       //      Text("Stats")
       //        .font(.title2).bold()
       //        .foregroundStyle(.white)
       Text(stats.totalDuration.formattedAsHoursMinutes())
-        .font(.system(size: 32, weight: .bold))
+        .adaptiveFont(\.title1)
+        .fontWeight(.bold)
         .foregroundStyle(.white)
       
       
@@ -46,14 +49,16 @@ struct StatsSectionView: View {
           HStack {
             Label(app.token)
               .labelStyle(.iconOnly)
-              .frame(width: 30, height: 30)
+              .adaptiveFrame(width: \.appIconSize, height: \.appIconSize)
             
             Text(app.name)
+              .adaptiveFont(\.body)
               .foregroundStyle(.white)
             
             Spacer()
             
             Text(app.usage.formattedAsHoursMinutes())
+              .adaptiveFont(\.body)
               .foregroundStyle(.white)
           }
         }

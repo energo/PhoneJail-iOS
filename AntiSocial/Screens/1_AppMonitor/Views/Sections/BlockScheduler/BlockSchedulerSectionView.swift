@@ -19,6 +19,8 @@ struct BlockSchedulerSectionView: View {
   @State private var selectedSchedule: BlockSchedule?
   @State private var showPaywall = false
   
+  private let adaptive = AdaptiveValues.current
+  
   var activeSchedules: [BlockSchedule] {
     schedules.filter { $0.isActive }
   }
@@ -67,7 +69,7 @@ struct BlockSchedulerSectionView: View {
   }
   
   private var contentView: some View {
-    VStack(alignment: .leading, spacing: 16) {
+    VStack(alignment: .leading, spacing: adaptive.spacing.medium) {
       headerView
       separatorView
       
@@ -88,26 +90,27 @@ struct BlockSchedulerSectionView: View {
     HStack {
       Image(.icNavSchedule)
         .resizable()
-        .frame(width: 24, height: 24)
+        .adaptiveFrame(width: \.iconLarge, height: \.iconLarge)
         .foregroundColor(.white)
       
       Text("Block Scheduler")
         .foregroundColor(.white)
-        .font(.system(size: 24, weight: .semibold))
+        .adaptiveFont(\.title2)
+        .fontWeight(.semibold)
       
       Spacer()
     }
   }
   
   private var activeBlocksSection: some View {
-    VStack(alignment: .leading, spacing: 12) {
+    VStack(alignment: .leading, spacing: adaptive.spacing.small) {
       HStack {
         Text("Active Blocks (\(activeSchedules.count))")
-          .font(.system(size: 16, weight: .regular))
+          .adaptiveFont(\.body)
           .foregroundStyle(Color.white)
         Spacer()
         Image(systemName: "chevron.right")
-          .font(.system(size: 14))
+          .adaptiveFont(\.callout)
           .foregroundStyle(Color.as_gray_light)
       }
       
@@ -118,14 +121,14 @@ struct BlockSchedulerSectionView: View {
   }
   
   private var inactiveBlocksSection: some View {
-    VStack(alignment: .leading, spacing: 12) {
+    VStack(alignment: .leading, spacing: adaptive.spacing.small) {
       HStack {
         Text("Not Active Blocks (\(inactiveSchedules.count))")
-          .font(.system(size: 16, weight: .regular))
+          .adaptiveFont(\.body)
           .foregroundStyle(Color.white)
         Spacer()
         Image(systemName: "chevron.right")
-          .font(.system(size: 14))
+          .adaptiveFont(\.callout)
           .foregroundStyle(Color.as_gray_light)
       }
       
@@ -139,20 +142,21 @@ struct BlockSchedulerSectionView: View {
     Button(action: {
       selectedSchedule = schedule
     }) {
-      HStack(spacing: 12) {
+      HStack(spacing: adaptive.spacing.small) {
         // Lock icon
         Image(isActive ? .icLocked : .icUnlocked)
           .resizable()
-          .frame(width: 24, height: 24)
+          .adaptiveFrame(width: \.iconLarge, height: \.iconLarge)
         
         // Schedule details
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: adaptive.spacing.xxSmall) {
           Text(schedule.name)
-            .font(.system(size: 16, weight: .semibold))
+            .adaptiveFont(\.body)
+            .fontWeight(.semibold)
             .foregroundStyle(Color.white)
           
           Text("\(schedule.timeRangeString) • \(schedule.shortDaysString)")
-            .font(.system(size: 14, weight: .regular))
+            .adaptiveFont(\.callout)
             .foregroundStyle(Color.as_gray_light)
         }
         
@@ -161,7 +165,7 @@ struct BlockSchedulerSectionView: View {
         // App count and icons using reusable component
         AppTokensView(
           tokens: schedule.selection.applicationTokens,
-          spacing: 4
+          spacing: adaptive.spacing.xxSmall
         )
       }
     }
@@ -178,18 +182,19 @@ struct BlockSchedulerSectionView: View {
       HStack {
         Spacer()
         Text("Add")
-          .font(.system(size: 18, weight: .semibold))
+          .adaptiveFont(\.body)
+          .fontWeight(.semibold)
           .foregroundStyle(Color.white)
         Spacer()
       }
-      .padding(.vertical, 12)
+      .padding(.vertical, adaptive.spacing.small)
       .background(
         RoundedRectangle(cornerRadius: 9999)
           .stroke(Color.as_gradietn_main_button, lineWidth: 2)
       )
-      .frame(height: 42)
+      .frame(height: adaptive.componentSizes.buttonHeight)
     }
-    .padding(.top, 8)
+    .padding(.top, adaptive.spacing.xSmall)
   }
   
   private var separatorView: some View {

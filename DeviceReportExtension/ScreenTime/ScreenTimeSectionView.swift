@@ -6,19 +6,22 @@
 //
 
 import SwiftUI
+import Foundation
 
-
+// Uses AdaptiveUI from AdaptiveUI+Extension.swift
 
 struct ScreenTimeSectionView: View {
   let report: ActivityReport
   @State private var totalBlockingTime: TimeInterval = 0
+  private let adaptive = AdaptiveValues.current
   
   var body: some View {
     VStack(spacing: 0) {
       Text("Screen Time Today")
-        .font(.system(size: 18, weight: .medium))
+        .adaptiveFont(\.title3)
+        .fontWeight(.medium)
         .foregroundColor(.white)
-        .padding(.top, 8)
+        .adaptivePadding(\.xSmall)
       
       screenTimeView
       bottomView
@@ -70,70 +73,83 @@ struct ScreenTimeSectionView: View {
   }
   
   private var bottomView: some View {
-    HStack(spacing: 32) {
+    HStack(spacing: adaptive.spacing.xLarge) {
       // Time Blocked (время в фокусе = время блокировок)
-      VStack {
-        if totalBlockingTime > 0 {
-          Text(totalBlockingTime.formatedDuration())
-            .font(.title2)
-            .foregroundColor(.white)
-        } else {
-          Text("—")
-            .font(.title2)
-            .foregroundColor(.white)
+      VStack(spacing: adaptive.spacing.xxSmall) {
+        Group {
+          if totalBlockingTime > 0 {
+            Text(totalBlockingTime.formatedDuration())
+          } else {
+            Text("—")
+          }
         }
+        .adaptiveFont(\.statsValue)
+        .fontWeight(.semibold)
+        .foregroundColor(.white)
         
         Text("TIME IN FOCUS")
-          .font(.caption)
+          .adaptiveFont(\.statsLabel)
           .foregroundColor(.as_gray_light)
       }
       
-      VStack {
-        HStack(spacing: 0) {
-          ForEach(report.topApps) { app in
+      VStack(spacing: adaptive.spacing.xxSmall) {
+        HStack(spacing: -adaptive.spacing.xSmall) {
+          ForEach(report.topApps.prefix(AdaptiveValues.isCompactDevice ? 2 : 3)) { app in
             CardView(app: app, disablePopover: true)
+              .adaptiveFrame(width: \.appIconSize, height: \.appIconSize)
           }
         }
         
         Text("MOST USED")
-          .font(.system(size: 11, weight: .regular))
+          .adaptiveFont(\.statsLabel)
           .foregroundColor(.as_gray_light)
       }
       
-      VStack {
+      VStack(spacing: adaptive.spacing.xxSmall) {
         Text("\(report.totalPickupsWithoutApplicationActivity)")
-          .font(.title2)
+          .adaptiveFont(\.statsValue)
+          .fontWeight(.semibold)
           .foregroundColor(.white)
         
         Text("PICKUPS")
-          .font(.system(size: 11, weight: .regular))
+          .adaptiveFont(\.statsLabel)
           .foregroundColor(.as_gray_light)
       }
     }
   }
   
   private var screenTimeView: some View {
-    HStack {
+    HStack(spacing: adaptive.spacing.xSmall) {
       VStack(spacing: 0) {
         Text(hoursString(from: report.totalDuration))
-          .font(.system(size: 140, weight: .heavy, design: .rounded))
+          .font(.system(size: adaptive.typography.screenTimeDisplay,
+                        weight: .heavy,
+                        design: .rounded))
           .foregroundStyle(Color.as_gradietn_time_text)
+          .minimumScaleFactor(0.8)
+          .lineLimit(1)
         
         Text("HOURS")
-          .font(.system(size: 11, weight: .medium))
+          .adaptiveFont(\.caption2)
+          .fontWeight(.medium)
           .foregroundColor(.white.opacity(0.5))
-          .offset(y: -30)
+          .offset(y: AdaptiveValues.isCompactDevice ? -20 : -20)
       }
       
       VStack(spacing: 0) {
         Text(minutesString(from: report.totalDuration))
-          .font(.system(size: 140, weight: .heavy, design: .rounded))
+          .font(.system(size: adaptive.typography.screenTimeDisplay,
+                        weight: .heavy,
+                        design: .rounded))
           .foregroundStyle(Color.as_gradietn_time_text)
+          .minimumScaleFactor(0.8)
+          .lineLimit(1)
         
         Text("MINUTES")
-          .font(.system(size: 11, weight: .medium))
+          .adaptiveFont(\.caption2)
+          .fontWeight(.medium)
           .foregroundColor(.white.opacity(0.5))
-          .offset(y: -30)
+          .offset(y: AdaptiveValues.isCompactDevice ? -20 : -20)
       }
     }
   }

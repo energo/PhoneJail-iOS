@@ -146,6 +146,7 @@
 		474138182E15710C0099F20A /* Exceptions for "DeviceReportExtension" folder in "DeviceActivityMonitorExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				"AdaptiveUI+Extension.swift",
 				CardView.swift,
 				Models/ActivityReport.swift,
 				ScreenTime/ScreenTimeSectionView.swift,

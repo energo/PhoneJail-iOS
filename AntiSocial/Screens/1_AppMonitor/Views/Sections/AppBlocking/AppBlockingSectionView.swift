@@ -24,6 +24,8 @@ struct AppBlockingSectionView: View {
   @State private var isStrictBlock: Bool = SharedData.userDefaults?.bool(forKey: SharedData.Widget.isStricted) ?? false
   @State private var isBlocked: Bool = SharedData.userDefaults?.bool(forKey: SharedData.Widget.isBlocked) ?? false
   
+  private let adaptive = AdaptiveValues.current
+  
   @State private var noCategoriesAlert = false
   @State private var maxCategoriesAlert = false
   @State private var isDiscouragedPresented = false
@@ -314,7 +316,7 @@ struct AppBlockingSectionView: View {
   
   //MARK: - Views
   private var contentView: some View {
-    VStack(alignment: .leading, spacing: 16) {
+    VStack(alignment: .leading, spacing: adaptive.spacing.medium) {
       // Время до разблокировки - показываем с анимацией
       if isBlocked && deviceActivityService.unlockDate != nil && (deviceActivityService.unlockDate ?? Date()) > Date() {
         timeRemainingView
@@ -323,7 +325,7 @@ struct AppBlockingSectionView: View {
       
       // Основные настройки - скрываем с анимацией когда заблокировано
       if !isBlocked || deviceActivityService.unlockDate == nil || (deviceActivityService.unlockDate ?? Date()) <= Date() {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: adaptive.spacing.medium) {
           headerView
           separatorView
           durationSection
@@ -337,11 +339,11 @@ struct AppBlockingSectionView: View {
       }
       
       swipeBlockView
-        .padding(.bottom, 8)
+        .padding(.bottom, adaptive.spacing.xSmall)
       
       // Статистика блокировки - показываем с анимацией
       if isBlocked && deviceActivityService.unlockDate != nil && (deviceActivityService.unlockDate ?? Date()) > Date() {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: adaptive.spacing.small) {
           savedBlockedView
             .frame(maxHeight: .infinity)
 
@@ -355,22 +357,24 @@ struct AppBlockingSectionView: View {
     .animation(.easeInOut(duration: 0.3), value: isBlocked)
   }
   private var savedBlockedView: some View {
-    VStack(alignment: .leading, spacing: 6) {
+    VStack(alignment: .leading, spacing: adaptive.spacing.xSmall) {
       Text(currentSessionSavedTime)
-        .font(.system(size: 20, weight: .bold, design: .monospaced))
+        .adaptiveFont(\.title3)
+        .fontWeight(.bold)
+        .fontDesign(.monospaced)
         .foregroundStyle(Color.as_white)
       
       Text("saved")
-        .font(.system(size: 14, weight: .regular))
+        .adaptiveFont(\.callout)
         .foregroundStyle(Color.as_gray_light)
     }
-    .padding(16)
+    .adaptivePadding(\.medium)
     .frame(height: 100)
     .blurBackground(cornerRadius: 20)
   }
   
   private var appsBlockedView: some View {
-    VStack(spacing: 12) {
+    VStack(spacing: adaptive.spacing.small) {
       HStack {
         AppTokensView(
           tokens: deviceActivityService.selectionToDiscourage.applicationTokens,
@@ -386,23 +390,23 @@ struct AppBlockingSectionView: View {
       HStack {
         Text("\(deviceActivityService.selectionToDiscourage.applicationTokens.count)")
           .foregroundColor(Color.as_white_light)
-          .font(.system(size: 14, weight: .regular))
+          .adaptiveFont(\.callout)
         
         Text("apps and")
           .foregroundStyle(Color.as_gray_light)
-          .font(.system(size: 14, weight: .regular))
+          .adaptiveFont(\.callout)
         
         Text("\(deviceActivityService.selectionToDiscourage.categoryTokens.count)")
           .foregroundColor(Color.as_white_light)
-          .font(.system(size: 14, weight: .regular))
+          .adaptiveFont(\.callout)
         
         Text("categories")
           .foregroundStyle(Color.as_gray_light)
-          .font(.system(size: 14, weight: .regular))
+          .adaptiveFont(\.callout)
         Spacer()
       }
     }
-    .padding(16)
+    .adaptivePadding(\.medium)
     .frame(height: 100)
     .frame(maxWidth: .infinity)
     .blurBackground(cornerRadius: 20)
@@ -411,30 +415,32 @@ struct AppBlockingSectionView: View {
   private var timeRemainingView: some View {
     HStack {
       Spacer()
-      VStack(alignment: .center, spacing: 8) {
+      VStack(alignment: .center, spacing: adaptive.spacing.xSmall) {
         Text("Time Remaining Until Unlock")
           .foregroundStyle(Color.as_white_light)
-          .font(.system(size: 16, weight: .semibold))
+          .adaptiveFont(\.body)
+          .fontWeight(.semibold)
         
         Text(timeRemainingString)
-          .font(.system(size: 56, weight: .bold, design: .monospaced))
+          .font(.system(size: AdaptiveValues.isCompactDevice ? 44 : 56, weight: .bold, design: .monospaced))
           .foregroundColor(.white)
       }
       Spacer()
     }
-    .padding()
+    .adaptivePadding(\.medium)
   }
   
   private var headerView: some View {
     HStack {
       Image(.icNavAppBlock)
         .resizable()
-        .frame(width: 24, height: 24)
+        .adaptiveFrame(width: \.iconLarge, height: \.iconLarge)
         .foregroundColor(.white)
 
       Text("App Blocking")
         .foregroundColor(.white)
-        .font(.system(size: 24, weight: .semibold))
+        .adaptiveFont(\.title2)
+        .fontWeight(.semibold)
 
       Spacer()
     }
@@ -459,27 +465,27 @@ struct AppBlockingSectionView: View {
   }
   
   private var whatToBlockView: some View {
-    VStack(alignment: .leading, spacing: 16) {
+    VStack(alignment: .leading, spacing: adaptive.spacing.medium) {
       Text("What to Block")
         .foregroundColor(.white)
-        .font(.system(size: 16, weight: .regular))
+        .adaptiveFont(\.body)
 
       Button(action: {
         isDiscouragedPresented = true
       }) {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: adaptive.spacing.xSmall) {
           
           // Основной блок — Select Apps (всегда отображается)
-          HStack(spacing: 12) {
+          HStack(spacing: adaptive.spacing.small) {
             Text("Apps")
               .foregroundColor(.white)
-              .font(.system(size: 15, weight: .regular))
+              .adaptiveFont(\.subheadline)
             
             Spacer()
             
             AppTokensView(
               tokens: deviceActivityService.selectionToDiscourage.applicationTokens,
-              spacing: 4
+              spacing: adaptive.spacing.xxSmall
             )
             
             Image(systemName: "chevron.right")
@@ -488,16 +494,16 @@ struct AppBlockingSectionView: View {
           
           // Показываем категории, только если они выбраны
           if !deviceActivityService.selectionToDiscourage.categoryTokens.isEmpty {
-            HStack(spacing: 12) {
+            HStack(spacing: adaptive.spacing.small) {
               Text("Categories")
                 .foregroundColor(.white)
-                .font(.system(size: 15, weight: .regular))
+                .adaptiveFont(\.subheadline)
               
               Spacer()
               
               CategoryTokensView(
                 tokens: deviceActivityService.selectionToDiscourage.categoryTokens,
-                spacing: 4
+                spacing: adaptive.spacing.xxSmall
               )
               
               Image(systemName: "chevron.right")
@@ -505,8 +511,8 @@ struct AppBlockingSectionView: View {
             }
           }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.horizontal, adaptive.spacing.medium)
+        .padding(.vertical, adaptive.spacing.small)
         .background(Color.white.opacity(0.07))
         .clipShape(RoundedRectangle(cornerRadius: 30))
       }
@@ -523,7 +529,7 @@ struct AppBlockingSectionView: View {
   
   
   private var strictBlockView: some View {
-    VStack(alignment: .leading, spacing: 16) {
+    VStack(alignment: .leading, spacing: adaptive.spacing.medium) {
       Toggle("Strict Block", isOn: $isStrictBlock)
         .foregroundStyle(Color.white)
         .toggleStyle(SwitchToggleStyle(tint: .purple))
