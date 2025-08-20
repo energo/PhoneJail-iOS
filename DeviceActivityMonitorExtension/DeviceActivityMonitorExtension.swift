@@ -540,6 +540,32 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       }
       
       store.shield.webDomains = selection.webDomainTokens
+      
+      // Log blocking start time for Focus Time statistics
+      // We store the start time for each app to calculate duration later
+      let scheduleName = SharedData.userDefaults?.string(forKey: "schedule_\(scheduleId)_name") ?? "Schedule"
+      let startTime = Date().timeIntervalSince1970
+      
+      // Store schedule blocking session start for statistics
+      var sessionData: [String: Any] = [
+        "scheduleId": scheduleId,
+        "scheduleName": scheduleName,
+        "startTime": startTime,
+        "appCount": selection.applicationTokens.count
+      ]
+      
+      // Store app tokens for session tracking
+      let appTokenStrings = selection.applicationTokens.map { String(describing: $0) }
+      if let tokensData = try? JSONEncoder().encode(appTokenStrings) {
+        sessionData["appTokens"] = tokensData
+      }
+      
+      // Save session data
+      if let data = try? JSONSerialization.data(withJSONObject: sessionData) {
+        SharedData.userDefaults?.set(data, forKey: "schedule_session_\(scheduleId)")
+      }
+      
+      logger.notice("Started Focus Time tracking for \(selection.applicationTokens.count) apps in schedule: \(scheduleName)")
     }
     
     // Mark as active in SharedData
@@ -556,6 +582,39 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   
   private func handleScheduledBlockEnd(scheduleId: String) {
     logger.notice("Scheduled block ended: \(scheduleId)")
+    
+    // Calculate and log blocking time to Focus Time statistics
+    if let sessionData = SharedData.userDefaults?.data(forKey: "schedule_session_\(scheduleId)"),
+       let sessionInfo = try? JSONSerialization.jsonObject(with: sessionData) as? [String: Any],
+       let startTime = sessionInfo["startTime"] as? TimeInterval {
+      
+      let endTime = Date().timeIntervalSince1970
+      let duration = endTime - startTime
+      
+      // Update total blocking time for today
+      let currentTotal = SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.todayTotalBlockingTime) ?? 0
+      SharedData.userDefaults?.set(currentTotal + duration, forKey: SharedData.AppBlocking.todayTotalBlockingTime)
+      
+      // Update completed sessions count
+      let currentCount = SharedData.userDefaults?.integer(forKey: SharedData.AppBlocking.todayCompletedSessions) ?? 0
+      SharedData.userDefaults?.set(currentCount + 1, forKey: SharedData.AppBlocking.todayCompletedSessions)
+      
+      // Store detailed session info for statistics
+      let calendar = Calendar.current
+      let hour = calendar.component(.hour, from: Date())
+      let hourlyKey = "hourlyBlockingTime_\(hour)"
+      let hourlyTime = SharedData.userDefaults?.double(forKey: hourlyKey) ?? 0
+      SharedData.userDefaults?.set(hourlyTime + duration, forKey: hourlyKey)
+      
+      // Log schedule name and app count for better tracking
+      let scheduleName = sessionInfo["scheduleName"] as? String ?? "Schedule"
+      let appCount = sessionInfo["appCount"] as? Int ?? 0
+      
+      logger.notice("Ended Focus Time tracking for \(appCount) apps in '\(scheduleName)', duration: \(Int(duration))s")
+      
+      // Clean up session data
+      SharedData.userDefaults?.removeObject(forKey: "schedule_session_\(scheduleId)")
+    }
     
     // Remove restrictions using ManagedSettingsStore
     let storeName = ManagedSettingsStore.Name("scheduledBlock_\(scheduleId)")

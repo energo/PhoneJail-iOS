@@ -71,14 +71,14 @@ struct BlockSchedulerSectionView: View {
       headerView
       separatorView
       
-      if !activeSchedules.isEmpty {
+//      if !activeSchedules.isEmpty {
         activeBlocksSection
-      }
+//      }
       
-      if !inactiveSchedules.isEmpty {
+//      if !inactiveSchedules.isEmpty {
         separatorView
         inactiveBlocksSection
-      }
+//      }
       
       addButton
     }
