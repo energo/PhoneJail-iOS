@@ -49,7 +49,8 @@ struct BlockSchedulerSectionView: View {
                     schedule: schedule,
                     onSave: { updatedSchedule in
                         updateSchedule(updatedSchedule)
-                        selectedSchedule = nil
+                        // Don't set selectedSchedule = nil here to keep the sheet open
+                        // The user will dismiss it manually with the X button
                     },
                     onDelete: {
                         deleteSchedule(schedule)

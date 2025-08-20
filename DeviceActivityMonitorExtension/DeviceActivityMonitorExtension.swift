@@ -8,6 +8,7 @@
 import DeviceActivity
 import UserNotifications
 import FamilyControls
+import ManagedSettings
 import os.log
 
 
@@ -117,12 +118,30 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   //MARK: - Interval Start/End
   override func intervalDidStart(for activity: DeviceActivityName) {
     super.intervalDidStart(for: activity)
+    
+    // Check if this is a scheduled block activity
+    let activityName = "\(activity.rawValue)"
+    if activityName.contains("scheduledBlock_") {
+      // Extract schedule ID from activity name
+      let scheduleId = activityName.replacingOccurrences(of: "scheduledBlock_", with: "")
+      handleScheduledBlockStart(scheduleId: scheduleId)
+      return
+    }
   }
   
   override func intervalDidEnd(for activity: DeviceActivityName) {
     super.intervalDidEnd(for: activity)
     
     logger.log("intervalDidEnd called for activity: \(activity.rawValue)")
+    
+    // Check if this is a scheduled block activity
+    let activityName = "\(activity.rawValue)"
+    if activityName.contains("scheduledBlock_") {
+      // Extract schedule ID from activity name
+      let scheduleId = activityName.replacingOccurrences(of: "scheduledBlock_", with: "")
+      handleScheduledBlockEnd(scheduleId: scheduleId)
+      return
+    }
     
     // Interval ended silently
     // Handle different activities differently
@@ -475,5 +494,102 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     } catch {
       logger.log("Failed to restart monitoring: \(error.localizedDescription)")
     }
+  }
+  
+  // MARK: - Scheduled Block Handlers
+  
+  private func handleScheduledBlockStart(scheduleId: String) {
+    logger.notice("Scheduled block interval started: \(scheduleId)")
+    
+    // Check if today is in the schedule's days
+    if !isTodayInSchedule(scheduleId: scheduleId) {
+      logger.notice("Today is not in schedule days for: \(scheduleId)")
+      return
+    }
+    
+    // Get schedule data from SharedData
+    guard let isStrict = SharedData.userDefaults?.object(forKey: "schedule_\(scheduleId)_strict") as? Bool else {
+      logger.error("Failed to get schedule data for: \(scheduleId)")
+      return
+    }
+    
+    // Load the selection data
+    let decoder = PropertyListDecoder()
+    var selection: FamilyActivitySelection?
+    if let data = SharedData.userDefaults?.data(forKey: "schedule_\(scheduleId)_selection") {
+      selection = try? decoder.decode(FamilyActivitySelection.self, from: data)
+    }
+    
+    // Apply restrictions using ManagedSettingsStore
+    let storeName = ManagedSettingsStore.Name("scheduledBlock_\(scheduleId)")
+    let store = ManagedSettingsStore(named: storeName)
+    
+    // Clear any existing settings first
+    store.clearAllSettings()
+    
+    // Apply the restrictions
+    if let selection = selection {
+      store.shield.applications = selection.applicationTokens
+      
+      if isStrict {
+        // Strict mode - block all categories
+        store.shield.applicationCategories = ShieldSettings.ActivityCategoryPolicy.all()
+      } else {
+        // Normal mode - only block selected categories
+        store.shield.applicationCategories = ShieldSettings.ActivityCategoryPolicy.specific(selection.categoryTokens)
+      }
+      
+      store.shield.webDomains = selection.webDomainTokens
+    }
+    
+    // Mark as active in SharedData
+    SharedData.userDefaults?.set(true, forKey: "schedule_\(scheduleId)_active")
+    SharedData.userDefaults?.set(Date().timeIntervalSince1970, forKey: "schedule_\(scheduleId)_startTimestamp")
+    
+    // Send notification
+    let scheduleName = SharedData.userDefaults?.string(forKey: "schedule_\(scheduleId)_name") ?? "Schedule"
+    LocalNotificationManager.scheduleExtensionNotification(
+      title: "📅 \(scheduleName) Active",
+      details: "Scheduled apps are now blocked"
+    )
+  }
+  
+  private func handleScheduledBlockEnd(scheduleId: String) {
+    logger.notice("Scheduled block ended: \(scheduleId)")
+    
+    // Remove restrictions using ManagedSettingsStore
+    let storeName = ManagedSettingsStore.Name("scheduledBlock_\(scheduleId)")
+    let store = ManagedSettingsStore(named: storeName)
+    
+    // Clear all restrictions
+    store.clearAllSettings()
+    
+    // Mark as inactive in SharedData
+    SharedData.userDefaults?.set(false, forKey: "schedule_\(scheduleId)_active")
+    SharedData.userDefaults?.removeObject(forKey: "schedule_\(scheduleId)_startTimestamp")
+    
+    // Send notification
+    let scheduleName = SharedData.userDefaults?.string(forKey: "schedule_\(scheduleId)_name") ?? "Schedule"
+    LocalNotificationManager.scheduleExtensionNotification(
+      title: "✅ \(scheduleName) Ended",
+      details: "Scheduled apps are now accessible"
+    )
+  }
+  
+  private func isTodayInSchedule(scheduleId: String) -> Bool {
+    // Check if we have days of week data
+    guard let daysArray = SharedData.userDefaults?.object(forKey: "schedule_\(scheduleId)_daysOfWeek") as? [Int] else {
+      logger.error("No days of week data for schedule: \(scheduleId)")
+      return true // Default to true if no days specified (daily schedule)
+    }
+    
+    // Check if today's weekday is in the schedule
+    let calendar = Calendar.current
+    let weekday = calendar.component(.weekday, from: Date())
+    
+    let isInSchedule = daysArray.contains(weekday)
+    logger.notice("Today (weekday \(weekday)) is \(isInSchedule ? "IN" : "NOT IN") schedule days: \(daysArray)")
+    
+    return isInSchedule
   }
 }

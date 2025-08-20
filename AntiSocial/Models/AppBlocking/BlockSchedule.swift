@@ -141,40 +141,21 @@ struct BlockSchedule: Identifiable, Codable {
     // MARK: - Device Activity Schedule
     
     func createDeviceActivitySchedule() -> DeviceActivitySchedule {
-        let calendar = Calendar.current
-        let now = Date()
+        // Create schedule components with weekdays
+        var intervalStart = DateComponents()
+        intervalStart.hour = startTime.hour
+        intervalStart.minute = startTime.minute
         
-        // Create start and end dates for today
-        var startComponents = calendar.dateComponents([.year, .month, .day], from: now)
-        startComponents.hour = startTime.hour
-        startComponents.minute = startTime.minute
+        var intervalEnd = DateComponents()
+        intervalEnd.hour = endTime.hour
+        intervalEnd.minute = endTime.minute
         
-        var endComponents = calendar.dateComponents([.year, .month, .day], from: now)
-        endComponents.hour = endTime.hour
-        endComponents.minute = endTime.minute
-        
-        // Handle overnight schedules
-        if let start = calendar.date(from: startComponents),
-           let end = calendar.date(from: endComponents) {
-            var finalEnd = end
-            if end <= start {
-                // Schedule goes past midnight
-                finalEnd = calendar.date(byAdding: .day, value: 1, to: end) ?? end
-            }
-            
-            return DeviceActivitySchedule(
-                intervalStart: startTime,
-                intervalEnd: endTime,
-                repeats: true,
-                warningTime: nil
-            )
-        }
-        
-        // Fallback
+        // The DeviceActivitySchedule will repeat daily, but we'll check days in the extension
         return DeviceActivitySchedule(
-            intervalStart: startTime,
-            intervalEnd: endTime,
-            repeats: true
+            intervalStart: intervalStart,
+            intervalEnd: intervalEnd,
+            repeats: true,
+            warningTime: nil
         )
     }
 }
