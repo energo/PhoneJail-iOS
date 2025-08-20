@@ -22,11 +22,7 @@ struct ScreenTimeSectionView: View {
       
       screenTimeView
       bottomView
-      
-      Spacer()
     }
-    .padding()
-    .padding(.horizontal, 32)
     .onAppear {
       loadBlockingStats()
     }
@@ -120,7 +116,7 @@ struct ScreenTimeSectionView: View {
     HStack {
       VStack(spacing: 0) {
         Text(hoursString(from: report.totalDuration))
-          .font(.system(size: 144, weight: .heavy, design: .rounded))
+          .font(.system(size: 140, weight: .heavy, design: .rounded))
           .foregroundStyle(Color.as_gradietn_time_text)
         
         Text("HOURS")
@@ -131,7 +127,7 @@ struct ScreenTimeSectionView: View {
       
       VStack(spacing: 0) {
         Text(minutesString(from: report.totalDuration))
-          .font(.system(size: 144, weight: .heavy, design: .rounded))
+          .font(.system(size: 140, weight: .heavy, design: .rounded))
           .foregroundStyle(Color.as_gradietn_time_text)
         
         Text("MINUTES")

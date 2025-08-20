@@ -28,7 +28,7 @@ struct AppMonitorScreen: View {
   // MARK: - UI State
   @State private var isShowingProfile: Bool = false
   @State private var offsetY: CGFloat = .zero
-  @State private var headerHeight: CGFloat = UIScreen.main.bounds.height * 0.35
+  @State private var headerHeight: CGFloat = UIScreen.main.bounds.height * 0.30
   @State private var screenTimeID = UUID()
   @State private var lastRefreshDate = Date()
   
@@ -42,7 +42,7 @@ struct AppMonitorScreen: View {
   private enum Constants {
     static let swipeThreshold: CGFloat = 50
     static let animationDuration: Double = 0.6
-    static let headerPadding: CGFloat = 20
+    static let headerPadding: CGFloat = 10
     static let horizontalPadding: CGFloat = 32
     static let sectionSpacing: CGFloat = 0
   }
@@ -313,11 +313,10 @@ private extension AppMonitorScreen {
 private extension AppMonitorScreen {
   
   func headerOverlayView(screenGeometry: GeometryProxy) -> some View {
-    VStack(spacing: 8) {
+    VStack(spacing: 0) {
       headerView
       screenTimeSection
     }
-    .background(headerHeightReader)
     .offset(y: max(0, screenGeometry.safeAreaInsets.top - offsetY))
   }
   
@@ -327,6 +326,7 @@ private extension AppMonitorScreen {
       profileButton
     }
     .padding(.horizontal)
+    .frame(height: 30)
   }
   
   var profileButton: some View {
@@ -342,19 +342,10 @@ private extension AppMonitorScreen {
   var screenTimeSection: some View {
     ScreenTimeTodayView(id: screenTimeID)
   }
-  
-  var headerHeightReader: some View {
-    GeometryReader { proxy in
-      Color.clear.onAppear {
-        headerHeight = proxy.size.height
-      }
-    }
-  }
 }
 
 // MARK: - Navigation
 private extension AppMonitorScreen {
-  
     var navigationButtons: some View {
     VStack(spacing: 20) {
       ForEach(sections, id: \.id) { section in
