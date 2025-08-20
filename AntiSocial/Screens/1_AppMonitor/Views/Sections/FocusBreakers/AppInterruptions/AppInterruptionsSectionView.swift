@@ -83,18 +83,17 @@ struct AppInterruptionsSectionView: View {
       VStack(alignment: .leading, spacing: 8) {
         
         // Основной блок — Select Apps (всегда отображается)
-        HStack(spacing: 12) {
+        HStack(spacing: 8) {
           Text("Apps")
             .foregroundColor(.white)
             .font(.system(size: 15, weight: .regular))
           
           Spacer()
           
-          Text("\(viewModel.model.activitySelection.applicationTokens.count)")
-            .foregroundColor(Color.as_white_light)
-            .font(.system(size: 15, weight: .regular))
-          
-          stackedAppIcons
+          AppTokensView(
+            tokens: viewModel.model.activitySelection.applicationTokens,
+            spacing: 8
+          )
           
           Image(systemName: "chevron.right")
             .foregroundColor(Color.as_white_light)
@@ -102,18 +101,17 @@ struct AppInterruptionsSectionView: View {
         
         // Показываем категории, только если они выбраны
         if !viewModel.model.activitySelection.categoryTokens.isEmpty {
-          HStack(spacing: 12) {
+          HStack(spacing: 8) {
             Text("Categories")
               .foregroundColor(.white)
               .font(.system(size: 15, weight: .regular))
             
             Spacer()
             
-            Text("\(viewModel.model.activitySelection.categoryTokens.count)")
-              .foregroundColor(Color.as_white_light)
-              .font(.system(size: 15, weight: .regular))
-            
-            stackedCategoryIcons
+            CategoryTokensView(
+              tokens: viewModel.model.activitySelection.categoryTokens,
+              spacing: 8
+            )
             
             Image(systemName: "chevron.right")
               .foregroundColor(Color.as_white_light)
@@ -131,41 +129,6 @@ struct AppInterruptionsSectionView: View {
     )
   }
   
-  private var stackedCategoryIcons: some View {
-    let tokens = Array(viewModel.model.activitySelection.categoryTokens.prefix(4))
-    
-    return ZStack {
-      ForEach(tokens.indices, id: \.self) { index in
-        let token = tokens[index]
-        Label(token)
-          .labelStyle(.iconOnly)
-          .frame(width: 20, height: 20)
-          .background(Color.white)
-          .clipShape(RoundedRectangle(cornerRadius: 6))
-          .offset(x: CGFloat(-(tokens.count - 1 - index)) * 12)
-          .zIndex(Double(index)) // правая поверх
-      }
-    }
-    .frame(width: CGFloat(20 + (tokens.count - 1) * 12), height: 20)
-  }
-  
-  private var stackedAppIcons: some View {
-    let tokens = Array(viewModel.model.activitySelection.applicationTokens.prefix(4))
-    
-    return ZStack {
-      ForEach(tokens.indices, id: \.self) { index in
-        let token = tokens[index]
-        Label(token)
-          .labelStyle(.iconOnly)
-          .frame(width: 20, height: 20)
-          .background(Color.white)
-          .clipShape(RoundedRectangle(cornerRadius: 6))
-          .offset(x: CGFloat(-(tokens.count - 1 - index)) * 12)
-          .zIndex(Double(index)) // правая поверх
-      }
-    }
-    .frame(width: CGFloat(20 + (tokens.count - 1) * 12), height: 20)
-  }
   
   private var bgBlur: some View {
     ZStack {

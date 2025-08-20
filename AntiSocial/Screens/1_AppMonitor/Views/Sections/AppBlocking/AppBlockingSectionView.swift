@@ -8,6 +8,7 @@
 import SwiftUI
 import WidgetKit
 import FamilyControls
+import ManagedSettings
 import Combine
 import RevenueCatUI
 
@@ -371,8 +372,14 @@ struct AppBlockingSectionView: View {
   private var appsBlockedView: some View {
     VStack(spacing: 12) {
       HStack {
-        stackedAppIcons
-        stackedCategoryIcons
+        AppTokensView(
+          tokens: deviceActivityService.selectionToDiscourage.applicationTokens,
+          showCount: false
+        )
+        CategoryTokensView(
+          tokens: deviceActivityService.selectionToDiscourage.categoryTokens,
+          showCount: false
+        )
         Spacer()
       }
       
@@ -470,11 +477,10 @@ struct AppBlockingSectionView: View {
             
             Spacer()
             
-            Text("\(deviceActivityService.selectionToDiscourage.applicationTokens.count)")
-              .foregroundColor(Color.as_white_light)
-              .font(.system(size: 15, weight: .regular))
-            
-            stackedAppIcons
+            AppTokensView(
+              tokens: deviceActivityService.selectionToDiscourage.applicationTokens,
+              spacing: 4
+            )
             
             Image(systemName: "chevron.right")
               .foregroundColor(Color.as_white_light)
@@ -489,11 +495,10 @@ struct AppBlockingSectionView: View {
               
               Spacer()
               
-              Text("\(deviceActivityService.selectionToDiscourage.categoryTokens.count)")
-                .foregroundColor(Color.as_white_light)
-                .font(.system(size: 15, weight: .regular))
-              
-              stackedCategoryIcons
+              CategoryTokensView(
+                tokens: deviceActivityService.selectionToDiscourage.categoryTokens,
+                spacing: 4
+              )
               
               Image(systemName: "chevron.right")
                 .foregroundColor(Color.as_white_light)
@@ -516,41 +521,6 @@ struct AppBlockingSectionView: View {
     }
   }
   
-  private var stackedCategoryIcons: some View {
-    let tokens = Array(deviceActivityService.selectionToDiscourage.categoryTokens.prefix(4))
-    
-    return ZStack {
-      ForEach(tokens.indices, id: \.self) { index in
-        let token = tokens[index]
-        Label(token)
-          .labelStyle(.iconOnly)
-          .frame(width: 20, height: 20)
-          .background(Color.white)
-          .clipShape(RoundedRectangle(cornerRadius: 6))
-          .offset(x: CGFloat(-(tokens.count - 1 - index)) * 12)
-          .zIndex(Double(index)) // правая поверх
-      }
-    }
-    .frame(width: CGFloat(20 + (tokens.count - 1) * 12), height: 20)
-  }
-  
-  private var stackedAppIcons: some View {
-    let tokens = Array(deviceActivityService.selectionToDiscourage.applicationTokens.prefix(4))
-    
-    return ZStack {
-      ForEach(tokens.indices, id: \.self) { index in
-        let token = tokens[index]
-        Label(token)
-          .labelStyle(.iconOnly)
-          .frame(width: 20, height: 20)
-          .background(Color.white)
-          .clipShape(RoundedRectangle(cornerRadius: 6))
-          .offset(x: CGFloat(-(tokens.count - 1 - index)) * 12)
-          .zIndex(Double(index)) // правая поверх
-      }
-    }
-    .frame(width: CGFloat(20 + (tokens.count - 1) * 12), height: 20)
-  }
   
   private var strictBlockView: some View {
     VStack(alignment: .leading, spacing: 16) {
