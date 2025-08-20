@@ -334,20 +334,20 @@ struct NewBlockSchedulerView: View {
     
     private var stackedAppIcons: some View {
         let tokens = Array(selection.applicationTokens.prefix(4))
+        let iconSize: CGFloat = 20
+        let overlap: CGFloat = -8 // Negative value for proper overlap
         
-        return ZStack {
+        return HStack(spacing: overlap) {
             ForEach(tokens.indices, id: \.self) { index in
                 let token = tokens[index]
                 Label(token)
                     .labelStyle(.iconOnly)
-                    .frame(width: 20, height: 20)
+                    .frame(width: iconSize, height: iconSize)
                     .background(Color.white)
                     .clipShape(RoundedRectangle(cornerRadius: 6))
-                    .offset(x: CGFloat(-(tokens.count - 1 - index)) * 12)
-                    .zIndex(Double(index))
+                    .zIndex(Double(tokens.count - index)) // Left icon on top
             }
         }
-        .frame(width: CGFloat(20 + (tokens.count - 1) * 12), height: 20)
     }
     
     private func dayButton(_ weekDay: WeekDay) -> some View {

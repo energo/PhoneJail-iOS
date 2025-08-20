@@ -138,35 +138,34 @@ struct BlockSchedulerSectionView: View {
     Button(action: {
       selectedSchedule = schedule
     }) {
-      HStack(spacing: 4) {
+      HStack(spacing: 12) {
         // Lock icon
         Image(isActive ? .icLocked : .icUnlocked)
           .resizable()
           .frame(width: 24, height: 24)
-          .padding(.trailing, 8)
         
         // Schedule details
         VStack(alignment: .leading, spacing: 4) {
           Text(schedule.name)
-            .font(.system(size: 18, weight: .medium))
+            .font(.system(size: 16, weight: .semibold))
             .foregroundStyle(Color.white)
           
           Text("\(schedule.timeRangeString) • \(schedule.shortDaysString)")
-            .font(.system(size: 10, weight: .regular))
-            .foregroundStyle(Color.as_white_light)
+            .font(.system(size: 14, weight: .regular))
+            .foregroundStyle(Color.as_gray_light)
         }
         
         Spacer()
         
         // App count and icons
-//        HStack(spacing: 4) {
+        HStack(spacing: 4) {
           Text("\(schedule.selection.applicationTokens.count)")
             .font(.system(size: 14, weight: .regular))
             .foregroundStyle(Color.as_white_light)
-//            .padding(.horizontal)
           
           stackedAppIcons(for: schedule)
-//        }
+            .alignmentGuide(.leading) { d in d[VerticalAlignment.center] }
+        }
       }
       .background(Color.white.opacity(0.07))
     }
@@ -174,20 +173,20 @@ struct BlockSchedulerSectionView: View {
   
   private func stackedAppIcons(for schedule: BlockSchedule) -> some View {
     let tokens = Array(schedule.selection.applicationTokens.prefix(4))
+    let iconSize: CGFloat = 20
+    let overlap: CGFloat = -8 // Negative value for proper overlap
     
-    return ZStack {
+    return HStack(spacing: overlap) {
       ForEach(tokens.indices, id: \.self) { index in
         let token = tokens[index]
         Label(token)
           .labelStyle(.iconOnly)
-          .frame(width: 20, height: 20)
+          .frame(width: iconSize, height: iconSize)
           .background(Color.white)
           .clipShape(RoundedRectangle(cornerRadius: 6))
-          .offset(x: CGFloat(-(tokens.count - 1 - index)) * 12)
-          .zIndex(Double(index)) // правая поверх
+          .zIndex(Double(tokens.count - index)) // Left icon on top
       }
     }
-    .frame(width: CGFloat(20 + (tokens.count - 1) * 12), height: 20)
   }
   
   private var addButton: some View {
