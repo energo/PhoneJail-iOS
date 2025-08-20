@@ -46,7 +46,8 @@ struct AppTokensView: View {
                     .frame(width: iconSize, height: iconSize)
                     .background(Color.white)
                     .clipShape(RoundedRectangle(cornerRadius: 6))
-                    .zIndex(Double(tokensArray.count - index)) // Left icon on top
+//                    .zIndex(Double(tokensArray.count - index)) // Left icon on top
+                    .zIndex(Double(index)) // Right icon on top
             }
         }
     }
@@ -90,7 +91,7 @@ struct CategoryTokensView: View {
                     .frame(width: iconSize, height: iconSize)
                     .background(Color.white)
                     .clipShape(RoundedRectangle(cornerRadius: 6))
-                    .zIndex(Double(tokensArray.count - index)) // Left icon on top
+                    .zIndex(Double(index)) // Left icon on top
             }
         }
     }
