@@ -264,7 +264,7 @@ public struct AdaptiveValues {
                     headline: 19,
                     body: 19,
                     callout: 10,
-                    subheadline: 17,
+                    subheadline: 16,
                     footnote: 15,
                     caption1: 13,
                     caption2: 12,

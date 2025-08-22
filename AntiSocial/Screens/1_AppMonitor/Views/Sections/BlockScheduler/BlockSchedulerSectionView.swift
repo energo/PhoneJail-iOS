@@ -74,19 +74,29 @@ struct BlockSchedulerSectionView: View {
       headerView
       separatorView
       
-//      if !activeSchedules.isEmpty {
+      if activeSchedules.isEmpty && inactiveSchedules.isEmpty {
+        emptyView
+      } else {
         activeBlocksSection
-//      }
-      
-//      if !inactiveSchedules.isEmpty {
         separatorView
         inactiveBlocksSection
-//      }
-      
+      }
       addButton
     }
   }
   
+  private var emptyView: some View {
+    VStack(alignment: .center) {
+      Image(.icNavSchedule)
+        .resizable()
+        .frame(width: 72, height: 72)
+
+      Text("Phone Jail lets you schedule blocks ahead of time. Tap the button below to set up your first one.")
+        .foregroundColor(.white)
+        .adaptiveFont(\.subheadline)
+        .fontWeight(.regular)
+    }
+  }
   private var headerView: some View {
     HStack {
       Image(.icNavSchedule)
