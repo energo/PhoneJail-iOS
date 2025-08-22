@@ -63,6 +63,7 @@ struct ScreenTimeAlertsSectionView: View {
       Text("Motivational Notifications")
         .foregroundColor(.white)
         .font(.system(size: 16, weight: .regular))
+        .layoutPriority(9999)
       
       Spacer()
       
