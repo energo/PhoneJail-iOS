@@ -36,7 +36,7 @@ struct BlockSchedulerSectionView: View {
       .onAppear {
         loadSchedules()
       }
-      .sheet(isPresented: $showingAddSchedule) {
+      .fullScreenCover(isPresented: $showingAddSchedule) {
         NewBlockSchedulerView(
           schedule: nil,
           onSave: { schedule in
@@ -46,7 +46,8 @@ struct BlockSchedulerSectionView: View {
           onDelete: nil
         )
       }
-      .sheet(item: $selectedSchedule) { schedule in
+      .fullScreenCover(item: $selectedSchedule) { schedule in
+//      .sheet(item: $selectedSchedule) { schedule in
         NewBlockSchedulerView(
           schedule: schedule,
           onSave: { updatedSchedule in

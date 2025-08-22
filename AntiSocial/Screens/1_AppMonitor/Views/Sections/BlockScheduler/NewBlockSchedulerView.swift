@@ -8,6 +8,12 @@
 import SwiftUI
 import FamilyControls
 
+struct WeekDay {
+  let day: Int
+  let name: String
+  let fullName: String
+}
+
 struct NewBlockSchedulerView: View {
   @Environment(\.dismiss) private var dismiss
   @EnvironmentObject var deviceActivityService: DeviceActivityService
@@ -26,6 +32,7 @@ struct NewBlockSchedulerView: View {
   @State private var isStrictBlock: Bool = false
   @State private var showingActivityPicker = false
   @State private var isActive: Bool = false
+  @State private var hasUnsavedChanges: Bool = false
   
   init(schedule: BlockSchedule?, onSave: @escaping (BlockSchedule) -> Void, onDelete: (() -> Void)?) {
     self.schedule = schedule
@@ -37,8 +44,8 @@ struct NewBlockSchedulerView: View {
     BGView(imageRsc: .bgMain) {
       VStack(spacing: 16) {
         headerView
-//        separatorView
-//          .padding(.horizontal, 32)
+        separatorView
+          .padding(.horizontal, 32)
 
         ScrollView {
           VStack(spacing: 24) {
@@ -57,6 +64,30 @@ struct NewBlockSchedulerView: View {
       isPresented: $showingActivityPicker,
       selection: $selection
     )
+    .onChange(of: name) { _, _ in
+      autoSaveIfNeeded()
+    }
+    .onChange(of: startHour) { _, _ in
+      autoSaveIfNeeded()
+    }
+    .onChange(of: startMinute) { _, _ in
+      autoSaveIfNeeded()
+    }
+    .onChange(of: endHour) { _, _ in
+      autoSaveIfNeeded()
+    }
+    .onChange(of: endMinute) { _, _ in
+      autoSaveIfNeeded()
+    }
+    .onChange(of: selectedDays) { _, _ in
+      autoSaveIfNeeded()
+    }
+    .onChange(of: selection) { _, _ in
+      autoSaveIfNeeded()
+    }
+    .onChange(of: isStrictBlock) { _, _ in
+      autoSaveIfNeeded()
+    }
   }
   
   private var contentView: some View {
@@ -80,8 +111,6 @@ struct NewBlockSchedulerView: View {
         deleteButton
       }
     }
-//    .padding()
-//    .blurBackground()
   }
   
   private var headerView: some View {
@@ -253,30 +282,8 @@ struct NewBlockSchedulerView: View {
         }
         .toggleStyle(SwitchToggleStyle(tint: .green))
         .padding(.horizontal)
-        .onChange(of: isActive) { _, newValue in
-          // Update the schedule without dismissing
-          var startComponents = DateComponents()
-          startComponents.hour = startHour
-          startComponents.minute = startMinute
-          
-          var endComponents = DateComponents()
-          endComponents.hour = endHour
-          endComponents.minute = endMinute
-          
-          let updatedSchedule = BlockSchedule(
-            id: schedule?.id ?? UUID().uuidString,
-            name: name.isEmpty ? generateDefaultName() : name,
-            startTime: startComponents,
-            endTime: endComponents,
-            daysOfWeek: selectedDays,
-            selection: selection,
-            isStrictBlock: isStrictBlock,
-            isActive: newValue,
-            createdAt: schedule?.createdAt ?? Date(),
-            updatedAt: Date()
-          )
-          
-          onSave(updatedSchedule)
+        .onChange(of: isActive) { _, _ in
+          autoSaveIfNeeded()
         }
       } else {
         // For new schedule, show activate button
@@ -406,14 +413,15 @@ struct NewBlockSchedulerView: View {
     onSave(newSchedule)
   }
   
-  // MARK: - Helper Types
-  
-  struct WeekDay {
-    let day: Int
-    let name: String
-    let fullName: String
+  private func autoSaveIfNeeded() {
+    guard schedule != nil else { return }
+    guard isValidSchedule else { return }
+    
+    saveScheduleWithStatus(isActive: isActive)
+    hasUnsavedChanges = false
   }
   
+  // MARK: - Helper Types
   private var weekDays: [WeekDay] {
     [
       WeekDay(day: 1, name: "Sun", fullName: "Sunday"),
