@@ -33,7 +33,7 @@ struct NewBlockSchedulerView: View {
   @State private var showingActivityPicker = false
   @State private var isActive: Bool = false
   @State private var hasUnsavedChanges: Bool = false
-  @State private var showingDeactivateConfirmation: Bool = false
+  @State private var activeDialog: DialogType? = nil
   
   init(schedule: BlockSchedule?, onSave: @escaping (BlockSchedule) -> Void, onDelete: (() -> Void)?) {
     self.schedule = schedule
@@ -251,14 +251,26 @@ struct NewBlockSchedulerView: View {
       
       Spacer()
       
-      Toggle("", isOn: $isStrictBlock)
+      Toggle("", isOn: Binding(
+        get: { isStrictBlock },
+        set: { newValue in
+          if newValue && !isStrictBlock {
+            // Show confirmation dialog when enabling
+            activeDialog = .strictBlock
+          } else if !newValue {
+            // Allow disabling without confirmation
+            isStrictBlock = false
+            autoSaveIfNeeded()
+          }
+        }
+      ))
         .toggleStyle(SwitchToggleStyle(tint: .purple))
     }
   }
   
   private var deleteButton: some View {
     Button(action: {
-      onDelete?()
+      activeDialog = .delete
     }) {
       HStack {
         Spacer()
@@ -274,7 +286,19 @@ struct NewBlockSchedulerView: View {
   
   private var bottomButtons: some View {
     Group {
-      if !showingDeactivateConfirmation {
+      if let dialog = activeDialog {
+        // Show confirmation dialog
+        ConfirmationDialogView(
+          dialogType: dialog,
+          onCancel: {
+            activeDialog = nil
+          },
+          onConfirm: {
+            handleDialogConfirmation(dialog)
+          }
+        )
+        .padding()
+      } else {
         VStack(spacing: 12) {
           if schedule != nil {
             // For existing schedule, show take a break button if active
@@ -289,10 +313,6 @@ struct NewBlockSchedulerView: View {
           }
         }
         .padding()
-      } else {
-        // Show confirmation dialog
-        deactivateConfirmationView
-          .padding()
       }
     }
   }
@@ -318,7 +338,7 @@ struct NewBlockSchedulerView: View {
   
   private var takeBreakButton: some View {
     Button(action: {
-      showingDeactivateConfirmation = true
+      activeDialog = .deactivate
     }) {
       HStack {
         Spacer()
@@ -353,45 +373,19 @@ struct NewBlockSchedulerView: View {
     }
   }
   
-  private var deactivateConfirmationView: some View {
-    VStack(spacing: 20) {
-      Text("Are you sure you want to deactivate this schedule?")
-        .font(.system(size: 16, weight: .regular))
-        .foregroundStyle(Color.white)
-        .multilineTextAlignment(.center)
-        .padding(.horizontal)
-      
-      HStack(spacing: 16) {
-        Button(action: {
-          showingDeactivateConfirmation = false
-        }) {
-          Text("Cancel")
-            .font(.system(size: 16, weight: .regular))
-            .foregroundStyle(Color.white)
-            .frame(maxWidth: .infinity)
-            .frame(height: 44)
-            .background(Color.gray.opacity(0.3))
-            .clipShape(RoundedRectangle(cornerRadius: 22))
-        }
-        
-        Button(action: {
-          isActive = false
-          autoSaveIfNeeded()
-          showingDeactivateConfirmation = false
-        }) {
-          Text("Deactivate")
-            .font(.system(size: 16, weight: .regular))
-            .foregroundStyle(Color.white)
-            .frame(maxWidth: .infinity)
-            .frame(height: 44)
-            .background(Color.red.opacity(0.8))
-            .clipShape(RoundedRectangle(cornerRadius: 22))
-        }
-      }
+  private func handleDialogConfirmation(_ dialog: DialogType) {
+    switch dialog {
+    case .deactivate:
+      isActive = false
+      autoSaveIfNeeded()
+    case .delete:
+      onDelete?()
+      dismiss()
+    case .strictBlock:
+      isStrictBlock = true
+      autoSaveIfNeeded()
     }
-    .padding()
-    .background(Color.black.opacity(0.3))
-    .clipShape(RoundedRectangle(cornerRadius: 16))
+    activeDialog = nil
   }
   
   private func dayButton(_ weekDay: WeekDay) -> some View {
