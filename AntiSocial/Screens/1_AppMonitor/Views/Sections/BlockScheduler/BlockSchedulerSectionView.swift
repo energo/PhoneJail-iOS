@@ -87,7 +87,7 @@ struct BlockSchedulerSectionView: View {
   
   private var emptyView: some View {
     VStack(alignment: .center) {
-      Image(.icNavSchedule)
+      Image(.icNavScheduleBig)
         .resizable()
         .frame(width: 72, height: 72)
 
