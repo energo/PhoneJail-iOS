@@ -33,6 +33,7 @@ struct NewBlockSchedulerView: View {
   @State private var showingActivityPicker = false
   @State private var isActive: Bool = false
   @State private var hasUnsavedChanges: Bool = false
+  @State private var showingDeactivateConfirmation: Bool = false
   
   init(schedule: BlockSchedule?, onSave: @escaping (BlockSchedule) -> Void, onDelete: (() -> Void)?) {
     self.schedule = schedule
@@ -272,25 +273,28 @@ struct NewBlockSchedulerView: View {
   }
   
   private var bottomButtons: some View {
-    VStack(spacing: 12) {
-      if schedule != nil {
-        // For existing schedule, show activate/deactivate toggle
-        Toggle(isOn: $isActive) {
-          Text(isActive ? "Schedule Active" : "Schedule Inactive")
-            .font(.system(size: 16, weight: .semibold))
-            .foregroundStyle(Color.white)
+    Group {
+      if !showingDeactivateConfirmation {
+        VStack(spacing: 12) {
+          if schedule != nil {
+            // For existing schedule, show take a break button if active
+            if isActive {
+              takeBreakButton
+            } else {
+              activateExistingButton
+            }
+          } else {
+            // For new schedule, show activate button
+            activeButton
+          }
         }
-        .toggleStyle(SwitchToggleStyle(tint: .green))
-        .padding(.horizontal)
-        .onChange(of: isActive) { _, _ in
-          autoSaveIfNeeded()
-        }
+        .padding()
       } else {
-        // For new schedule, show activate button
-        activeButton
+        // Show confirmation dialog
+        deactivateConfirmationView
+          .padding()
       }
     }
-    .padding()
   }
   
   private var activeButton: some View {
@@ -304,13 +308,90 @@ struct NewBlockSchedulerView: View {
           .foregroundStyle(Color.white)
         Spacer()
       }
-      //          .padding(.vertical, 20)
       .frame(height: UIScreen.main.bounds.width / 7)
       .frame(width: UIScreen.main.bounds.width / 3 * 2)
       .background(Color.as_gradietn_button_purchase)
       .clipShape(RoundedRectangle(cornerRadius: 9999))
     }
     .disabled(!isValidSchedule)
+  }
+  
+  private var takeBreakButton: some View {
+    Button(action: {
+      showingDeactivateConfirmation = true
+    }) {
+      HStack {
+        Spacer()
+        Text("Take a break")
+          .font(.system(size: 16, weight: .regular))
+          .foregroundStyle(Color.white)
+        Spacer()
+      }
+      .frame(height: UIScreen.main.bounds.width / 7)
+      .frame(width: UIScreen.main.bounds.width / 3 * 2)
+      .background(Color.as_gradietn_button_purchase)
+      .clipShape(RoundedRectangle(cornerRadius: 9999))
+    }
+  }
+  
+  private var activateExistingButton: some View {
+    Button(action: {
+      isActive = true
+      autoSaveIfNeeded()
+    }) {
+      HStack {
+        Spacer()
+        Text("Activate")
+          .font(.system(size: 16, weight: .regular))
+          .foregroundStyle(Color.white)
+        Spacer()
+      }
+      .frame(height: UIScreen.main.bounds.width / 7)
+      .frame(width: UIScreen.main.bounds.width / 3 * 2)
+      .background(Color.as_gradietn_button_purchase)
+      .clipShape(RoundedRectangle(cornerRadius: 9999))
+    }
+  }
+  
+  private var deactivateConfirmationView: some View {
+    VStack(spacing: 20) {
+      Text("Are you sure you want to deactivate this schedule?")
+        .font(.system(size: 16, weight: .regular))
+        .foregroundStyle(Color.white)
+        .multilineTextAlignment(.center)
+        .padding(.horizontal)
+      
+      HStack(spacing: 16) {
+        Button(action: {
+          showingDeactivateConfirmation = false
+        }) {
+          Text("Cancel")
+            .font(.system(size: 16, weight: .regular))
+            .foregroundStyle(Color.white)
+            .frame(maxWidth: .infinity)
+            .frame(height: 44)
+            .background(Color.gray.opacity(0.3))
+            .clipShape(RoundedRectangle(cornerRadius: 22))
+        }
+        
+        Button(action: {
+          isActive = false
+          autoSaveIfNeeded()
+          showingDeactivateConfirmation = false
+        }) {
+          Text("Deactivate")
+            .font(.system(size: 16, weight: .regular))
+            .foregroundStyle(Color.white)
+            .frame(maxWidth: .infinity)
+            .frame(height: 44)
+            .background(Color.red.opacity(0.8))
+            .clipShape(RoundedRectangle(cornerRadius: 22))
+        }
+      }
+    }
+    .padding()
+    .background(Color.black.opacity(0.3))
+    .clipShape(RoundedRectangle(cornerRadius: 16))
   }
   
   private func dayButton(_ weekDay: WeekDay) -> some View {
