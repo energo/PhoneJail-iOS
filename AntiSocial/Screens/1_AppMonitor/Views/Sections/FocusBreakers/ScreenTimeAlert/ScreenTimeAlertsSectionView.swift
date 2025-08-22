@@ -60,10 +60,9 @@ struct ScreenTimeAlertsSectionView: View {
   
   private var headerView: some View {
     HStack() {
-      Text("Screen Time Alerts")
+      Text("Motivational Notifications")
         .foregroundColor(.white)
         .font(.system(size: 16, weight: .regular))
-      
       
       Spacer()
       

@@ -227,12 +227,6 @@ private extension AppMonitorScreen {
   }
 }
 
-// MARK: - Section Views
-private extension AppMonitorScreen {
-  
-
-}
-
 // MARK: - Content Views
 private extension AppMonitorScreen {
   var appBlockingContent: some View {
@@ -270,7 +264,7 @@ private extension AppMonitorScreen {
         .frame(width: 24, height: 24)
         .foregroundColor(.white)
 
-      Text("Screen time alerts")
+      Text("Nudges")
         .foregroundColor(.white)
         .font(.system(size: 24, weight: .semibold))
       Spacer()
@@ -297,7 +291,7 @@ private extension AppMonitorScreen {
         .frame(width: 24, height: 24)
         .foregroundColor(.white)
 
-      Text("App interruptions")
+      Text("Zaps")
         .foregroundColor(.white)
         .font(.system(size: 24, weight: .semibold))
       Spacer()

@@ -31,7 +31,7 @@ struct BlockSchedulerSectionView: View {
   
   var body: some View {
     contentView
-      .padding()
+      .padding(20)
       .blurBackground()
       .onAppear {
         loadSchedules()

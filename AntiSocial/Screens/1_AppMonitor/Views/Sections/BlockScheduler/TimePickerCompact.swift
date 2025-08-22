@@ -31,6 +31,8 @@ struct TimePickerCompact: View {
     }
     .sheet(isPresented: $showingPicker) {
       TimePickerSheet(hour: $hour, minute: $minute, isPresented: $showingPicker)
+        .presentationDetents([.medium])
+        .presentationDragIndicator(.visible)
     }
   }
 }

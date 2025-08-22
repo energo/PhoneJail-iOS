@@ -1,17 +1,17 @@
 {
   "images" : [
     {
-      "filename" : "material-symbols_warning-rounded.png",
+      "filename" : "mynaui_lightning-solid.png",
       "idiom" : "universal",
       "scale" : "1x"
     },
     {
-      "filename" : "material-symbols_warning-rounded@2x.png",
+      "filename" : "mynaui_lightning-solid@2x.png",
       "idiom" : "universal",
       "scale" : "2x"
     },
     {
-      "filename" : "material-symbols_warning-rounded@3x.png",
+      "filename" : "mynaui_lightning-solid@3x.png",
       "idiom" : "universal",
       "scale" : "3x"
     }
