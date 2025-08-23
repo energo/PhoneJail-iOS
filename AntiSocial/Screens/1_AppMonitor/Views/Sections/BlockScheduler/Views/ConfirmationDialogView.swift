@@ -73,14 +73,13 @@ struct ConfirmationDialogView: View {
         view.background(Color.black.opacity(0.95))
       })
     } else {
-      // Default compact version
       dialogContent
-        .if(isBlur, transform: { view in
-          view.blurBackground(cornerRadius: 0)
-        })
-        .if(!isBlur, transform: { view in
-          view.background(Color.white.opacity(0.07))
-        })
+        .padding()
+        .background(Color.white.opacity(0.07))
+        .clipShape(RoundedRectangle(cornerRadius: 32))
+      
+      //      .frame(maxWidth: .infinity, maxHeight: .infinity)
+      //      .background(Color.white.opacity(0.07))
     }
   }
   
