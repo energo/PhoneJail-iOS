@@ -49,10 +49,42 @@ enum DialogType {
 
 struct ConfirmationDialogView: View {
   let dialogType: DialogType
+  var isBlur: Bool = false
+  var fillAvailableSpace: Bool = false
   let onCancel: () -> Void
   let onConfirm: () -> Void
   
   var body: some View {
+    if fillAvailableSpace {
+      // Fill available space version
+      VStack {
+        Spacer()
+        
+        dialogContent
+          .padding()
+        
+        Spacer()
+      }
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
+      .if(isBlur, transform: { view in
+        view.blurBackground(cornerRadius: 0)
+      })
+      .if(!isBlur, transform: { view in
+        view.background(Color.black.opacity(0.95))
+      })
+    } else {
+      // Default compact version
+      dialogContent
+        .if(isBlur, transform: { view in
+          view.blurBackground(cornerRadius: 0)
+        })
+        .if(!isBlur, transform: { view in
+          view.background(Color.white.opacity(0.07))
+        })
+    }
+  }
+  
+  private var dialogContent: some View {
     VStack(spacing: 20) {
       Text(dialogType.title)
         .font(.system(size: 18, weight: .semibold))
@@ -87,8 +119,5 @@ struct ConfirmationDialogView: View {
         }
       }
     }
-    .padding()
-    .background(Color.white.opacity(0.07))
-    .clipShape(RoundedRectangle(cornerRadius: 32))
   }
 }

@@ -23,6 +23,7 @@ struct AppBlockingSectionView: View {
   
   @State private var isStrictBlock: Bool = SharedData.userDefaults?.bool(forKey: SharedData.Widget.isStricted) ?? false
   @State private var isBlocked: Bool = SharedData.userDefaults?.bool(forKey: SharedData.Widget.isBlocked) ?? false
+  @State private var showStrictBlockDialog: Bool = false
   
   private let adaptive = AdaptiveValues.current
   
@@ -61,257 +62,160 @@ struct AppBlockingSectionView: View {
     }
   }
   
-  // MARK: - Time Formatting Methods
-  private func formatRemainingTime(_ timeInterval: TimeInterval) -> String {
-    let remaining = Int(timeInterval)
-    
-    guard remaining > 0 else {
-      return Constants.TimeFormat.initialRemaining
-    }
-    
-    let hours = remaining / Constants.TimeCalculation.secondsInHour
-    let minutes = (remaining % Constants.TimeCalculation.secondsInHour) / Constants.TimeCalculation.secondsInMinute
-    let seconds = remaining % Constants.TimeCalculation.secondsInMinute
-    
-    return String(format: Constants.TimeFormat.remainingFormat, hours, minutes, seconds)
-  }
-  
-  private func formatBlockedTime(from timestamp: TimeInterval) -> String {
-    let elapsed = Date().timeIntervalSince1970 - timestamp
-    
-    // Валидация: если elapsed > 24 часов, что-то пошло не так
-    guard elapsed >= 0 && elapsed < TimeInterval(Constants.TimeCalculation.secondsInDay) else {
-      AppLogger.alert("Invalid elapsed time: \(elapsed) seconds from timestamp: \(timestamp)")
-      return Constants.TimeFormat.initialBlocked
-    }
-    
-    let hours = Int(elapsed) / Constants.TimeCalculation.secondsInHour
-    let minutes = (Int(elapsed) % Constants.TimeCalculation.secondsInHour) / Constants.TimeCalculation.secondsInMinute
-    
-    AppLogger.trace("Blocked time: \(hours)h \(minutes)m (elapsed: \(elapsed)s)")
-    return String(format: Constants.TimeFormat.blockedFormat, hours, minutes)
-  }
-  
-  private func calculateBlockedTime() -> String {
-    guard let startTimestamp = SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp) else {
-      return Constants.TimeFormat.initialBlocked
-    }
-    
-    return formatBlockedTime(from: startTimestamp)
-  }
-  
-  // Загрузить общее время за сегодня
-  private func loadTotalSavedTime() {
-    totalSavedTime = SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.todayTotalBlockingTime) ?? 0
-  }
-  
-  // Форматировать общее время включая текущую сессию
-  private func formatTotalSavedTime() -> String {
-    var total = totalSavedTime
-    
-    // Добавляем время текущей сессии если блокировка активна
-    if isBlocked, let startTimestamp = SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp) {
-      let currentSessionTime = Date().timeIntervalSince1970 - startTimestamp
-      total += currentSessionTime
-    }
-    
-    let hours = Int(total) / Constants.TimeCalculation.secondsInHour
-    let minutes = (Int(total) % Constants.TimeCalculation.secondsInHour) / Constants.TimeCalculation.secondsInMinute
-    
-    return String(format: Constants.TimeFormat.blockedFormat, hours, minutes)
-  }
-  
-  // Форматировать только текущую сессию блокировки
-  private func formatSavedTime() -> String {
-    guard isBlocked, 
-          let startTimestamp = SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp) else {
-      return Constants.TimeFormat.initialBlocked
-    }
-    
-    let currentSessionTime = Date().timeIntervalSince1970 - startTimestamp
-    let hours = Int(currentSessionTime) / Constants.TimeCalculation.secondsInHour
-    let minutes = (Int(currentSessionTime) % Constants.TimeCalculation.secondsInHour) / Constants.TimeCalculation.secondsInMinute
-    
-    return String(format: Constants.TimeFormat.blockedFormat, hours, minutes)
-  }
-  
-  // MARK: - Timer Management Methods
-  private func startTimer() {
-    // Останавливаем предыдущий таймер если есть
-    stopTimer()
-    
-    // Создаем новый Timer.TimerPublisher каждый раз
-    let newTimer = Timer.publish(every: Constants.Timer.updateInterval, on: .main, in: .common)
-    currentTimer = newTimer
-    timerConnection = newTimer.connect()
-    timerID = UUID() // Обновляем ID для отладки
-    
-    AppLogger.trace("Timer started with ID: \(timerID)")
-  }
-  
-  private func stopTimer() {
-    timerConnection?.cancel()
-    timerConnection = nil
-    currentTimer = nil
-    
-    AppLogger.trace("Timer stopped for ID: \(timerID)")
-  }
-  
-  //MARK: - Views
   var body: some View {
     contentView
-    .padding()
-    .blurBackground()
-    .onChange(of: isBlocked) { _, newValue in
-      if newValue {
-        // При включении блокировки сразу сбрасываем счетчик
-        timeBlockedString = Constants.TimeFormat.initialBlocked
-        currentSessionSavedTime = Constants.TimeFormat.initialBlocked
-        timeRemainingString = deviceActivityService.timeRemainingString
-      } else {
-        // При выключении блокировки очищаем все данные
-        timeBlockedString = Constants.TimeFormat.initialBlocked
-        currentSessionSavedTime = Constants.TimeFormat.initialBlocked
-        // ВАЖНО: Очищаем timestamp чтобы избежать проблем при следующем запуске
-        SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
-        AppLogger.trace("Cleared blocking timestamp on disable")
-      }
-    }
-    .onAppear {
-      // isBlocked и isStrictBlock уже инициализированы правильными значениями из SharedData
-      
-      // Reload saved app selection
-      deviceActivityService.loadSelection()
-      
-      // Загружаем общее время за сегодня
-      loadTotalSavedTime()
-      
-      // Unlock date is already loaded in DeviceActivityService init
-      
-      timeRemainingString = deviceActivityService.timeRemainingString
-      
-      // Проверяем состояние блокировки
-      if isBlocked {
-        // Перезагружаем unlock date из SharedData на случай если синглтон не успел загрузиться
-        deviceActivityService.loadUnlockDate()
-        
-        // Check if we have a valid unlock date
-        if let unlockDate = deviceActivityService.unlockDate, unlockDate > Date() {
-          // Блокировка еще активна - восстанавливаем состояние
-          
-          // Проверяем и восстанавливаем timestamp если он отсутствует
-          if SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp) == nil || 
-             SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp) == 0 {
-            // Устанавливаем текущее время как время начала блокировки
-            // Это не точно, но лучше чем 0
-            SharedData.userDefaults?.set(Date().timeIntervalSince1970, forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
-            AppLogger.notice("Restored blocking start timestamp with current time")
-          }
-          
-          timeBlockedString = calculateBlockedTime()
-          currentSessionSavedTime = formatSavedTime()
-          
-          // Восстанавливаем ограничения приложений если они не активны
-          deviceActivityService.setShieldRestrictions()
-          
-          AppLogger.notice("Restored active blocking state on app start")
+      .padding()
+      .blurBackground()
+      .onChange(of: isBlocked) { _, newValue in
+        if newValue {
+          // При включении блокировки сразу сбрасываем счетчик
+          timeBlockedString = Constants.TimeFormat.initialBlocked
+          currentSessionSavedTime = Constants.TimeFormat.initialBlocked
+          timeRemainingString = deviceActivityService.timeRemainingString
         } else {
-          // Блокировка истекла или нет unlockDate - завершаем ее
-          isBlocked = false
-          SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
+          // При выключении блокировки очищаем все данные
+          timeBlockedString = Constants.TimeFormat.initialBlocked
+          currentSessionSavedTime = Constants.TimeFormat.initialBlocked
+          // ВАЖНО: Очищаем timestamp чтобы избежать проблем при следующем запуске
+          SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
+          AppLogger.trace("Cleared blocking timestamp on disable")
+        }
+      }
+      .onAppear {
+        // isBlocked и isStrictBlock уже инициализированы правильными значениями из SharedData
+        
+        // Reload saved app selection
+        deviceActivityService.loadSelection()
+        
+        // Загружаем общее время за сегодня
+        loadTotalSavedTime()
+        
+        // Unlock date is already loaded in DeviceActivityService init
+        
+        timeRemainingString = deviceActivityService.timeRemainingString
+        
+        // Проверяем состояние блокировки
+        if isBlocked {
+          // Перезагружаем unlock date из SharedData на случай если синглтон не успел загрузиться
+          deviceActivityService.loadUnlockDate()
+          
+          // Check if we have a valid unlock date
+          if let unlockDate = deviceActivityService.unlockDate, unlockDate > Date() {
+            // Блокировка еще активна - восстанавливаем состояние
+            
+            // Проверяем и восстанавливаем timestamp если он отсутствует
+            if SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp) == nil ||
+                SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp) == 0 {
+              // Устанавливаем текущее время как время начала блокировки
+              // Это не точно, но лучше чем 0
+              SharedData.userDefaults?.set(Date().timeIntervalSince1970, forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
+              AppLogger.notice("Restored blocking start timestamp with current time")
+            }
+            
+            timeBlockedString = calculateBlockedTime()
+            currentSessionSavedTime = formatSavedTime()
+            
+            // Восстанавливаем ограничения приложений если они не активны
+            deviceActivityService.setShieldRestrictions()
+            
+            AppLogger.notice("Restored active blocking state on app start")
+          } else {
+            // Блокировка истекла или нет unlockDate - завершаем ее
+            isBlocked = false
+            SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
+            SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
+            SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.unlockDate)
+            timeBlockedString = Constants.TimeFormat.initialBlocked
+            currentSessionSavedTime = Constants.TimeFormat.initialBlocked
+            AppLogger.notice("Blocking expired or invalid - cleaning up")
+          }
+        } else {
+          // Блокировка неактивна - очищаем старые timestamp'ы и unlock date
           SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
           SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.unlockDate)
           timeBlockedString = Constants.TimeFormat.initialBlocked
           currentSessionSavedTime = Constants.TimeFormat.initialBlocked
-          AppLogger.notice("Blocking expired or invalid - cleaning up")
+          AppLogger.trace("Cleared stale data on app start (blocking inactive)")
         }
-      } else {
-        // Блокировка неактивна - очищаем старые timestamp'ы и unlock date
-        SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
-        SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.unlockDate)
-        timeBlockedString = Constants.TimeFormat.initialBlocked
-        currentSessionSavedTime = Constants.TimeFormat.initialBlocked
-        AppLogger.trace("Cleared stale data on app start (blocking inactive)")
-      }
-      
-      //TODO: - need to refactor (looks like odd properties)
-      if let savedHour = SharedData.userDefaults?.integer(forKey: SharedData.Widget.endHour),
-         let savedMin = SharedData.userDefaults?.integer(forKey: SharedData.Widget.endMinutes) {
-        restrictionModel.endHour = savedHour
-        restrictionModel.endMins = savedMin
-      }
-      
-      // Load saved time if not currently blocked
-      if !isBlocked {
-        // Load saved duration
-        hours = SharedData.userDefaults?.integer(forKey: SharedData.AppBlocking.savedDurationHours) ?? 0
-        minutes = SharedData.userDefaults?.integer(forKey: SharedData.AppBlocking.savedDurationMinutes) ?? 0
-      }
-      
-      // Start timer if already blocked
-      if isBlocked {
-        // Перезагружаем unlock date еще раз перед запуском таймера
-        deviceActivityService.loadUnlockDate()
         
-        if let unlockDate = deviceActivityService.unlockDate, unlockDate > Date() {
-          // If we have a timestamp, calculate current blocked time
-          if SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp) != nil {
-            timeBlockedString = calculateBlockedTime()
+        //TODO: - need to refactor (looks like odd properties)
+        if let savedHour = SharedData.userDefaults?.integer(forKey: SharedData.Widget.endHour),
+           let savedMin = SharedData.userDefaults?.integer(forKey: SharedData.Widget.endMinutes) {
+          restrictionModel.endHour = savedHour
+          restrictionModel.endMins = savedMin
+        }
+        
+        // Load saved time if not currently blocked
+        if !isBlocked {
+          // Load saved duration
+          hours = SharedData.userDefaults?.integer(forKey: SharedData.AppBlocking.savedDurationHours) ?? 0
+          minutes = SharedData.userDefaults?.integer(forKey: SharedData.AppBlocking.savedDurationMinutes) ?? 0
+        }
+        
+        // Start timer if already blocked
+        if isBlocked {
+          // Перезагружаем unlock date еще раз перед запуском таймера
+          deviceActivityService.loadUnlockDate()
+          
+          if let unlockDate = deviceActivityService.unlockDate, unlockDate > Date() {
+            // If we have a timestamp, calculate current blocked time
+            if SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp) != nil {
+              timeBlockedString = calculateBlockedTime()
+            }
+            startTimer()
+            AppLogger.notice("Restored timer for active blocking")
+          } else {
+            // Если unlock date все еще нет или она истекла, сбрасываем блокировку
+            isBlocked = false
+            SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
+            AppLogger.notice("Timer not started - blocking invalid")
           }
-          startTimer()
-          AppLogger.notice("Restored timer for active blocking")
-        } else {
-          // Если unlock date все еще нет или она истекла, сбрасываем блокировку
-          isBlocked = false
-          SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
-          AppLogger.notice("Timer not started - blocking invalid")
         }
       }
-    }
-    .onReceive(currentTimer ?? Timer.publish(every: 999, on: .main, in: .common)) { _ in
-      // Обработка тиков таймера - только если таймер активен и блокировка включена
-      guard timerConnection != nil && isBlocked else { return }
-      
-      guard let unlockDate = deviceActivityService.unlockDate else { return }
-      
-      // Обновляем время до разблокировки
-      timeRemainingString = formatRemainingTime(unlockDate.timeIntervalSinceNow)
-      
-      // Обновляем время блокировки
-      timeBlockedString = calculateBlockedTime()
-      
-      // Обновляем время текущей сессии
-      currentSessionSavedTime = formatSavedTime()
-      
-      // Обновляем общее время за сегодня
-      loadTotalSavedTime()
-
-      // Проверяем завершение блокировки
-      if unlockDate <= Date() {
-        isBlocked = false
-        BlockingNotificationService.shared.stopBlocking(selection: deviceActivityService.selectionToDiscourage)
-        // Очищаем timestamp при автоматическом завершении
-        SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
-        AppLogger.trace("Cleared timestamp on auto-completion")
+      .onReceive(currentTimer ?? Timer.publish(every: 999, on: .main, in: .common)) { _ in
+        // Обработка тиков таймера - только если таймер активен и блокировка включена
+        guard timerConnection != nil && isBlocked else { return }
+        
+        guard let unlockDate = deviceActivityService.unlockDate else { return }
+        
+        // Обновляем время до разблокировки
+        timeRemainingString = formatRemainingTime(unlockDate.timeIntervalSinceNow)
+        
+        // Обновляем время блокировки
+        timeBlockedString = calculateBlockedTime()
+        
+        // Обновляем время текущей сессии
+        currentSessionSavedTime = formatSavedTime()
+        
+        // Обновляем общее время за сегодня
+        loadTotalSavedTime()
+        
+        // Проверяем завершение блокировки
+        if unlockDate <= Date() {
+          isBlocked = false
+          BlockingNotificationService.shared.stopBlocking(selection: deviceActivityService.selectionToDiscourage)
+          // Очищаем timestamp при автоматическом завершении
+          SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
+          AppLogger.trace("Cleared timestamp on auto-completion")
+          stopTimer()
+        }
+      }
+      .onDisappear {
         stopTimer()
       }
-    }
-    .onDisappear {
-      stopTimer()
-    }
-    .alert("No categories selected", isPresented: $noCategoriesAlert) {
-      Button("OK", role: .cancel) { }
-    }
-    .alert("Too many categories selected", isPresented: $maxCategoriesAlert) {
-      Button("OK", role: .cancel) { }
-    }
-    .fullScreenCover(isPresented: $showPaywall) {
-      PaywallView(displayCloseButton: true)
-        .onDisappear {
-          // Force refresh subscription status after paywall closes
-          subscriptionManager.refreshSubscription()
-        }
-    }
+      .alert("No categories selected", isPresented: $noCategoriesAlert) {
+        Button("OK", role: .cancel) { }
+      }
+      .alert("Too many categories selected", isPresented: $maxCategoriesAlert) {
+        Button("OK", role: .cancel) { }
+      }
+      .fullScreenCover(isPresented: $showPaywall) {
+        PaywallView(displayCloseButton: true)
+          .onDisappear {
+            // Force refresh subscription status after paywall closes
+            subscriptionManager.refreshSubscription()
+          }
+      }
   }
   
   //MARK: - Views
@@ -338,15 +242,34 @@ struct AppBlockingSectionView: View {
         .transition(.asymmetric(insertion: .opacity, removal: .opacity.combined(with: .scale)))
       }
       
-      swipeBlockView
-        .padding(.bottom, adaptive.spacing.xSmall)
+      ZStack() {
+        swipeBlockView
+          .padding(.bottom, adaptive.spacing.xSmall)
+        
+        if showStrictBlockDialog {
+          ConfirmationDialogView(
+            dialogType: .strictBlock,
+            isBlur: true,
+            fillAvailableSpace: true,
+            onCancel: {
+              showStrictBlockDialog = false
+            },
+            onConfirm: {
+              isStrictBlock = true
+              SharedData.userDefaults?.set(true, forKey: SharedData.Widget.isStricted)
+              showStrictBlockDialog = false
+            }
+          )
+          .transition(.opacity)
+        }
+      }
       
       // Статистика блокировки - показываем с анимацией
       if isBlocked && deviceActivityService.unlockDate != nil && (deviceActivityService.unlockDate ?? Date()) > Date() {
         HStack(alignment: .top, spacing: adaptive.spacing.small) {
           savedBlockedView
             .frame(maxHeight: .infinity)
-
+          
           appsBlockedView
             .frame(maxHeight: .infinity)
         }
@@ -436,12 +359,12 @@ struct AppBlockingSectionView: View {
         .resizable()
         .adaptiveFrame(width: \.iconLarge, height: \.iconLarge)
         .foregroundColor(.white)
-
+      
       Text("App Blocking")
         .foregroundColor(.white)
         .adaptiveFont(\.title2)
         .fontWeight(.semibold)
-
+      
       Spacer()
     }
   }
@@ -469,7 +392,7 @@ struct AppBlockingSectionView: View {
       Text("What to Block")
         .foregroundColor(.white)
         .adaptiveFont(\.body)
-
+      
       Button(action: {
         isDiscouragedPresented = true
       }) {
@@ -527,12 +450,23 @@ struct AppBlockingSectionView: View {
     }
   }
   
-  
   private var strictBlockView: some View {
     VStack(alignment: .leading, spacing: adaptive.spacing.medium) {
-      Toggle("Strict Block", isOn: $isStrictBlock)
-        .foregroundStyle(Color.white)
-        .toggleStyle(SwitchToggleStyle(tint: .purple))
+      Toggle("Strict Block", isOn: Binding(
+        get: { isStrictBlock },
+        set: { newValue in
+          if newValue && !isStrictBlock {
+            // Show confirmation dialog when enabling
+            showStrictBlockDialog = true
+          } else if !newValue {
+            // Allow disabling without confirmation
+            isStrictBlock = false
+            SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isStricted)
+          }
+        }
+      ))
+      .foregroundStyle(Color.white)
+      .toggleStyle(SwitchToggleStyle(tint: .purple))
     }
   }
   
@@ -541,50 +475,50 @@ struct AppBlockingSectionView: View {
                       isStrictBlock: $isStrictBlock,
                       isLimitReached: !subscriptionManager.canStartNewBlock(),
                       onBlockingStateChanged: { newState in
-                        if newState {
-                          // Check subscription limits first
-                          if !subscriptionManager.canStartNewBlock() {
-                            // This shouldn't happen as button is disabled, but just in case
-                            return
-                          }
-                          
-                          // Increment block usage
-                          subscriptionManager.incrementBlockUsage()
-                          
-                          // Timestamp теперь устанавливается в BlockingNotificationService.startBlocking
-                          
-                          BlockingNotificationService.shared.startBlocking(
-                            hours: hours,
-                            minutes: minutes,
-                            selection: deviceActivityService.selectionToDiscourage,
-                            restrictionModel: restrictionModel
-                          )
-                          // Start timer after blocking animation completes
-                          DispatchQueue.main.asyncAfter(deadline: .now() + Constants.Timer.animationDelay) {
-                            // Проверяем что таймер еще не подключен
-                            if timerConnection == nil {
-                              // Сразу обновляем отображение
-                              timeBlockedString = Constants.TimeFormat.initialBlocked
-                              timeRemainingString = deviceActivityService.timeRemainingString
-                              startTimer()
-                            }
-                          }
-                        } else {
-                          // Сначала отключаем таймер
-                          stopTimer()
-                          
-                          // Очищаем timestamp при ручном выключении
-                          SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
-                          AppLogger.trace("Cleared timestamp on manual disable")
-                          
-                          BlockingNotificationService.shared.stopBlocking(selection: deviceActivityService.selectionToDiscourage)
-                          // Don't reset hours and minutes - keep last used values
-                        }
-                      },
+      if newState {
+        // Check subscription limits first
+        if !subscriptionManager.canStartNewBlock() {
+          // This shouldn't happen as button is disabled, but just in case
+          return
+        }
+        
+        // Increment block usage
+        subscriptionManager.incrementBlockUsage()
+        
+        // Timestamp теперь устанавливается в BlockingNotificationService.startBlocking
+        
+        BlockingNotificationService.shared.startBlocking(
+          hours: hours,
+          minutes: minutes,
+          selection: deviceActivityService.selectionToDiscourage,
+          restrictionModel: restrictionModel
+        )
+        // Start timer after blocking animation completes
+        DispatchQueue.main.asyncAfter(deadline: .now() + Constants.Timer.animationDelay) {
+          // Проверяем что таймер еще не подключен
+          if timerConnection == nil {
+            // Сразу обновляем отображение
+            timeBlockedString = Constants.TimeFormat.initialBlocked
+            timeRemainingString = deviceActivityService.timeRemainingString
+            startTimer()
+          }
+        }
+      } else {
+        // Сначала отключаем таймер
+        stopTimer()
+        
+        // Очищаем timestamp при ручном выключении
+        SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
+        AppLogger.trace("Cleared timestamp on manual disable")
+        
+        BlockingNotificationService.shared.stopBlocking(selection: deviceActivityService.selectionToDiscourage)
+        // Don't reset hours and minutes - keep last used values
+      }
+    },
                       onPurchaseTap: {
-                        showPaywall = true
-                      })
-      .disabled(isBlockButtonDisabled)
+      showPaywall = true
+    })
+    .disabled(isBlockButtonDisabled)
   }
   
   private var isBlockButtonDisabled: Bool {
@@ -611,4 +545,102 @@ struct AppBlockingSectionView: View {
     // Если что-то пошло не так — fallback
     return (0, 0)
   }
+  
+  // MARK: - Time Formatting Methods
+  private func formatRemainingTime(_ timeInterval: TimeInterval) -> String {
+    let remaining = Int(timeInterval)
+    
+    guard remaining > 0 else {
+      return Constants.TimeFormat.initialRemaining
+    }
+    
+    let hours = remaining / Constants.TimeCalculation.secondsInHour
+    let minutes = (remaining % Constants.TimeCalculation.secondsInHour) / Constants.TimeCalculation.secondsInMinute
+    let seconds = remaining % Constants.TimeCalculation.secondsInMinute
+    
+    return String(format: Constants.TimeFormat.remainingFormat, hours, minutes, seconds)
+  }
+  
+  private func formatBlockedTime(from timestamp: TimeInterval) -> String {
+    let elapsed = Date().timeIntervalSince1970 - timestamp
+    
+    // Валидация: если elapsed > 24 часов, что-то пошло не так
+    guard elapsed >= 0 && elapsed < TimeInterval(Constants.TimeCalculation.secondsInDay) else {
+      AppLogger.alert("Invalid elapsed time: \(elapsed) seconds from timestamp: \(timestamp)")
+      return Constants.TimeFormat.initialBlocked
+    }
+    
+    let hours = Int(elapsed) / Constants.TimeCalculation.secondsInHour
+    let minutes = (Int(elapsed) % Constants.TimeCalculation.secondsInHour) / Constants.TimeCalculation.secondsInMinute
+    
+    AppLogger.trace("Blocked time: \(hours)h \(minutes)m (elapsed: \(elapsed)s)")
+    return String(format: Constants.TimeFormat.blockedFormat, hours, minutes)
+  }
+  
+  private func calculateBlockedTime() -> String {
+    guard let startTimestamp = SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp) else {
+      return Constants.TimeFormat.initialBlocked
+    }
+    
+    return formatBlockedTime(from: startTimestamp)
+  }
+  
+  // Загрузить общее время за сегодня
+  private func loadTotalSavedTime() {
+    totalSavedTime = SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.todayTotalBlockingTime) ?? 0
+  }
+  
+  // Форматировать общее время включая текущую сессию
+  private func formatTotalSavedTime() -> String {
+    var total = totalSavedTime
+    
+    // Добавляем время текущей сессии если блокировка активна
+    if isBlocked, let startTimestamp = SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp) {
+      let currentSessionTime = Date().timeIntervalSince1970 - startTimestamp
+      total += currentSessionTime
+    }
+    
+    let hours = Int(total) / Constants.TimeCalculation.secondsInHour
+    let minutes = (Int(total) % Constants.TimeCalculation.secondsInHour) / Constants.TimeCalculation.secondsInMinute
+    
+    return String(format: Constants.TimeFormat.blockedFormat, hours, minutes)
+  }
+  
+  // Форматировать только текущую сессию блокировки
+  private func formatSavedTime() -> String {
+    guard isBlocked,
+          let startTimestamp = SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp) else {
+      return Constants.TimeFormat.initialBlocked
+    }
+    
+    let currentSessionTime = Date().timeIntervalSince1970 - startTimestamp
+    let hours = Int(currentSessionTime) / Constants.TimeCalculation.secondsInHour
+    let minutes = (Int(currentSessionTime) % Constants.TimeCalculation.secondsInHour) / Constants.TimeCalculation.secondsInMinute
+    
+    return String(format: Constants.TimeFormat.blockedFormat, hours, minutes)
+  }
+  
+  // MARK: - Timer Management Methods
+  private func startTimer() {
+    // Останавливаем предыдущий таймер если есть
+    stopTimer()
+    
+    // Создаем новый Timer.TimerPublisher каждый раз
+    let newTimer = Timer.publish(every: Constants.Timer.updateInterval, on: .main, in: .common)
+    currentTimer = newTimer
+    timerConnection = newTimer.connect()
+    timerID = UUID() // Обновляем ID для отладки
+    
+    AppLogger.trace("Timer started with ID: \(timerID)")
+  }
+  
+  private func stopTimer() {
+    timerConnection?.cancel()
+    timerConnection = nil
+    currentTimer = nil
+    
+    AppLogger.trace("Timer stopped for ID: \(timerID)")
+  }
+  
+  
 }
