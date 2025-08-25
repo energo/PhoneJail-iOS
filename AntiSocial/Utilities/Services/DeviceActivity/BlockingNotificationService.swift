@@ -62,7 +62,7 @@ final class BlockingNotificationService: ObservableObject {
       await DeviceActivityScheduleService.setScheduleAsync(endHour: endHour, endMins: endMin)
       
       // Устанавливаем ограничения - самая тяжелая операция
-      await DeviceActivityService.shared.setShieldRestrictionsAsync()
+      await DeviceActivityService.shared.setShieldRestrictionsAsync(restrictionModel.isStricted)
       AppLogger.notice("Shield restrictions set for blocking session")
     }
 
@@ -83,9 +83,6 @@ final class BlockingNotificationService: ObservableObject {
         }
       }
     }
-
-    // Время начала блокировки устанавливается после завершения анимации в AppBlockingSectionView
-    // SharedData.userDefaults?.set(Date().timeIntervalSince1970, forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
   }
 
   func stopBlocking(selection: FamilyActivitySelection) {

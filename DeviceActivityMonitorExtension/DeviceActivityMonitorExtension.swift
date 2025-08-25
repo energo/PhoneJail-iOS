@@ -562,7 +562,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     
     if schedule.isStrictBlock {
       // Strict mode - block all categories
-      store.shield.applicationCategories = ShieldSettings.ActivityCategoryPolicy.all()
+      store.application.denyAppRemoval = true
     } else {
       // Normal mode - only block selected categories
       store.shield.applicationCategories = ShieldSettings.ActivityCategoryPolicy.specific(schedule.selection.categoryTokens)

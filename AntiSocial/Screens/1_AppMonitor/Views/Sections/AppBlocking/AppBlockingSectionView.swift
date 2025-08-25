@@ -115,7 +115,7 @@ struct AppBlockingSectionView: View {
             currentSessionSavedTime = formatSavedTime()
             
             // Восстанавливаем ограничения приложений если они не активны
-            deviceActivityService.setShieldRestrictions()
+            deviceActivityService.setShieldRestrictions(isStrictBlock)
             
             AppLogger.notice("Restored active blocking state on app start")
           } else {
@@ -501,6 +501,8 @@ struct AppBlockingSectionView: View {
         
         // Increment block usage
         subscriptionManager.incrementBlockUsage()
+        
+        restrictionModel.isStricted = isStrictBlock
         
         // Timestamp теперь устанавливается в BlockingNotificationService.startBlocking
         

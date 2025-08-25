@@ -309,7 +309,8 @@ class BlockSchedulerService: ObservableObject {
     
     if schedule.isStrictBlock {
       // Strict mode - block all categories
-      store.shield.applicationCategories = ShieldSettings.ActivityCategoryPolicy.all()
+//      store.shield.applicationCategories = ShieldSettings.ActivityCategoryPolicy.all()
+      store.application.denyAppRemoval = true
     } else {
       // Normal mode - only block selected categories
       store.shield.applicationCategories = ShieldSettings.ActivityCategoryPolicy.specific(schedule.selection.categoryTokens)
@@ -319,7 +320,6 @@ class BlockSchedulerService: ObservableObject {
     
     // Also set additional restrictions like in regular blocking
     store.media.denyExplicitContent = true
-    store.application.denyAppRemoval = true
     store.dateAndTime.requireAutomaticDateAndTime = true
     
     // Save to SharedData for extensions

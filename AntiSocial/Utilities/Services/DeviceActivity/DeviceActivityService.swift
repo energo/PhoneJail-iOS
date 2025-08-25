@@ -210,12 +210,14 @@ class DeviceActivityService: ObservableObject {
   }
   
   // MARK: - Shield Restrictions
-  func setShieldRestrictions() {
+  func setShieldRestrictions(_ isStricted: Bool = false) {
     let applications = selectionToDiscourage
     store.shield.applications = applications.applicationTokens.isEmpty ? nil : applications.applicationTokens
     store.shield.applicationCategories = applications.categoryTokens.isEmpty
     ? nil
     : ShieldSettings.ActivityCategoryPolicy.specific(applications.categoryTokens)
+    
+    store.application.denyAppRemoval = isStricted
   }
   
   func setShieldRestrictions(for selection: FamilyActivitySelection) {
@@ -233,18 +235,20 @@ class DeviceActivityService: ObservableObject {
     : ShieldSettings.ActivityCategoryPolicy.specific(selection.categoryTokens)
   }
   
-  func setShieldRestrictionsAsync() async {
+  func setShieldRestrictionsAsync(_ isStricted: Bool = false) async {
     await withCheckedContinuation { continuation in
-      setShieldRestrictions()
+      setShieldRestrictions(isStricted)
       continuation.resume()
     }
   }
   
-  func startAppRestrictions() {
+  func startAppRestrictions(_ isStricted: Bool = false) {
     stopAppRestrictions()
-    setShieldRestrictions()
+    setShieldRestrictions(isStricted)
     store.media.denyExplicitContent = true
-    store.application.denyAppRemoval = true
+    if isStricted {
+      store.application.denyAppRemoval = true
+    }
     store.dateAndTime.requireAutomaticDateAndTime = true
     store.application.blockedApplications = selectionToDiscourage.applications
   }
