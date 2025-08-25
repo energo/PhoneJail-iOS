@@ -162,40 +162,82 @@ struct BlockSchedule: Identifiable, Codable {
 
 // MARK: - Persistence
 extension BlockSchedule {
-    static let storageKey = "blockSchedules"
+    // Removed storage key - each schedule is stored separately in SharedData
     
     static func loadAll() -> [BlockSchedule] {
-        guard let data = UserDefaults.standard.data(forKey: storageKey),
-              let schedules = try? JSONDecoder().decode([BlockSchedule].self, from: data) else {
-            return []
+        guard let userDefaults = SharedData.userDefaults else { return [] }
+        
+        var schedules: [BlockSchedule] = []
+        
+        // Find all schedule keys in SharedData
+        for (key, value) in userDefaults.dictionaryRepresentation() {
+            if key.hasPrefix("schedule_") && !key.contains("_active") && !key.contains("_startTimestamp") {
+                // Try to decode the schedule
+                if let data = value as? Data,
+                   let schedule = try? JSONDecoder().decode(BlockSchedule.self, from: data) {
+                    schedules.append(schedule)
+                }
+            }
         }
-        return schedules
+        
+        return schedules.sorted { $0.createdAt < $1.createdAt }
     }
     
     static func saveAll(_ schedules: [BlockSchedule]) {
-        if let data = try? JSONEncoder().encode(schedules) {
-            UserDefaults.standard.set(data, forKey: storageKey)
+        guard let userDefaults = SharedData.userDefaults else { return }
+        
+        // First, remove all existing schedule keys
+        for key in userDefaults.dictionaryRepresentation().keys {
+            if key.hasPrefix("schedule_") && !key.contains("_active") && !key.contains("_startTimestamp") {
+                userDefaults.removeObject(forKey: key)
+            }
+        }
+        
+        // Save each schedule individually
+        for schedule in schedules {
+            if let data = try? JSONEncoder().encode(schedule) {
+                userDefaults.set(data, forKey: "schedule_\(schedule.id)")
+            }
         }
     }
     
     static func add(_ schedule: BlockSchedule) {
-        var schedules = loadAll()
-        schedules.append(schedule)
-        saveAll(schedules)
+        guard let userDefaults = SharedData.userDefaults else { return }
+        
+        // Save schedule directly to SharedData
+        if let data = try? JSONEncoder().encode(schedule) {
+            userDefaults.set(data, forKey: "schedule_\(schedule.id)")
+            
+            // Debug notification
+            LocalNotificationManager.scheduleExtensionNotification(
+                title: "💾 Schedule Added to SharedData",
+                details: "Key: schedule_\(schedule.id)\nSize: \(data.count) bytes"
+            )
+        }
     }
     
     static func update(_ schedule: BlockSchedule) {
-        var schedules = loadAll()
-        if let index = schedules.firstIndex(where: { $0.id == schedule.id }) {
-            schedules[index] = schedule
-            saveAll(schedules)
+        guard let userDefaults = SharedData.userDefaults else { return }
+        
+        // Update schedule directly in SharedData
+        if let data = try? JSONEncoder().encode(schedule) {
+            userDefaults.set(data, forKey: "schedule_\(schedule.id)")
+            
+            // Debug notification
+            LocalNotificationManager.scheduleExtensionNotification(
+                title: "📝 Schedule Updated in SharedData",
+                details: "Key: schedule_\(schedule.id)\nSize: \(data.count) bytes"
+            )
         }
     }
     
     static func delete(id: String) {
-        var schedules = loadAll()
-        schedules.removeAll { $0.id == id }
-        saveAll(schedules)
+        guard let userDefaults = SharedData.userDefaults else { return }
+        
+        // Remove schedule and related keys from SharedData
+        userDefaults.removeObject(forKey: "schedule_\(id)")
+        userDefaults.removeObject(forKey: "schedule_\(id)_active")
+        userDefaults.removeObject(forKey: "schedule_\(id)_startTimestamp")
     }
 }
 

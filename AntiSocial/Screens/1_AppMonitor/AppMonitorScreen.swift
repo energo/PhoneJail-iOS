@@ -407,6 +407,8 @@ private extension AppMonitorScreen {
       familyControlsManager.requestAuthorization()
       // Инициализируем массив позиций секций
       sectionPositions = Array(repeating: 0, count: sections.count)
+      // Check and apply active schedules on app launch
+      BlockSchedulerService.shared.checkAndApplyActiveSchedules()
     }
   }
   
@@ -418,6 +420,8 @@ private extension AppMonitorScreen {
           refreshScreenTime()
           lastRefreshDate = Date()
         }
+        // Check and apply active schedules when app becomes active
+        BlockSchedulerService.shared.checkAndApplyActiveSchedules()
       case .inactive, .background:
         break
       @unknown default:

@@ -91,4 +91,33 @@ final class LocalNotificationManager {
       }
     }
   }
+  
+  // MARK: - Generic Notification Methods
+  
+  func scheduleNotification(
+    title: String,
+    body: String,
+    identifier: String,
+    dateComponents: DateComponents,
+    repeats: Bool = false
+  ) {
+    let content = UNMutableNotificationContent()
+    content.title = title
+    content.body = body
+    content.sound = .default
+    
+    let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: repeats)
+    let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+    
+    notificationCenter.add(request) { error in
+      if let error = error {
+        // Log error if needed
+        print("Failed to schedule notification: \(error)")
+      }
+    }
+  }
+  
+  func cancelNotifications(identifiers: [String]) {
+    notificationCenter.removePendingNotificationRequests(withIdentifiers: identifiers)
+  }
 }

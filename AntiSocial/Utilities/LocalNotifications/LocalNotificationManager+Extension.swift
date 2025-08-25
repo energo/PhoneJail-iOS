@@ -27,7 +27,8 @@ extension LocalNotificationManager {
         
         // Create unique identifier with timestamp for screen time alerts
         let timestamp = Date().timeIntervalSince1970
-        let identifier = "\(title)-\(details)-\(timestamp)".replacingOccurrences(of: " ", with: "-")
+//        let identifier = "\(title)-\(details)-\(timestamp)".replacingOccurrences(of: " ", with: "-")
+        let identifier = UUID().uuidString
         let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
         
         center.add(request) { error in

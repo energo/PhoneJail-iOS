@@ -434,7 +434,24 @@ struct NewBlockSchedulerView: View {
     } else {
       // Default values for new schedule
       name = generateDefaultName()
-      selectedDays = [2, 3, 4, 5, 6] // Weekdays by default
+      
+      // Set default time to current time + 10 minutes for start, +1 hour for end
+      let calendar = Calendar.current
+      let now = Date()
+      let in10Minutes = calendar.date(byAdding: .minute, value: 10, to: now) ?? now
+      let in1Hour10Minutes = calendar.date(byAdding: .minute, value: 70, to: now) ?? now
+      
+      let startComponents = calendar.dateComponents([.hour, .minute], from: in10Minutes)
+      let endComponents = calendar.dateComponents([.hour, .minute], from: in1Hour10Minutes)
+      
+      startHour = startComponents.hour ?? 12
+      startMinute = startComponents.minute ?? 0
+      endHour = endComponents.hour ?? 13
+      endMinute = endComponents.minute ?? 0
+      
+      // Set default day to today only
+      let todayWeekday = calendar.component(.weekday, from: now)
+      selectedDays = [todayWeekday]
     }
   }
   

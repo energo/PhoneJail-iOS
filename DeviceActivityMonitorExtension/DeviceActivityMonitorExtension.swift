@@ -10,7 +10,19 @@ import UserNotifications
 import FamilyControls
 import ManagedSettings
 import os.log
+import Foundation
 
+// Simple BlockSchedule structure for extension
+struct BlockSchedule: Codable {
+    let id: String
+    let name: String
+    let startTime: DateComponents
+    let endTime: DateComponents
+    let daysOfWeek: Set<Int>
+    let selection: FamilyActivitySelection
+    let isStrictBlock: Bool
+    let isActive: Bool
+}
 
 // Optionally override any of the functions below.
 // Make sure that your class name matches the NSExtensionPrincipalClass in your Info.plist.
@@ -22,6 +34,27 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   private let minimumTriggerInterval: TimeInterval = 120 // 2 minutes minimum between triggers
   
   private let logger = Logger(subsystem: "com.app.antisocial", category: "DeviceActivityMonitor")
+  
+  // Helper to save debug info to file for later retrieval
+  private func saveDebugInfo(_ info: String, filename: String = "extension_debug.txt") {
+    if let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.app.antisocial.sharedData") {
+      let fileURL = containerURL.appendingPathComponent(filename)
+      let timestamp = DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .medium)
+      let content = "\n[\(timestamp)]\n\(info)\n"
+      
+      if FileManager.default.fileExists(atPath: fileURL.path) {
+        if let handle = try? FileHandle(forWritingTo: fileURL) {
+          handle.seekToEndOfFile()
+          if let data = content.data(using: .utf8) {
+            handle.write(data)
+          }
+          handle.closeFile()
+        }
+      } else {
+        try? content.write(to: fileURL, atomically: true, encoding: .utf8)
+      }
+    }
+  }
   
   // MARK: - Helper Methods
   private func checkAndResetDailyCounters() {
@@ -119,27 +152,207 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   override func intervalDidStart(for activity: DeviceActivityName) {
     super.intervalDidStart(for: activity)
     
-    // Check if this is a scheduled block activity
+    LocalNotificationManager.scheduleExtensionNotification(
+      title: "🔄 Interval Did Start",
+      details: ""
+    )
+
+    let formatter = DateFormatter()
+    formatter.dateFormat = "HH:mm:ss"
+    let timeString = formatter.string(from: Date())
+    
+    // Check if this is a schedule activity starting
     let activityName = "\(activity.rawValue)"
-    if activityName.contains("scheduledBlock_") {
-      // Extract schedule ID from activity name
-      let scheduleId = activityName.replacingOccurrences(of: "scheduledBlock_", with: "")
-      handleScheduledBlockStart(scheduleId: scheduleId)
+    if activityName.contains("schedule_") {
+      let scheduleId = activityName.replacingOccurrences(of: "schedule_", with: "")
+      
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "🔒 Interval START",
+        details: "Schedule \(scheduleId) interval has begun at \(timeString)"
+      )
+      
+      // Load schedule and apply restrictions
+      handleScheduleStart(scheduleId: scheduleId)
       return
     }
+  }
+  
+  private func handleScheduleStart(scheduleId: String) {
+    // Load schedule from SharedData
+    guard let scheduleData = SharedData.userDefaults?.data(forKey: "schedule_\(scheduleId)"),
+          let schedule = try? JSONDecoder().decode(BlockSchedule.self, from: scheduleData) else {
+      
+      // Debug: Send multiple notifications to show all data
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "❌ Schedule Not Found Start",
+        details: "Looking for: schedule_\(scheduleId)"
+      )
+      
+      // Check if UserDefaults is accessible
+      if let userDefaults = SharedData.userDefaults {
+        var scheduleKeys: [String] = []
+        var otherKeys: [String] = []
+        var debugLog = "=== DEBUG: Schedule Not Found ===\n"
+        debugLog += "Looking for key: schedule_\(scheduleId)\n\n"
+        debugLog += "ALL UserDefaults Keys:\n"
+        
+        for (key, value) in userDefaults.dictionaryRepresentation() {
+          if key.contains("schedule_") {
+            scheduleKeys.append(key)
+          } else if key.contains("Schedule") || key.contains("block") {
+            otherKeys.append(key)
+          }
+          
+          // Add to debug log
+          let valueType = String(describing: type(of: value))
+          let valuePreview: String
+          if let data = value as? Data {
+            valuePreview = "Data(\(data.count) bytes)"
+          } else {
+            valuePreview = String(describing: value).prefix(100).description
+          }
+          debugLog += "  \(key) = \(valueType): \(valuePreview)\n"
+        }
+        
+        // Save full debug info to file
+        saveDebugInfo(debugLog)
+        
+        // Send notification with schedule keys
+        if !scheduleKeys.isEmpty {
+          LocalNotificationManager.scheduleExtensionNotification(
+            title: "📋 Found Schedule Keys (\(scheduleKeys.count))",
+            details: scheduleKeys.prefix(5).joined(separator: "\n")
+          )
+          
+          // If more than 5, send another notification
+          if scheduleKeys.count > 5 {
+            LocalNotificationManager.scheduleExtensionNotification(
+              title: "📋 More Schedule Keys",
+              details: scheduleKeys.dropFirst(5).prefix(5).joined(separator: "\n")
+            )
+          }
+        } else {
+          LocalNotificationManager.scheduleExtensionNotification(
+            title: "⚠️ No Schedule Keys Found",
+            details: "No keys starting with 'schedule_' in UserDefaults"
+          )
+        }
+        
+        // Try to read the data directly and show its size
+        if let data = userDefaults.data(forKey: "schedule_\(scheduleId)") {
+          LocalNotificationManager.scheduleExtensionNotification(
+            title: "📦 Data Found",
+            details: "Size: \(data.count) bytes\nDecoding failed - check BlockSchedule structure"
+          )
+          
+          // Try to decode as JSON to see structure
+          if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            let keys = Array(json.keys).prefix(5).joined(separator: ", ")
+            LocalNotificationManager.scheduleExtensionNotification(
+              title: "🔍 JSON Structure",
+              details: "Keys: \(keys)"
+            )
+          }
+        }
+        
+        // Check related keys
+        if !otherKeys.isEmpty {
+          LocalNotificationManager.scheduleExtensionNotification(
+            title: "🔗 Related Keys",
+            details: otherKeys.prefix(5).joined(separator: "\n")
+          )
+        }
+      } else {
+        LocalNotificationManager.scheduleExtensionNotification(
+          title: "❌ UserDefaults Error",
+          details: "SharedData.userDefaults is nil"
+        )
+      }
+      
+      return
+    }
+    
+    LocalNotificationManager.scheduleExtensionNotification(
+      title: "📊 Schedule Data Check",
+      details: "ID: \(schedule.id)\nName: \(schedule.name)\nApps: \(schedule.selection.applicationTokens.count)"
+    )
+    
+    // Check if today is in the schedule's days
+    let calendar = Calendar.current
+    let weekday = calendar.component(.weekday, from: Date())
+    
+    if !schedule.daysOfWeek.contains(weekday) {
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "📅 Not Today",
+        details: "Schedule \(schedule.name) not active on weekday \(weekday)"
+      )
+      return
+    }
+    
+    // Apply restrictions
+    applyScheduledBlockRestrictions(schedule: schedule)
+  }
+  
+  private func handleScheduleEnd(scheduleId: String) {
+    // Load schedule from SharedData
+    guard let scheduleData = SharedData.userDefaults?.data(forKey: "schedule_\(scheduleId)"),
+          let schedule = try? JSONDecoder().decode(BlockSchedule.self, from: scheduleData) else {
+      
+      // Debug: Show all available keys in UserDefaults
+      var debugInfo = "Available keys:\n"
+      if let userDefaults = SharedData.userDefaults {
+        for (key, value) in userDefaults.dictionaryRepresentation() {
+          if key.contains("schedule") {
+            let valueType = String(describing: type(of: value))
+            let valuePreview = String(describing: value).prefix(50)
+            debugInfo += "\(key) = \(valueType): \(valuePreview)...\n"
+          }
+        }
+      }
+      
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "❌ Schedule Not Found End",
+        details: "Could not load schedule \(scheduleId) for ending\n\(debugInfo)"
+      )
+      return
+    }
+    
+    // Remove restrictions
+    removeScheduledBlockRestrictions(schedule: schedule)
   }
   
   override func intervalDidEnd(for activity: DeviceActivityName) {
     super.intervalDidEnd(for: activity)
     
-    logger.log("intervalDidEnd called for activity: \(activity.rawValue)")
+    LocalNotificationManager.scheduleExtensionNotification(
+      title: "🔄 intervalDidEnd",
+      details: ""
+    )
+
+
+    let formatter = DateFormatter()
+    formatter.dateFormat = "HH:mm:ss"
+    let timeString = formatter.string(from: Date())
     
-    // Check if this is a scheduled block activity
+    // Debug: Log when interval ends
+    LocalNotificationManager.scheduleExtensionNotification(
+      title: "⏰ Interval END",
+      details: "\(activity.rawValue) at \(timeString)"
+    )
+    
     let activityName = "\(activity.rawValue)"
-    if activityName.contains("scheduledBlock_") {
-      // Extract schedule ID from activity name
-      let scheduleId = activityName.replacingOccurrences(of: "scheduledBlock_", with: "")
-      handleScheduledBlockEnd(scheduleId: scheduleId)
+    
+    // Check if this is a schedule activity ending
+    if activityName.contains("schedule_") {
+      let scheduleId = activityName.replacingOccurrences(of: "schedule_", with: "")
+      
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "🔓 Schedule Ended",
+        details: "Schedule \(scheduleId) interval has ended at \(timeString)"
+      )
+      
+      // Load schedule and remove restrictions
+      handleScheduleEnd(scheduleId: scheduleId)
       return
     }
     
@@ -204,7 +417,35 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   override func eventDidReachThreshold(_ event: DeviceActivityEvent.Name, activity: DeviceActivityName) {
     super.eventDidReachThreshold(event, activity: activity)
     
-    // Threshold reached - handle silently
+//    let formatter = DateFormatter()
+//    formatter.dateFormat = "HH:mm:ss"
+//    let timeString = formatter.string(from: Date())
+//    
+//    let eventName = "\(event.rawValue)"
+//    let activityName = "\(activity.rawValue)"
+//    
+//    LocalNotificationManager.scheduleExtensionNotification(
+//      title: "⏱️ Event Threshold Reached",
+//      details: "Time: \(timeString)\nEvent: \(eventName)\nActivity: \(activityName)"
+//    )
+    
+    // Check if this is a schedule trigger event
+//    if eventName.contains("trigger_") && activityName.contains("monitor_") {
+//      // Extract schedule ID from event name
+//      let scheduleId = eventName.replacingOccurrences(of: "trigger_", with: "")
+//      
+//      LocalNotificationManager.scheduleExtensionNotification(
+//        title: "🎯 Trigger Event Fired",
+//        details: "Schedule ID: \(scheduleId)\nProcessing schedule check..."
+//      )
+//      
+//      // Check if schedule should be active now
+//      handleScheduleTrigger(scheduleId: scheduleId)
+//      
+//      // Restart monitoring to get next trigger
+//      restartScheduleMonitoring(scheduleId: scheduleId)
+//      return
+//    }
     
     // Check if this is an interruption event
     if event == DeviceActivityEvent.Name.interruption {
@@ -498,27 +739,13 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   
   // MARK: - Scheduled Block Handlers
   
-  private func handleScheduledBlockStart(scheduleId: String) {
-    logger.notice("Scheduled block interval started: \(scheduleId)")
+  private func applyScheduledBlockRestrictions(schedule: BlockSchedule) {
+    let scheduleId = schedule.id
     
-    // Check if today is in the schedule's days
-    if !isTodayInSchedule(scheduleId: scheduleId) {
-      logger.notice("Today is not in schedule days for: \(scheduleId)")
-      return
-    }
-    
-    // Get schedule data from SharedData
-    guard let isStrict = SharedData.userDefaults?.object(forKey: "schedule_\(scheduleId)_strict") as? Bool else {
-      logger.error("Failed to get schedule data for: \(scheduleId)")
-      return
-    }
-    
-    // Load the selection data
-    let decoder = PropertyListDecoder()
-    var selection: FamilyActivitySelection?
-    if let data = SharedData.userDefaults?.data(forKey: "schedule_\(scheduleId)_selection") {
-      selection = try? decoder.decode(FamilyActivitySelection.self, from: data)
-    }
+    LocalNotificationManager.scheduleExtensionNotification(
+      title: "🔒 Applying Restrictions",
+      details: "Schedule: \(schedule.name)\nApps: \(schedule.selection.applicationTokens.count)"
+    )
     
     // Apply restrictions using ManagedSettingsStore
     let storeName = ManagedSettingsStore.Name("scheduledBlock_\(scheduleId)")
@@ -527,62 +754,116 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     // Clear any existing settings first
     store.clearAllSettings()
     
-    // Apply the restrictions
-    if let selection = selection {
-      store.shield.applications = selection.applicationTokens
-      
-      if isStrict {
-        // Strict mode - block all categories
-        store.shield.applicationCategories = ShieldSettings.ActivityCategoryPolicy.all()
-      } else {
-        // Normal mode - only block selected categories
-        store.shield.applicationCategories = ShieldSettings.ActivityCategoryPolicy.specific(selection.categoryTokens)
-      }
-      
-      store.shield.webDomains = selection.webDomainTokens
-      
-      // Log blocking start time for Focus Time statistics
-      // We store the start time for each app to calculate duration later
-      let scheduleName = SharedData.userDefaults?.string(forKey: "schedule_\(scheduleId)_name") ?? "Schedule"
-      let startTime = Date().timeIntervalSince1970
-      
-      // Store schedule blocking session start for statistics
-      var sessionData: [String: Any] = [
-        "scheduleId": scheduleId,
-        "scheduleName": scheduleName,
-        "startTime": startTime,
-        "appCount": selection.applicationTokens.count
-      ]
-      
-      // Store app tokens for session tracking
-      let appTokenStrings = selection.applicationTokens.map { String(describing: $0) }
-      if let tokensData = try? JSONEncoder().encode(appTokenStrings) {
-        sessionData["appTokens"] = tokensData
-      }
-      
-      // Save session data
-      if let data = try? JSONSerialization.data(withJSONObject: sessionData) {
-        SharedData.userDefaults?.set(data, forKey: "schedule_session_\(scheduleId)")
-      }
-      
-      logger.notice("Started Focus Time tracking for \(selection.applicationTokens.count) apps in schedule: \(scheduleName)")
+    // Apply shield for visual blocking
+    store.shield.applications = schedule.selection.applicationTokens
+    
+    if schedule.isStrictBlock {
+      // Strict mode - block all categories
+      store.shield.applicationCategories = ShieldSettings.ActivityCategoryPolicy.all()
+    } else {
+      // Normal mode - only block selected categories
+      store.shield.applicationCategories = ShieldSettings.ActivityCategoryPolicy.specific(schedule.selection.categoryTokens)
     }
+    
+    store.shield.webDomains = schedule.selection.webDomainTokens
     
     // Mark as active in SharedData
     SharedData.userDefaults?.set(true, forKey: "schedule_\(scheduleId)_active")
     SharedData.userDefaults?.set(Date().timeIntervalSince1970, forKey: "schedule_\(scheduleId)_startTimestamp")
+    SharedData.userDefaults?.set(true, forKey: SharedData.Widget.isBlocked)
+    SharedData.userDefaults?.set(schedule.isStrictBlock, forKey: SharedData.Widget.isStricted)
     
     // Send notification
-    let scheduleName = SharedData.userDefaults?.string(forKey: "schedule_\(scheduleId)_name") ?? "Schedule"
     LocalNotificationManager.scheduleExtensionNotification(
-      title: "📅 \(scheduleName) Active",
-      details: "Scheduled apps are now blocked"
+      title: "📅 \(schedule.name) Active",
+      details: "\(schedule.selection.applicationTokens.count) apps are now blocked"
+    )
+    
+    // Log for Focus Time statistics
+    logScheduleSessionStart(schedule: schedule)
+  }
+  
+  // Removed - duplicate method, using the one with BlockSchedule parameter
+  
+  private func removeScheduledBlockRestrictions(schedule: BlockSchedule) {
+    let scheduleId = schedule.id
+    
+    LocalNotificationManager.scheduleExtensionNotification(
+      title: "🔓 Removing Restrictions",
+      details: "Schedule: \(schedule.name)"
+    )
+    
+    // Log session end for statistics
+    logScheduleSessionEnd(scheduleId: scheduleId)
+    
+    // Remove restrictions using ManagedSettingsStore
+    let storeName = ManagedSettingsStore.Name("scheduledBlock_\(scheduleId)")
+    let store = ManagedSettingsStore(named: storeName)
+    
+    // Clear all restrictions
+    store.clearAllSettings()
+    
+    // Mark as inactive in SharedData
+    SharedData.userDefaults?.set(false, forKey: "schedule_\(scheduleId)_active")
+    SharedData.userDefaults?.removeObject(forKey: "schedule_\(scheduleId)_startTimestamp")
+    
+    // Check if any other schedules are active
+    let allScheduleIds = SharedData.userDefaults?.dictionaryRepresentation().keys
+      .filter { $0.contains("schedule_") && $0.contains("_active") }
+      .compactMap { key -> String? in
+        guard let isActive = SharedData.userDefaults?.bool(forKey: key), isActive else { return nil }
+        // Extract schedule ID from key like "schedule_UUID_active"
+        let components = key.split(separator: "_")
+        guard components.count >= 3 else { return nil }
+        return String(components[1])
+      } ?? []
+    
+    if allScheduleIds.isEmpty {
+      SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
+      SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isStricted)
+    }
+    
+    // Send notification
+    LocalNotificationManager.scheduleExtensionNotification(
+      title: "✅ \(schedule.name) Ended",
+      details: "Scheduled apps are now accessible"
     )
   }
   
-  private func handleScheduledBlockEnd(scheduleId: String) {
-    logger.notice("Scheduled block ended: \(scheduleId)")
+  // Removed - duplicate method, using the one with BlockSchedule parameter
+  
+  private func logScheduleSessionStart(schedule: BlockSchedule) {
+    let scheduleId = schedule.id
+    let scheduleName = schedule.name
+    let selection = schedule.selection
     
+    let startTime = Date().timeIntervalSince1970
+    
+    // Store schedule blocking session start for statistics
+    var sessionData: [String: Any] = [
+      "scheduleId": scheduleId,
+      "scheduleName": scheduleName,
+      "startTime": startTime,
+      "appCount": selection.applicationTokens.count
+    ]
+    
+    // Store app tokens for session tracking
+    let appTokenStrings = selection.applicationTokens.map { String(describing: $0) }
+    if let tokensData = try? JSONEncoder().encode(appTokenStrings) {
+      sessionData["appTokens"] = tokensData
+    }
+    
+    // Save session data
+    if let data = try? JSONSerialization.data(withJSONObject: sessionData) {
+      SharedData.userDefaults?.set(data, forKey: "schedule_session_\(scheduleId)")
+    }
+    
+    logger.notice("Started Focus Time tracking for \(selection.applicationTokens.count) apps in schedule: \(scheduleName)")
+  }
+  
+  // Removed - duplicate method, using the one with BlockSchedule parameter
+  
+  private func logScheduleSessionEnd(scheduleId: String) {
     // Calculate and log blocking time to Focus Time statistics
     if let sessionData = SharedData.userDefaults?.data(forKey: "schedule_session_\(scheduleId)"),
        let sessionInfo = try? JSONSerialization.jsonObject(with: sessionData) as? [String: Any],
@@ -615,30 +896,16 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       // Clean up session data
       SharedData.userDefaults?.removeObject(forKey: "schedule_session_\(scheduleId)")
     }
-    
-    // Remove restrictions using ManagedSettingsStore
-    let storeName = ManagedSettingsStore.Name("scheduledBlock_\(scheduleId)")
-    let store = ManagedSettingsStore(named: storeName)
-    
-    // Clear all restrictions
-    store.clearAllSettings()
-    
-    // Mark as inactive in SharedData
-    SharedData.userDefaults?.set(false, forKey: "schedule_\(scheduleId)_active")
-    SharedData.userDefaults?.removeObject(forKey: "schedule_\(scheduleId)_startTimestamp")
-    
-    // Send notification
-    let scheduleName = SharedData.userDefaults?.string(forKey: "schedule_\(scheduleId)_name") ?? "Schedule"
-    LocalNotificationManager.scheduleExtensionNotification(
-      title: "✅ \(scheduleName) Ended",
-      details: "Scheduled apps are now accessible"
-    )
   }
+  
   
   private func isTodayInSchedule(scheduleId: String) -> Bool {
     // Check if we have days of week data
     guard let daysArray = SharedData.userDefaults?.object(forKey: "schedule_\(scheduleId)_daysOfWeek") as? [Int] else {
-      logger.error("No days of week data for schedule: \(scheduleId)")
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "📆 No Days Data",
+        details: "Default to true (daily schedule)"
+      )
       return true // Default to true if no days specified (daily schedule)
     }
     
@@ -646,9 +913,283 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     let calendar = Calendar.current
     let weekday = calendar.component(.weekday, from: Date())
     
-    let isInSchedule = daysArray.contains(weekday)
-    logger.notice("Today (weekday \(weekday)) is \(isInSchedule ? "IN" : "NOT IN") schedule days: \(daysArray)")
+    let isToday = daysArray.contains(weekday)
     
-    return isInSchedule
+    LocalNotificationManager.scheduleExtensionNotification(
+      title: "📅 Day Check",
+      details: "Today: \(weekday), Schedule days: \(daysArray), Match: \(isToday)"
+    )
+    
+    return isToday
+  }
+  
+  private func isScheduleActiveNow(schedule: BlockSchedule) -> Bool {
+    let calendar = Calendar.current
+    let now = Date()
+    let weekday = calendar.component(.weekday, from: now)
+    
+    // Check day first
+    if !schedule.daysOfWeek.contains(weekday) {
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "❌ Wrong Day",
+        details: "Today (\(weekday)) not in schedule days: \(schedule.daysOfWeek)"
+      )
+      return false
+    }
+    
+    // Get schedule times
+    guard let startHour = schedule.startTime.hour,
+          let startMinute = schedule.startTime.minute,
+          let endHour = schedule.endTime.hour,
+          let endMinute = schedule.endTime.minute else {
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "❌ Missing Times",
+        details: "Schedule has incomplete time data"
+      )
+      return false
+    }
+    
+    // Check if current time is within schedule range
+    let currentComponents = calendar.dateComponents([.hour, .minute], from: now)
+    guard let currentHour = currentComponents.hour,
+          let currentMinute = currentComponents.minute else {
+      return false
+    }
+    
+    let currentMinutes = currentHour * 60 + currentMinute
+    let startMinutes = startHour * 60 + startMinute
+    let endMinutes = endHour * 60 + endMinute
+    
+    LocalNotificationManager.scheduleExtensionNotification(
+      title: "⏰ Time Check",
+      details: "Now: \(currentHour):\(String(format: "%02d", currentMinute)) (\(currentMinutes)min)\n" +
+               "Start: \(startHour):\(String(format: "%02d", startMinute)) (\(startMinutes)min)\n" +
+               "End: \(endHour):\(String(format: "%02d", endMinute)) (\(endMinutes)min)"
+    )
+    
+    // Handle overnight schedules
+    if endMinutes < startMinutes {
+      // Schedule crosses midnight
+      let isActive = currentMinutes >= startMinutes || currentMinutes < endMinutes
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "🌙 Overnight Schedule",
+        details: "Current >= Start: \(currentMinutes >= startMinutes)\n" +
+                 "Current < End: \(currentMinutes < endMinutes)\n" +
+                 "Result: \(isActive)"
+      )
+      return isActive
+    } else {
+      // Normal schedule
+      let isActive = currentMinutes >= startMinutes && currentMinutes < endMinutes
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "☀️ Normal Schedule",
+        details: "Current >= Start: \(currentMinutes >= startMinutes)\n" +
+                 "Current < End: \(currentMinutes < endMinutes)\n" +
+                 "Result: \(isActive)"
+      )
+      return isActive
+    }
+  }
+  
+  // Keep old version for compatibility
+  private func isScheduleActiveNow(scheduleId: String) -> Bool {
+    let calendar = Calendar.current
+    let now = Date()
+    let weekday = calendar.component(.weekday, from: now)
+    
+    // Check day first
+    if !isTodayInSchedule(scheduleId: scheduleId) {
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "❌ Wrong Day",
+        details: "Today (\(weekday)) not in schedule days"
+      )
+      return false
+    }
+    
+    // Get schedule times from SharedData
+    guard let startHour = SharedData.userDefaults?.object(forKey: "schedule_\(scheduleId)_startHour") as? Int,
+          let startMinute = SharedData.userDefaults?.object(forKey: "schedule_\(scheduleId)_startMinute") as? Int,
+          let endHour = SharedData.userDefaults?.object(forKey: "schedule_\(scheduleId)_endHour") as? Int,
+          let endMinute = SharedData.userDefaults?.object(forKey: "schedule_\(scheduleId)_endMinute") as? Int else {
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "❌ Missing Times",
+        details: "Could not load schedule times from SharedData"
+      )
+      return false
+    }
+    
+    // Check if current time is within schedule range
+    let currentComponents = calendar.dateComponents([.hour, .minute], from: now)
+    guard let currentHour = currentComponents.hour,
+          let currentMinute = currentComponents.minute else {
+      return false
+    }
+    
+    let currentMinutes = currentHour * 60 + currentMinute
+    let startMinutes = startHour * 60 + startMinute
+    let endMinutes = endHour * 60 + endMinute
+    
+    LocalNotificationManager.scheduleExtensionNotification(
+      title: "⏰ Time Check",
+      details: "Now: \(currentHour):\(String(format: "%02d", currentMinute)) (\(currentMinutes)min)\n" +
+               "Start: \(startHour):\(String(format: "%02d", startMinute)) (\(startMinutes)min)\n" +
+               "End: \(endHour):\(String(format: "%02d", endMinute)) (\(endMinutes)min)"
+    )
+    
+    // Handle overnight schedules
+    if endMinutes < startMinutes {
+      // Schedule crosses midnight
+      let isActive = currentMinutes >= startMinutes || currentMinutes < endMinutes
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "🌙 Overnight Schedule",
+        details: "Current >= Start: \(currentMinutes >= startMinutes)\n" +
+                 "Current < End: \(currentMinutes < endMinutes)\n" +
+                 "Result: \(isActive)"
+      )
+      return isActive
+    } else {
+      // Normal schedule
+      let isActive = currentMinutes >= startMinutes && currentMinutes < endMinutes
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "☀️ Normal Schedule",
+        details: "Current >= Start: \(currentMinutes >= startMinutes)\n" +
+                 "Current < End: \(currentMinutes < endMinutes)\n" +
+                 "Result: \(isActive)"
+      )
+      return isActive
+    }
+  }
+  
+//  private func handleScheduleTrigger(scheduleId: String) {
+//    // Load schedule from SharedData
+//    guard let scheduleData = SharedData.userDefaults?.data(forKey: "schedule_\(scheduleId)"),
+//          let schedule = try? JSONDecoder().decode(BlockSchedule.self, from: scheduleData) else {
+//      
+//      // Debug: Show all available keys in UserDefaults
+//      var debugInfo = "Available keys:\n"
+//      if let userDefaults = SharedData.userDefaults {
+//        for (key, value) in userDefaults.dictionaryRepresentation() {
+//          if key.contains("schedule") {
+//            let valueType = String(describing: type(of: value))
+//            let valuePreview = String(describing: value).prefix(50)
+//            debugInfo += "\(key) = \(valueType): \(valuePreview)...\n"
+//          }
+//        }
+//      }
+//      
+//      LocalNotificationManager.scheduleExtensionNotification(
+//        title: "❌ Schedule Not Found Trigger",
+//        details: "Could not load schedule \(scheduleId)\n\(debugInfo)"
+//      )
+//      return
+//    }
+//    
+//    LocalNotificationManager.scheduleExtensionNotification(
+//      title: "📊 Schedule Loaded",
+//      details: "ID: \(schedule.id)\nName: \(schedule.name)\nApps: \(schedule.selection.applicationTokens.count)"
+//    )
+//    
+//    // Check if schedule should be active now
+//    let shouldBeActive = isScheduleActiveNow(schedule: schedule)
+//    let isCurrentlyActive = SharedData.userDefaults?.bool(forKey: "schedule_\(scheduleId)_active") ?? false
+//    
+//    let formatter = DateFormatter()
+//    formatter.dateFormat = "HH:mm"
+//    let timeString = formatter.string(from: Date())
+//    
+//    LocalNotificationManager.scheduleExtensionNotification(
+//      title: "🔍 Trigger Check at \(timeString)",
+//      details: "Should be active: \(shouldBeActive), Currently active: \(isCurrentlyActive)"
+//    )
+//    
+//    if shouldBeActive && !isCurrentlyActive {
+//      // Schedule should be active but isn't - activate it
+//      LocalNotificationManager.scheduleExtensionNotification(
+//        title: "🔒 Activating Schedule",
+//        details: "\(schedule.name) should be active now"
+//      )
+//      applyScheduledBlockRestrictions(schedule: schedule)
+//    } else if !shouldBeActive && isCurrentlyActive {
+//      // Schedule shouldn't be active but is - deactivate it
+//      LocalNotificationManager.scheduleExtensionNotification(
+//        title: "🔓 Deactivating Schedule",
+//        details: "\(schedule.name) should not be active now"
+//      )
+//      removeScheduledBlockRestrictions(schedule: schedule)
+//    }
+//  }
+  
+  private func restartScheduleMonitoring(scheduleId: String) {
+    let monitoringActivityName = DeviceActivityName("monitor_\(scheduleId)")
+    let center = DeviceActivityCenter()
+    
+    // Stop current monitoring
+    center.stopMonitoring([monitoringActivityName])
+    
+    // Get schedule times from SharedData to create proper monitoring window
+    guard let startHour = SharedData.userDefaults?.object(forKey: "schedule_\(scheduleId)_startHour") as? Int,
+          let startMinute = SharedData.userDefaults?.object(forKey: "schedule_\(scheduleId)_startMinute") as? Int,
+          let endHour = SharedData.userDefaults?.object(forKey: "schedule_\(scheduleId)_endHour") as? Int,
+          let endMinute = SharedData.userDefaults?.object(forKey: "schedule_\(scheduleId)_endMinute") as? Int else {
+      logger.error("Failed to get schedule times for \(scheduleId)")
+      return
+    }
+    
+    // Calculate monitoring window (1 minute before start to 1 minute after end)
+    var monitorStart = DateComponents()
+    var adjustedStartMinute = startMinute - 1
+    var adjustedStartHour = startHour
+    if adjustedStartMinute < 0 {
+      adjustedStartMinute = 59
+      adjustedStartHour = (adjustedStartHour - 1 + 24) % 24
+    }
+    monitorStart.hour = adjustedStartHour
+    monitorStart.minute = adjustedStartMinute
+    
+    var monitorEnd = DateComponents()
+    var adjustedEndMinute = endMinute + 1
+    var adjustedEndHour = endHour
+    if adjustedEndMinute >= 60 {
+      adjustedEndMinute = 0
+      adjustedEndHour = (adjustedEndHour + 1) % 24
+    }
+    monitorEnd.hour = adjustedEndHour
+    monitorEnd.minute = adjustedEndMinute
+    
+    // Create monitoring schedule
+    let monitoringSchedule = DeviceActivitySchedule(
+      intervalStart: monitorStart,
+      intervalEnd: monitorEnd,
+      repeats: true
+    )
+    
+    // Create trigger event that fires every minute
+    let triggerEvent = DeviceActivityEvent(
+      applications: Set<ApplicationToken>(),
+      threshold: DateComponents(minute: 1)
+    )
+    
+    let events: [DeviceActivityEvent.Name: DeviceActivityEvent] = [
+      DeviceActivityEvent.Name("trigger_\(scheduleId)"): triggerEvent
+    ]
+    
+    // Restart monitoring
+    do {
+      try center.startMonitoring(monitoringActivityName, during: monitoringSchedule, events: events)
+      
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "🔄 Monitoring Restarted",
+        details: "Schedule \(scheduleId) monitoring restarted"
+      )
+      
+      logger.log("Restarted schedule monitoring for \(scheduleId)")
+    } catch {
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "❌ Restart Failed",
+        details: "Error: \(error.localizedDescription)"
+      )
+      
+      logger.error("Failed to restart schedule monitoring: \(error)")
+    }
   }
 }
