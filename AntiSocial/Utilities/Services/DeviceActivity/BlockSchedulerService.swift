@@ -53,6 +53,28 @@ class BlockSchedulerService: ObservableObject {
     // Create activity for this schedule
     let scheduleActivityName = DeviceActivityName("schedule_\(schedule.id)")
     
+    // Check if schedule duration is at least 15 minutes (iOS requirement)
+    let startMinutes = (schedule.startTime.hour ?? 0) * 60 + (schedule.startTime.minute ?? 0)
+    let endMinutes = (schedule.endTime.hour ?? 0) * 60 + (schedule.endTime.minute ?? 0)
+    
+    // Handle overnight schedules
+    let duration: Int
+    if endMinutes >= startMinutes {
+      duration = endMinutes - startMinutes
+    } else {
+      // Overnight schedule
+      duration = (24 * 60 - startMinutes) + endMinutes
+    }
+    
+    if duration < 15 {
+      AppLogger.alert("Schedule duration too short: \(duration) minutes. iOS requires at least 15 minutes.")
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "⚠️ Schedule Too Short",
+        details: "Duration: \(duration) min\nMinimum required: 15 min\nPlease extend the schedule."
+      )
+      return
+    }
+    
     // Create schedule that matches the blocking period exactly
     let blockingSchedule = DeviceActivitySchedule(
       intervalStart: schedule.startTime,
@@ -85,61 +107,7 @@ class BlockSchedulerService: ObservableObject {
       )
       
       // Apply restrictions ONLY if schedule is currently active
-      if isScheduleActiveNow(schedule) {
-        AppLogger.notice("Schedule '\(schedule.name)' is active NOW - applying restrictions immediately")
-        applyRestrictions(for: schedule)
-        
-        // Send debug notification that restrictions are applied immediately
-        LocalNotificationManager.scheduleExtensionNotification(
-          title: "🔒 Schedule Active NOW",
-          details: "ID: \(schedule.id)\n\(schedule.name) is active immediately\nRestrictions applied"
-        )
-        
-        // Also create a blocking schedule for the remaining time
-        let calendar = Calendar.current
-        let now = Date()
-        
-        // Calculate end time for today
-        if let endHour = schedule.endTime.hour,
-           let endMinute = schedule.endTime.minute {
-          var endComponents = calendar.dateComponents([.year, .month, .day], from: now)
-          endComponents.hour = endHour
-          endComponents.minute = endMinute
-          
-          if let endDate = calendar.date(from: endComponents),
-             endDate > now {
-            // Create schedule from now until end time
-            let intervalStart = calendar.dateComponents([.hour, .minute], from: now)
-            let intervalEnd = calendar.dateComponents([.hour, .minute], from: endDate)
-            
-            let blockingSchedule = DeviceActivitySchedule(
-              intervalStart: intervalStart,
-              intervalEnd: intervalEnd,
-              repeats: false
-            )
-            
-            let blockingActivityName = DeviceActivityName.scheduledBlock(id: schedule.id)
-            
-            do {
-              center.stopMonitoring([blockingActivityName])
-              try center.startMonitoring(blockingActivityName, during: blockingSchedule)
-              AppLogger.notice("Created immediate blocking schedule until \(endHour):\(endMinute)")
-            } catch {
-              AppLogger.critical(error, details: "Failed to create immediate blocking schedule")
-            }
-          }
-        }
-      } else {
-        AppLogger.notice("Schedule '\(schedule.name)' is NOT active now - will start at scheduled time")
-        // Make sure restrictions are removed if not in active time
-        removeRestrictions(for: schedule)
-        
-        // Send debug notification that schedule will start later
-        LocalNotificationManager.scheduleExtensionNotification(
-          title: "⏰ Schedule Pending",
-          details: "ID: \(schedule.id)\n\(schedule.name) will start at \(schedule.startTime.hour ?? 0):\(String(format: "%02d", schedule.startTime.minute ?? 0))"
-        )
-      }
+      applyRestrictions(schedule)
       
       // Update schedule status
       var updatedSchedule = schedule
@@ -158,11 +126,70 @@ class BlockSchedulerService: ObservableObject {
     }
   }
   
+  func applyRestrictions(_ schedule: BlockSchedule) {
+    if isScheduleActiveNow(schedule) {
+      AppLogger.notice("Schedule '\(schedule.name)' is active NOW - applying restrictions immediately")
+      applyRestrictions(for: schedule)
+      
+      // Send debug notification that restrictions are applied immediately
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "🔒 Schedule Active NOW",
+        details: "ID: \(schedule.id)\n\(schedule.name) is active immediately\nRestrictions applied"
+      )
+      
+      // Also create a blocking schedule for the remaining time
+      let calendar = Calendar.current
+      let now = Date()
+      
+      // Calculate end time for today
+      if let endHour = schedule.endTime.hour,
+         let endMinute = schedule.endTime.minute {
+        var endComponents = calendar.dateComponents([.year, .month, .day], from: now)
+        endComponents.hour = endHour
+        endComponents.minute = endMinute
+        
+        if let endDate = calendar.date(from: endComponents),
+           endDate > now {
+          // Create schedule from now until end time
+          let intervalStart = calendar.dateComponents([.hour, .minute], from: now)
+          let intervalEnd = calendar.dateComponents([.hour, .minute], from: endDate)
+          
+          let blockingSchedule = DeviceActivitySchedule(
+            intervalStart: intervalStart,
+            intervalEnd: intervalEnd,
+            repeats: false
+          )
+          
+          let blockingActivityName = DeviceActivityName.scheduledBlock(id: schedule.id)
+          
+          do {
+            center.stopMonitoring([blockingActivityName])
+            try center.startMonitoring(blockingActivityName, during: blockingSchedule)
+            AppLogger.notice("Created immediate blocking schedule until \(endHour):\(endMinute)")
+          } catch {
+            AppLogger.critical(error, details: "Failed to create immediate blocking schedule")
+          }
+        }
+      }
+    } else {
+      AppLogger.notice("Schedule '\(schedule.name)' is NOT active now - will start at scheduled time")
+      // Make sure restrictions are removed if not in active time
+      removeRestrictions(for: schedule)
+      
+      // Send debug notification that schedule will start later
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "⏰ Schedule Pending",
+        details: "ID: \(schedule.id)\n\(schedule.name) will start at \(schedule.startTime.hour ?? 0):\(String(format: "%02d", schedule.startTime.minute ?? 0))"
+      )
+    }
+  }
+  
   func deactivateSchedule(_ schedule: BlockSchedule) {
     let scheduleActivityName = DeviceActivityName("schedule_\(schedule.id)")
+    let blockingActivityName = DeviceActivityName.scheduledBlock(id: schedule.id)
     
-    // Stop schedule monitoring
-    center.stopMonitoring([scheduleActivityName])
+    // Stop both regular schedule and immediate blocking monitoring
+    center.stopMonitoring([scheduleActivityName, blockingActivityName])
     activeMonitors.remove(schedule.id)
     
     // Remove restrictions

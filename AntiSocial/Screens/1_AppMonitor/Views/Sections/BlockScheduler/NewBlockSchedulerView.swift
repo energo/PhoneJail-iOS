@@ -174,7 +174,34 @@ struct NewBlockSchedulerView: View {
       .frame(maxWidth: .infinity)
       .background(Color.white.opacity(0.07))
       .clipShape(RoundedRectangle(cornerRadius: 30))
+      
+      // Show warning if duration is too short
+      if !isDurationValid {
+        HStack(spacing: 4) {
+          Image(systemName: "exclamationmark.triangle.fill")
+            .font(.system(size: 12))
+          Text("Minimum duration is 15 minutes")
+            .font(.system(size: 12))
+        }
+        .foregroundStyle(Color.orange)
+        .padding(.top, 4)
+      }
     }
+  }
+  
+  private var isDurationValid: Bool {
+    let startMinutes = startHour * 60 + startMinute
+    let endMinutes = endHour * 60 + endMinute
+    
+    let duration: Int
+    if endMinutes >= startMinutes {
+      duration = endMinutes - startMinutes
+    } else {
+      // Overnight schedule
+      duration = (24 * 60 - startMinutes) + endMinutes
+    }
+    
+    return duration >= 15
   }
   
   private var daysOfWeekSection: some View {
@@ -415,6 +442,23 @@ struct NewBlockSchedulerView: View {
     if schedule != nil && name.isEmpty {
       return false
     }
+    
+    // Check duration is at least 15 minutes
+    let startMinutes = startHour * 60 + startMinute
+    let endMinutes = endHour * 60 + endMinute
+    
+    let duration: Int
+    if endMinutes >= startMinutes {
+      duration = endMinutes - startMinutes
+    } else {
+      // Overnight schedule
+      duration = (24 * 60 - startMinutes) + endMinutes
+    }
+    
+    if duration < 15 {
+      return false // Schedule too short
+    }
+    
     return !selectedDays.isEmpty && !selection.applicationTokens.isEmpty
   }
   

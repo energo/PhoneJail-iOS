@@ -162,82 +162,52 @@ struct BlockSchedule: Identifiable, Codable {
 
 // MARK: - Persistence
 extension BlockSchedule {
-    // Removed storage key - each schedule is stored separately in SharedData
+    static let storageKey = "blockSchedules"
     
     static func loadAll() -> [BlockSchedule] {
-        guard let userDefaults = SharedData.userDefaults else { return [] }
-        
-        var schedules: [BlockSchedule] = []
-        
-        // Find all schedule keys in SharedData
-        for (key, value) in userDefaults.dictionaryRepresentation() {
-            if key.hasPrefix("schedule_") && !key.contains("_active") && !key.contains("_startTimestamp") {
-                // Try to decode the schedule
-                if let data = value as? Data,
-                   let schedule = try? JSONDecoder().decode(BlockSchedule.self, from: data) {
-                    schedules.append(schedule)
-                }
-            }
+        guard let data = SharedData.userDefaults?.data(forKey: storageKey),
+              let schedules = try? JSONDecoder().decode([BlockSchedule].self, from: data) else {
+            return []
         }
-        
-        return schedules.sorted { $0.createdAt < $1.createdAt }
+        return schedules
     }
     
     static func saveAll(_ schedules: [BlockSchedule]) {
-        guard let userDefaults = SharedData.userDefaults else { return }
-        
-        // First, remove all existing schedule keys
-        for key in userDefaults.dictionaryRepresentation().keys {
-            if key.hasPrefix("schedule_") && !key.contains("_active") && !key.contains("_startTimestamp") {
-                userDefaults.removeObject(forKey: key)
-            }
-        }
-        
-        // Save each schedule individually
-        for schedule in schedules {
-            if let data = try? JSONEncoder().encode(schedule) {
-                userDefaults.set(data, forKey: "schedule_\(schedule.id)")
-            }
+        if let data = try? JSONEncoder().encode(schedules) {
+            SharedData.userDefaults?.set(data, forKey: storageKey)
         }
     }
     
     static func add(_ schedule: BlockSchedule) {
-        guard let userDefaults = SharedData.userDefaults else { return }
+        var schedules = loadAll()
+        schedules.append(schedule)
+        saveAll(schedules)
         
-        // Save schedule directly to SharedData
-        if let data = try? JSONEncoder().encode(schedule) {
-            userDefaults.set(data, forKey: "schedule_\(schedule.id)")
-            
-            // Debug notification
-            LocalNotificationManager.scheduleExtensionNotification(
-                title: "💾 Schedule Added to SharedData",
-                details: "Key: schedule_\(schedule.id)\nSize: \(data.count) bytes"
-            )
-        }
+        // Debug notification
+        LocalNotificationManager.scheduleExtensionNotification(
+            title: "💾 Schedule Added",
+            details: "ID: \(schedule.id)\nName: \(schedule.name)\nTotal schedules: \(schedules.count)"
+        )
     }
     
     static func update(_ schedule: BlockSchedule) {
-        guard let userDefaults = SharedData.userDefaults else { return }
-        
-        // Update schedule directly in SharedData
-        if let data = try? JSONEncoder().encode(schedule) {
-            userDefaults.set(data, forKey: "schedule_\(schedule.id)")
+        var schedules = loadAll()
+        if let index = schedules.firstIndex(where: { $0.id == schedule.id }) {
+            schedules[index] = schedule
+            saveAll(schedules)
             
             // Debug notification
             LocalNotificationManager.scheduleExtensionNotification(
-                title: "📝 Schedule Updated in SharedData",
-                details: "Key: schedule_\(schedule.id)\nSize: \(data.count) bytes"
+                title: "📝 Schedule Updated",
+                details: "ID: \(schedule.id)\nName: \(schedule.name)\nActive: \(schedule.isActive)"
             )
         }
     }
     
     static func delete(id: String) {
-        guard let userDefaults = SharedData.userDefaults else { return }
-        
-        // Remove schedule and related keys from SharedData
-        userDefaults.removeObject(forKey: "schedule_\(id)")
-        userDefaults.removeObject(forKey: "schedule_\(id)_active")
-        userDefaults.removeObject(forKey: "schedule_\(id)_startTimestamp")
+        var schedules = loadAll()
+        schedules.removeAll { $0.id == id }
+        saveAll(schedules)
     }
 }
 

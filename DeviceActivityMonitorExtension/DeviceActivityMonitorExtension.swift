@@ -76,78 +76,6 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     }
   }
   
-  private func getPersonalizedMessage(for minutes: Int, appName: String) -> String {
-    
-    switch minutes {
-      case 0..<5:
-        return "Your thumb needs a break. Put down your phone."
-      case 5..<10:
-        return "Still scrolling? Time to stop."
-      case 10..<15:
-        return "Screens won’t cuddle you back. Block your phone."
-      case 15..<20:
-        return "Put down your phone. Go touch grass. Seriously."
-      case 20..<25:
-        return "Your future self just rolled their eyes. Log off?"
-      case 25..<30:
-        return "Plot twist: nothing new on your feed."
-      case 30..<35:
-        return "Why not get dopamine from the real world?"
-      case 35..<40:
-        return "This app thinks you’re cute offline."
-      case 40..<45:
-        return "Congrats. You just beat your high score in procrastination."
-      case 45..<50:
-        return "Spoiler: You won’t find meaning here."
-      case 50..<55:
-        return "Breaking news: Your life is happening elsewhere."
-      case 55..<60:
-        return "Your screen time is judging you."
-      case 60..<70:
-        return "Achievement unlocked: Wasted time."
-      case 70..<80:
-        return "Even your battery is tired of this. Block your phone."
-      case 80..<90:
-        return "If scrolling burned calories, you’d be ripped."
-      case 90..<100:
-        return "Real life has better graphics. Go live it."
-      case 100..<110:
-        return "Stop scrolling. Start strolling. (Go take a walk, buddy)"
-      case 110..<120:
-        return "Go do literally anything cooler than this."
-      case 120..<130:
-        return "Life > feed. Choose wisely."
-      case 130..<140:
-        return "Go outside. The graphics are insane."
-      case 140..<150:
-        return "You’re one scroll away from nothing. Stop."
-      case 150..<160:
-        return "Endless feed. Endless waste. Stop."
-      case 160..<170:
-        return "You’re in a loop. Break it."
-      case 170..<180:
-        return "One more scroll and you officially qualify as furniture."
-      case 180..<190:
-        return "Breaking news: Your thumb has filed a complaint."
-      case 190..<200:
-        return "This feed is junk food. Go eat real life."
-      case 200..<210:
-        return "Nothing new here. Even your feed is bored."
-      case 210..<220:
-        return "Too much screen time shrinks your attention span to 8 seconds."
-      case 220..<230:
-        return "Studies show phone use kills focus. But hey, you’re really focused on scrolling."
-      case 230..<240:
-        return "Life expectancy = ~80 years. You’ll spend 9 of them staring at a rectangle."
-      case 240..<250:
-        return "Phone addiction raises anxiety by 30%. Keep scrolling if you’re into that."
-      case 250..<260:
-        return "Heavy phone users sleep an hour less. Worth it?"
-      default:
-        return "Go live your life — your feed will still be here."
-    }
-  }
-  
   //MARK: - Interval Start/End
   override func intervalDidStart(for activity: DeviceActivityName) {
     super.intervalDidStart(for: activity)
@@ -163,12 +91,17 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     
     // Check if this is a schedule activity starting
     let activityName = "\(activity.rawValue)"
-    if activityName.contains("schedule_") {
-      let scheduleId = activityName.replacingOccurrences(of: "schedule_", with: "")
+    if activityName.contains("schedule_") || activityName.contains("scheduledBlock_") {
+      let scheduleId: String
+      if activityName.contains("scheduledBlock_") {
+        scheduleId = activityName.replacingOccurrences(of: "scheduledBlock_", with: "")
+      } else {
+        scheduleId = activityName.replacingOccurrences(of: "schedule_", with: "")
+      }
       
       LocalNotificationManager.scheduleExtensionNotification(
         title: "🔒 Interval START",
-        details: "Schedule \(scheduleId) interval has begun at \(timeString)"
+        details: "Activity: \(activityName)\nSchedule ID: \(scheduleId) at \(timeString)"
       )
       
       // Load schedule and apply restrictions
@@ -178,97 +111,15 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   }
   
   private func handleScheduleStart(scheduleId: String) {
-    // Load schedule from SharedData
-    guard let scheduleData = SharedData.userDefaults?.data(forKey: "schedule_\(scheduleId)"),
-          let schedule = try? JSONDecoder().decode(BlockSchedule.self, from: scheduleData) else {
+    // Load all schedules from SharedData
+    guard let data = SharedData.userDefaults?.data(forKey: "blockSchedules"),
+          let schedules = try? JSONDecoder().decode([BlockSchedule].self, from: data),
+          let schedule = schedules.first(where: { $0.id == scheduleId }) else {
       
-      // Debug: Send multiple notifications to show all data
       LocalNotificationManager.scheduleExtensionNotification(
         title: "❌ Schedule Not Found Start",
-        details: "Looking for: schedule_\(scheduleId)"
+        details: "Could not find schedule with ID: \(scheduleId)"
       )
-      
-      // Check if UserDefaults is accessible
-      if let userDefaults = SharedData.userDefaults {
-        var scheduleKeys: [String] = []
-        var otherKeys: [String] = []
-        var debugLog = "=== DEBUG: Schedule Not Found ===\n"
-        debugLog += "Looking for key: schedule_\(scheduleId)\n\n"
-        debugLog += "ALL UserDefaults Keys:\n"
-        
-        for (key, value) in userDefaults.dictionaryRepresentation() {
-          if key.contains("schedule_") {
-            scheduleKeys.append(key)
-          } else if key.contains("Schedule") || key.contains("block") {
-            otherKeys.append(key)
-          }
-          
-          // Add to debug log
-          let valueType = String(describing: type(of: value))
-          let valuePreview: String
-          if let data = value as? Data {
-            valuePreview = "Data(\(data.count) bytes)"
-          } else {
-            valuePreview = String(describing: value).prefix(100).description
-          }
-          debugLog += "  \(key) = \(valueType): \(valuePreview)\n"
-        }
-        
-        // Save full debug info to file
-        saveDebugInfo(debugLog)
-        
-        // Send notification with schedule keys
-        if !scheduleKeys.isEmpty {
-          LocalNotificationManager.scheduleExtensionNotification(
-            title: "📋 Found Schedule Keys (\(scheduleKeys.count))",
-            details: scheduleKeys.prefix(5).joined(separator: "\n")
-          )
-          
-          // If more than 5, send another notification
-          if scheduleKeys.count > 5 {
-            LocalNotificationManager.scheduleExtensionNotification(
-              title: "📋 More Schedule Keys",
-              details: scheduleKeys.dropFirst(5).prefix(5).joined(separator: "\n")
-            )
-          }
-        } else {
-          LocalNotificationManager.scheduleExtensionNotification(
-            title: "⚠️ No Schedule Keys Found",
-            details: "No keys starting with 'schedule_' in UserDefaults"
-          )
-        }
-        
-        // Try to read the data directly and show its size
-        if let data = userDefaults.data(forKey: "schedule_\(scheduleId)") {
-          LocalNotificationManager.scheduleExtensionNotification(
-            title: "📦 Data Found",
-            details: "Size: \(data.count) bytes\nDecoding failed - check BlockSchedule structure"
-          )
-          
-          // Try to decode as JSON to see structure
-          if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-            let keys = Array(json.keys).prefix(5).joined(separator: ", ")
-            LocalNotificationManager.scheduleExtensionNotification(
-              title: "🔍 JSON Structure",
-              details: "Keys: \(keys)"
-            )
-          }
-        }
-        
-        // Check related keys
-        if !otherKeys.isEmpty {
-          LocalNotificationManager.scheduleExtensionNotification(
-            title: "🔗 Related Keys",
-            details: otherKeys.prefix(5).joined(separator: "\n")
-          )
-        }
-      } else {
-        LocalNotificationManager.scheduleExtensionNotification(
-          title: "❌ UserDefaults Error",
-          details: "SharedData.userDefaults is nil"
-        )
-      }
-      
       return
     }
     
@@ -294,25 +145,14 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   }
   
   private func handleScheduleEnd(scheduleId: String) {
-    // Load schedule from SharedData
-    guard let scheduleData = SharedData.userDefaults?.data(forKey: "schedule_\(scheduleId)"),
-          let schedule = try? JSONDecoder().decode(BlockSchedule.self, from: scheduleData) else {
-      
-      // Debug: Show all available keys in UserDefaults
-      var debugInfo = "Available keys:\n"
-      if let userDefaults = SharedData.userDefaults {
-        for (key, value) in userDefaults.dictionaryRepresentation() {
-          if key.contains("schedule") {
-            let valueType = String(describing: type(of: value))
-            let valuePreview = String(describing: value).prefix(50)
-            debugInfo += "\(key) = \(valueType): \(valuePreview)...\n"
-          }
-        }
-      }
+    // Load all schedules from SharedData
+    guard let data = SharedData.userDefaults?.data(forKey: "blockSchedules"),
+          let schedules = try? JSONDecoder().decode([BlockSchedule].self, from: data),
+          let schedule = schedules.first(where: { $0.id == scheduleId }) else {
       
       LocalNotificationManager.scheduleExtensionNotification(
         title: "❌ Schedule Not Found End",
-        details: "Could not load schedule \(scheduleId) for ending\n\(debugInfo)"
+        details: "Could not find schedule with ID: \(scheduleId)"
       )
       return
     }
@@ -343,12 +183,17 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     let activityName = "\(activity.rawValue)"
     
     // Check if this is a schedule activity ending
-    if activityName.contains("schedule_") {
-      let scheduleId = activityName.replacingOccurrences(of: "schedule_", with: "")
+    if activityName.contains("schedule_") || activityName.contains("scheduledBlock_") {
+      let scheduleId: String
+      if activityName.contains("scheduledBlock_") {
+        scheduleId = activityName.replacingOccurrences(of: "scheduledBlock_", with: "")
+      } else {
+        scheduleId = activityName.replacingOccurrences(of: "schedule_", with: "")
+      }
       
       LocalNotificationManager.scheduleExtensionNotification(
         title: "🔓 Schedule Ended",
-        details: "Schedule \(scheduleId) interval has ended at \(timeString)"
+        details: "Activity: \(activityName)\nSchedule ID: \(scheduleId) at \(timeString)"
       )
       
       // Load schedule and remove restrictions
@@ -1190,6 +1035,78 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       )
       
       logger.error("Failed to restart schedule monitoring: \(error)")
+    }
+  }
+  
+  private func getPersonalizedMessage(for minutes: Int, appName: String) -> String {
+    
+    switch minutes {
+      case 0..<5:
+        return "Your thumb needs a break. Put down your phone."
+      case 5..<10:
+        return "Still scrolling? Time to stop."
+      case 10..<15:
+        return "Screens won’t cuddle you back. Block your phone."
+      case 15..<20:
+        return "Put down your phone. Go touch grass. Seriously."
+      case 20..<25:
+        return "Your future self just rolled their eyes. Log off?"
+      case 25..<30:
+        return "Plot twist: nothing new on your feed."
+      case 30..<35:
+        return "Why not get dopamine from the real world?"
+      case 35..<40:
+        return "This app thinks you’re cute offline."
+      case 40..<45:
+        return "Congrats. You just beat your high score in procrastination."
+      case 45..<50:
+        return "Spoiler: You won’t find meaning here."
+      case 50..<55:
+        return "Breaking news: Your life is happening elsewhere."
+      case 55..<60:
+        return "Your screen time is judging you."
+      case 60..<70:
+        return "Achievement unlocked: Wasted time."
+      case 70..<80:
+        return "Even your battery is tired of this. Block your phone."
+      case 80..<90:
+        return "If scrolling burned calories, you’d be ripped."
+      case 90..<100:
+        return "Real life has better graphics. Go live it."
+      case 100..<110:
+        return "Stop scrolling. Start strolling. (Go take a walk, buddy)"
+      case 110..<120:
+        return "Go do literally anything cooler than this."
+      case 120..<130:
+        return "Life > feed. Choose wisely."
+      case 130..<140:
+        return "Go outside. The graphics are insane."
+      case 140..<150:
+        return "You’re one scroll away from nothing. Stop."
+      case 150..<160:
+        return "Endless feed. Endless waste. Stop."
+      case 160..<170:
+        return "You’re in a loop. Break it."
+      case 170..<180:
+        return "One more scroll and you officially qualify as furniture."
+      case 180..<190:
+        return "Breaking news: Your thumb has filed a complaint."
+      case 190..<200:
+        return "This feed is junk food. Go eat real life."
+      case 200..<210:
+        return "Nothing new here. Even your feed is bored."
+      case 210..<220:
+        return "Too much screen time shrinks your attention span to 8 seconds."
+      case 220..<230:
+        return "Studies show phone use kills focus. But hey, you’re really focused on scrolling."
+      case 230..<240:
+        return "Life expectancy = ~80 years. You’ll spend 9 of them staring at a rectangle."
+      case 240..<250:
+        return "Phone addiction raises anxiety by 30%. Keep scrolling if you’re into that."
+      case 250..<260:
+        return "Heavy phone users sleep an hour less. Worth it?"
+      default:
+        return "Go live your life — your feed will still be here."
     }
   }
 }
