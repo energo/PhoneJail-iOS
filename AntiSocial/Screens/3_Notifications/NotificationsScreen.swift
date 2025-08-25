@@ -68,7 +68,13 @@ struct NotificationsScreen: View {
 
         Spacer()
 
-        Toggle("", isOn: isOn)
+        Toggle("", isOn: Binding(
+          get: { isOn.wrappedValue },
+          set: { newValue in
+            HapticManager.shared.impact(style: .light)
+            isOn.wrappedValue = newValue
+          }
+        ))
           .labelsHidden()
           .toggleStyle(SwitchToggleStyle(tint: .as_blue_toggle))
       }

@@ -147,6 +147,7 @@ struct AppInterruptionsSectionView: View {
       
       if !canUse && !viewModel.isInterruptionsEnabled {
         Button(action: {
+          HapticManager.shared.impact(style: .light)
           showPaywall = true
         }) {
           HStack(spacing: 6) {
@@ -161,7 +162,13 @@ struct AppInterruptionsSectionView: View {
           .padding(.vertical, 6)
         }
       } else {
-        Toggle("", isOn: $viewModel.isInterruptionsEnabled)
+        Toggle("", isOn: Binding(
+          get: { viewModel.isInterruptionsEnabled },
+          set: { newValue in
+            HapticManager.shared.impact(style: .light)
+            viewModel.isInterruptionsEnabled = newValue
+          }
+        ))
           .foregroundStyle(Color.white)
           .toggleStyle(SwitchToggleStyle(tint: .purple))
       }

@@ -281,6 +281,7 @@ struct NewBlockSchedulerView: View {
       Toggle("", isOn: Binding(
         get: { isStrictBlock },
         set: { newValue in
+          HapticManager.shared.impact(style: .medium)
           if newValue && !isStrictBlock {
             // Show confirmation dialog when enabling
             activeDialog = .strictBlock

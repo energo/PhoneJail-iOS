@@ -93,7 +93,10 @@ struct ConfirmationDialogView: View {
         .padding(.horizontal)
       
       HStack(spacing: 16) {
-        Button(action: onCancel) {
+        Button(action: {
+          HapticManager.shared.impact(style: .light)
+          onCancel()
+        }) {
           Text("Cancel")
             .font(.system(size: 16, weight: .regular))
             .foregroundStyle(Color.white)
@@ -106,7 +109,10 @@ struct ConfirmationDialogView: View {
             )
         }
         
-        Button(action: onConfirm) {
+        Button(action: {
+          HapticManager.shared.impact(style: .medium)
+          onConfirm()
+        }) {
           Text(dialogType.confirmButtonTitle)
             .font(.system(size: 16, weight: .regular))
             .foregroundStyle(Color.white)

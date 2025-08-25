@@ -24,6 +24,7 @@ struct GradientButtonToggle: View {
     .background(Color.gradient_bg_not_active)
     .cornerRadius(30)
     .onChangeWithOldValue(of: isEnabled, perform: { oldValue, newValue in
+          HapticManager.shared.impact(style: .light)
           HapticManager.shared.isEnabled = newValue
       })
   }

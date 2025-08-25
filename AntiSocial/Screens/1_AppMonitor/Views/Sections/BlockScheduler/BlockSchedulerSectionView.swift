@@ -184,6 +184,7 @@ struct BlockSchedulerSectionView: View {
   
   private var addButton: some View {
     Button(action: {
+      HapticManager.shared.impact(style: .light)
       if subscriptionManager.canCreateSchedule() {
         showingAddSchedule = true
       } else {

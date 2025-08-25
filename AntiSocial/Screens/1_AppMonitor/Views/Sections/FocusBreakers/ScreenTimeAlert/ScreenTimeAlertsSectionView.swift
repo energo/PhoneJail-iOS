@@ -147,6 +147,7 @@ struct ScreenTimeAlertsSectionView: View {
       
       if !canUse && !viewModel.isAlertEnabled {
         Button(action: {
+          HapticManager.shared.impact(style: .light)
           showPaywall = true
         }) {
           HStack(spacing: 6) {
@@ -161,7 +162,13 @@ struct ScreenTimeAlertsSectionView: View {
           .padding(.vertical, 6)
         }
       } else {
-        Toggle("", isOn: $viewModel.isAlertEnabled)
+        Toggle("", isOn: Binding(
+          get: { viewModel.isAlertEnabled },
+          set: { newValue in
+            HapticManager.shared.impact(style: .light)
+            viewModel.isAlertEnabled = newValue
+          }
+        ))
           .foregroundStyle(Color.white)
           .toggleStyle(SwitchToggleStyle(tint: .purple))
       }

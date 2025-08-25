@@ -195,6 +195,7 @@ struct ProfileScreen: View {
   
   private var purchaseButton: some View {
     Button(action: {
+      HapticManager.shared.impact(style: .light)
       showPaywall = true
     }) {
       Text("Try for $0")

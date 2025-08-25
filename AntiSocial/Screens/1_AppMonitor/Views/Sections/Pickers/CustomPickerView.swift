@@ -96,8 +96,7 @@ public struct CustomPickerView: View {
           })
           .onChange(of: count) {old, newValue in
             // Trigger haptic feedback on count change
-            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-            impactFeedback.impactOccurred()
+            HapticManager.shared.impact(style: .light)
           }
         })
       }

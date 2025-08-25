@@ -34,6 +34,7 @@ struct ToggleBtn: View {
         .animation(.easeInOut(duration: 0.25), value: isOn)
     }
     .onTapGesture {
+      HapticManager.shared.impact(style: .light)
       isOn.toggle()
     }
   }

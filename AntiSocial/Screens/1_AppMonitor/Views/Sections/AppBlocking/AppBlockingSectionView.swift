@@ -255,6 +255,7 @@ struct AppBlockingSectionView: View {
               showStrictBlockDialog = false
             },
             onConfirm: {
+              HapticManager.shared.notification(type: .warning)
               isStrictBlock = true
               SharedData.userDefaults?.set(true, forKey: SharedData.Widget.isStricted)
               showStrictBlockDialog = false
@@ -268,17 +269,15 @@ struct AppBlockingSectionView: View {
       if isBlocked && deviceActivityService.unlockDate != nil && (deviceActivityService.unlockDate ?? Date()) > Date() {
         HStack(alignment: .top, spacing: adaptive.spacing.small) {
           savedBlockedView
-            .frame(maxHeight: .infinity)
           
           appsBlockedView
-            .frame(maxHeight: .infinity)
         }
-        .frame(minHeight: 0, alignment: .top)
         .transition(.asymmetric(insertion: .opacity.combined(with: .move(edge: .bottom)), removal: .opacity))
       }
     }
     .animation(.easeInOut(duration: 0.3), value: isBlocked)
   }
+  
   private var savedBlockedView: some View {
     VStack(alignment: .leading, spacing: adaptive.spacing.xSmall) {
       Text(currentSessionSavedTime)
@@ -455,6 +454,7 @@ struct AppBlockingSectionView: View {
       Toggle("Strict Block", isOn: Binding(
         get: { isStrictBlock },
         set: { newValue in
+          HapticManager.shared.impact(style: .medium)
           if newValue && !isStrictBlock {
             // Show confirmation dialog when enabling
             showStrictBlockDialog = true

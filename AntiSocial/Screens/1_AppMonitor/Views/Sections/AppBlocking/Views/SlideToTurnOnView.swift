@@ -16,6 +16,7 @@ struct SlideToTurnOnView: View {
   @State private var shakeTrigger: CGFloat = 0
   @State private var isBlockedPreview: Bool = false
   @State private var slideProgress: CGFloat = 0
+  @State private var lastHapticOffset: CGFloat = 0
   
   var body: some View {
     GeometryReader { geometry in
@@ -161,7 +162,21 @@ private extension SlideToTurnOnView {
       
       let progress = min(offset / (widthOfSlide - 10), 1)
       slideProgress = progress
+      let wasBlockedPreview = isBlockedPreview
       isBlockedPreview = progress >= 0.55
+      
+      // Haptic feedback for every pixel of movement
+      let pixelThreshold: CGFloat = 1.0 // Trigger haptic every 1 pixel
+      if abs(offset - lastHapticOffset) >= pixelThreshold {
+        // Use selection feedback for continuous subtle vibration on every pixel
+        HapticManager.shared.selection()
+        lastHapticOffset = offset
+      }
+      
+      // Additional strong feedback when crossing the threshold
+      if isBlockedPreview != wasBlockedPreview {
+        HapticManager.shared.impact(style: .heavy)
+      }
     }
   }
   
@@ -174,6 +189,9 @@ private extension SlideToTurnOnView {
     
     let shouldBlock = value.translation.width >= (widthOfSlide * 0.55)
     
+    // Reset haptic offset for next drag
+    lastHapticOffset = 0
+    
     withAnimation {
       userDragging = false
       offset = shouldBlock ? (widthOfSlide - 10) : .zero
@@ -184,6 +202,20 @@ private extension SlideToTurnOnView {
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
       withAnimation {
         isBlocked = shouldBlock
+        // Rapid haptic vibrations on lock/unlock
+        if shouldBlock {
+          // Locking - success haptic pattern
+          HapticManager.shared.notification(type: .success)
+          DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            HapticManager.shared.impact(style: .rigid)
+          }
+          DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            HapticManager.shared.impact(style: .heavy)
+          }
+        } else {
+          // Unlocking - warning haptic pattern  
+          HapticManager.shared.notification(type: .warning)
+        }
         onBlockingStateChanged?(shouldBlock)
       }
     }
@@ -193,6 +225,7 @@ private extension SlideToTurnOnView {
     guard isEnabled else { return }
 
     if isLimitReached {
+      HapticManager.shared.impact(style: .light)
       onPurchaseTap?()
       return
     }
@@ -230,6 +263,7 @@ private extension SlideToTurnOnView {
 
 private extension SlideToTurnOnView {
   func shakeNow() {
+    HapticManager.shared.notification(type: .error)
     withAnimation(.default) {
       shakeTrigger += 1
     }
