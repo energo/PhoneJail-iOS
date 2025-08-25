@@ -67,7 +67,9 @@ struct ConfirmationDialogView: View {
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity)
       .if(isBlur, transform: { view in
-        view.blurBackground(cornerRadius: 0)
+        view
+          .blurBackground(topLeading: 0, topTrailing: 0, bottomLeading: 32, bottomTrailing: 32)
+          .blurBackground(topLeading: 0, topTrailing: 0, bottomLeading: 32, bottomTrailing: 32)
       })
       .if(!isBlur, transform: { view in
         view.background(Color.black.opacity(0.95))

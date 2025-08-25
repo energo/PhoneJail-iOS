@@ -64,7 +64,6 @@ struct AppBlockingSectionView: View {
   
   var body: some View {
     contentView
-      .padding()
       .blurBackground()
       .onChange(of: isBlocked) { _, newValue in
         if newValue {
@@ -235,34 +234,50 @@ struct AppBlockingSectionView: View {
           durationSection
           separatorView
           whatToBlockView
-          separatorView
-          strictBlockView
-          separatorView
+//          separatorView
         }
+        .padding(.horizontal)
+        .padding(.top)
         .transition(.asymmetric(insertion: .opacity, removal: .opacity.combined(with: .scale)))
-      }
-      
-      ZStack() {
-        swipeBlockView
-          .padding(.bottom, adaptive.spacing.xSmall)
         
-        if showStrictBlockDialog {
-          ConfirmationDialogView(
-            dialogType: .strictBlock,
-            isBlur: true,
-            fillAvailableSpace: true,
-            onCancel: {
-              showStrictBlockDialog = false
-            },
-            onConfirm: {
-              HapticManager.shared.notification(type: .warning)
-              isStrictBlock = true
-              SharedData.userDefaults?.set(true, forKey: SharedData.Widget.isStricted)
-              showStrictBlockDialog = false
-            }
-          )
-          .transition(.opacity)
+        // ZStack для strictBlockView, separatorView и swipeBlockView с диалогом
+        ZStack {
+          VStack(alignment: .leading, spacing: adaptive.spacing.medium) {
+            separatorView
+            strictBlockView
+            separatorView
+            
+            swipeBlockView
+              .padding(.bottom, adaptive.spacing.xSmall)
+          }
+          .padding(.horizontal)
+          .padding(.bottom)
+          .transition(.asymmetric(insertion: .opacity, removal: .opacity.combined(with: .scale)))
+          
+          // Dialog overlay - показывается поверх strictBlockView, separatorView и swipeBlockView
+          if showStrictBlockDialog {
+            ConfirmationDialogView(
+              dialogType: .strictBlock,
+              isBlur: true,
+              fillAvailableSpace: true,
+              onCancel: {
+                showStrictBlockDialog = false
+              },
+              onConfirm: {
+                HapticManager.shared.notification(type: .warning)
+                isStrictBlock = true
+                SharedData.userDefaults?.set(true, forKey: SharedData.Widget.isStricted)
+                showStrictBlockDialog = false
+              }
+            )
+            .transition(.opacity)
+          }
         }
+      } else {
+        // Когда заблокировано - показываем только swipeBlockView без ZStack
+        swipeBlockView
+          .padding(.horizontal)
+          .padding(.bottom, adaptive.spacing.xSmall)
       }
       
       // Статистика блокировки - показываем с анимацией
@@ -272,6 +287,8 @@ struct AppBlockingSectionView: View {
           
           appsBlockedView
         }
+        .padding(.horizontal)
+        .padding(.bottom)
         .transition(.asymmetric(insertion: .opacity.combined(with: .move(edge: .bottom)), removal: .opacity))
       }
     }
