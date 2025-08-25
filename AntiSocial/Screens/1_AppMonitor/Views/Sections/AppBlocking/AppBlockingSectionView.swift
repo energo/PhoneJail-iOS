@@ -400,6 +400,7 @@ struct AppBlockingSectionView: View {
         .onChange(of: minutes) { _, newValue in
           SharedData.userDefaults?.set(newValue, forKey: SharedData.AppBlocking.savedDurationMinutes)
         }
+        .padding(.horizontal, 16)
     }
   }
   
