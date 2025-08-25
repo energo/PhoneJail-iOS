@@ -173,8 +173,11 @@ class BlockSchedulerService: ObservableObject {
       }
     } else {
       AppLogger.notice("Schedule '\(schedule.name)' is NOT active now - will start at scheduled time")
-      // Make sure restrictions are removed if not in active time
-      removeRestrictions(for: schedule)
+      // For schedules not active now, just ensure isBlocked is false without clearing everything
+      var updatedSchedule = schedule
+      updatedSchedule.isBlocked = false
+      updatedSchedule.updatedAt = Date()
+      BlockSchedule.update(updatedSchedule)
       
       // Send debug notification that schedule will start later
 //      LocalNotificationManager.scheduleExtensionNotification(
@@ -228,9 +231,15 @@ class BlockSchedulerService: ObservableObject {
     
     for schedule in schedules where schedule.isActive {
       if isScheduleActiveNow(schedule) {
-        applyRestrictions(for: schedule)
+        // Only apply restrictions if not already blocked
+        if !schedule.isBlocked {
+          applyRestrictions(for: schedule)
+        }
       } else {
-        removeRestrictions(for: schedule)
+        // Only remove restrictions if currently blocked
+        if schedule.isBlocked {
+          removeRestrictions(for: schedule)
+        }
       }
     }
   }
@@ -297,7 +306,7 @@ class BlockSchedulerService: ObservableObject {
   
   // Removed - now handled by BlockSchedule.add/update methods
   
-  private func applyRestrictions(for schedule: BlockSchedule) {
+  func applyRestrictions(for schedule: BlockSchedule) {
     let storeName = ManagedSettingsStore.Name.scheduledBlock(id: schedule.id)
     let store = ManagedSettingsStore(named: storeName)
     
@@ -322,6 +331,12 @@ class BlockSchedulerService: ObservableObject {
     store.media.denyExplicitContent = true
     store.dateAndTime.requireAutomaticDateAndTime = true
     
+    // Update schedule to mark it as currently blocking
+    var updatedSchedule = schedule
+    updatedSchedule.isBlocked = true
+    updatedSchedule.updatedAt = Date()
+    BlockSchedule.update(updatedSchedule)
+    
     // Save to SharedData for extensions
     SharedData.userDefaults?.set(true, forKey: "schedule_\(schedule.id)_active")
     SharedData.userDefaults?.set(true, forKey: SharedData.Widget.isBlocked)
@@ -330,15 +345,21 @@ class BlockSchedulerService: ObservableObject {
     // Set the blocking timestamp for this schedule
     SharedData.userDefaults?.set(Date().timeIntervalSince1970, forKey: "schedule_\(schedule.id)_startTimestamp")
     
-    AppLogger.trace("Applied restrictions for schedule: \(schedule.name)")
+    AppLogger.trace("Applied restrictions for schedule: \(schedule.name), isBlocked set to true")
   }
   
-  private func removeRestrictions(for schedule: BlockSchedule) {
+  func removeRestrictions(for schedule: BlockSchedule) {
     let storeName = ManagedSettingsStore.Name.scheduledBlock(id: schedule.id)
     let store = ManagedSettingsStore(named: storeName)
     
     // Clear all restrictions
     store.clearAllSettings()
+    
+    // Update schedule to mark it as not blocking
+    var updatedSchedule = schedule
+    updatedSchedule.isBlocked = false
+    updatedSchedule.updatedAt = Date()
+    BlockSchedule.update(updatedSchedule)
     
     // Clear from SharedData
     SharedData.userDefaults?.removeObject(forKey: "schedule_\(schedule.id)")
@@ -352,7 +373,7 @@ class BlockSchedulerService: ObservableObject {
       SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isStricted)
     }
     
-    AppLogger.trace("Removed restrictions for schedule: \(schedule.name)")
+    AppLogger.trace("Removed restrictions for schedule: \(schedule.name), isBlocked set to false")
   }
   
   // MARK: - Notifications

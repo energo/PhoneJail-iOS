@@ -21,8 +21,12 @@ struct BlockSchedulerSectionView: View {
   
   private let adaptive = AdaptiveValues.current
   
-  var activeSchedules: [BlockSchedule] {
-    schedules.filter { $0.isActive }
+  var activeBlockedSchedules: [BlockSchedule] {
+    schedules.filter { $0.isActive && $0.isBlocked }
+  }
+  
+  var activeNotBlockedSchedules: [BlockSchedule] {
+    schedules.filter { $0.isActive && !$0.isBlocked }
   }
   
   var inactiveSchedules: [BlockSchedule] {
@@ -74,7 +78,10 @@ struct BlockSchedulerSectionView: View {
       headerView
       separatorView
       
-      if activeSchedules.isEmpty && inactiveSchedules.isEmpty {
+      if activeBlockedSchedules.isEmpty &&
+          activeNotBlockedSchedules.isEmpty &&
+          inactiveSchedules.isEmpty
+      {
         emptyView
       } else {
         activeBlocksSection
@@ -116,7 +123,7 @@ struct BlockSchedulerSectionView: View {
   private var activeBlocksSection: some View {
     VStack(alignment: .leading, spacing: adaptive.spacing.small) {
       HStack {
-        Text("Active Blocks (\(activeSchedules.count))")
+        Text("Active Blocks (\(activeBlockedSchedules.count))")
           .adaptiveFont(\.body)
           .foregroundStyle(Color.white)
         Spacer()
@@ -125,8 +132,9 @@ struct BlockSchedulerSectionView: View {
           .foregroundStyle(Color.as_gray_light)
       }
       
-      ForEach(activeSchedules.prefix(3)) { schedule in
-        scheduleRow(schedule: schedule, isActive: true)
+      // Show currently blocking schedules first
+      ForEach(activeBlockedSchedules.prefix(3)) { schedule in
+        scheduleRow(schedule: schedule)
       }
     }
   }
@@ -134,7 +142,7 @@ struct BlockSchedulerSectionView: View {
   private var inactiveBlocksSection: some View {
     VStack(alignment: .leading, spacing: adaptive.spacing.small) {
       HStack {
-        Text("Not Active Blocks (\(inactiveSchedules.count))")
+        Text("Not Active Blocks (\(inactiveSchedules.count + activeNotBlockedSchedules.count))")
           .adaptiveFont(\.body)
           .foregroundStyle(Color.white)
         Spacer()
@@ -143,21 +151,44 @@ struct BlockSchedulerSectionView: View {
           .foregroundStyle(Color.as_gray_light)
       }
       
-      ForEach(inactiveSchedules.prefix(3)) { schedule in
-        scheduleRow(schedule: schedule, isActive: false)
+      // Show active but not currently blocking first (max 3)
+      ForEach(activeNotBlockedSchedules.prefix(3)) { schedule in
+        scheduleRow(schedule: schedule)
+      }
+      
+      // Then show inactive schedules if there's room (max 3 total in section)
+      let remainingSlots = 3 - activeNotBlockedSchedules.prefix(3).count
+      if remainingSlots > 0 {
+        ForEach(inactiveSchedules.prefix(remainingSlots)) { schedule in
+          scheduleRow(schedule: schedule)
+            .opacity(0.5) // Make inactive schedules semi-transparent
+        }
       }
     }
   }
   
-  private func scheduleRow(schedule: BlockSchedule, isActive: Bool) -> some View {
+  private func scheduleRow(schedule: BlockSchedule) -> some View {
     Button(action: {
       selectedSchedule = schedule
     }) {
       HStack(spacing: adaptive.spacing.small) {
-        // Lock icon
-        Image(isActive ? .icLocked : .icUnlocked)
-          .resizable()
-          .adaptiveFrame(width: \.iconLarge, height: \.iconLarge)
+        // Lock icon - show different states
+        Group {
+          if schedule.isActive && schedule.isBlocked {
+            // Currently blocking - red locked icon
+            Image(.icLocked)
+              .resizable()
+          } else if schedule.isActive && !schedule.isBlocked {
+            // Active but not blocking now - normal locked icon
+            Image(.icUnlocked)
+              .resizable()
+          } else {
+            // Inactive - unlocked icon
+            Image(.icUnlocked)
+              .resizable()
+          }
+        }
+        .adaptiveFrame(width: \.iconLarge, height: \.iconLarge)
         
         // Schedule details
         VStack(alignment: .leading, spacing: adaptive.spacing.xxSmall) {

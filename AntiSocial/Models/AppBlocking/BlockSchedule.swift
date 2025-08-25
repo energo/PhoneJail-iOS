@@ -19,6 +19,7 @@ struct BlockSchedule: Identifiable, Codable {
     var selection: FamilyActivitySelection
     var isStrictBlock: Bool
     var isActive: Bool
+    var isBlocked: Bool // Currently blocking apps
     var createdAt: Date
     var updatedAt: Date
     
@@ -31,6 +32,7 @@ struct BlockSchedule: Identifiable, Codable {
         selection: FamilyActivitySelection,
         isStrictBlock: Bool = false,
         isActive: Bool = false,
+        isBlocked: Bool = false,
         createdAt: Date = Date(),
         updatedAt: Date = Date()
     ) {
@@ -42,6 +44,7 @@ struct BlockSchedule: Identifiable, Codable {
         self.selection = selection
         self.isStrictBlock = isStrictBlock
         self.isActive = isActive
+        self.isBlocked = isBlocked
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
