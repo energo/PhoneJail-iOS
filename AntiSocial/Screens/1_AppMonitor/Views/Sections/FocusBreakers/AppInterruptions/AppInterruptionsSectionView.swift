@@ -37,12 +37,12 @@ struct AppInterruptionsSectionView: View {
       whatToMonitorView
     }
     .padding(.horizontal, 20)
-    .padding(.vertical, 16)
+//    .padding(.vertical, 16)
   }
   
   private var frequencyView: some View {
     RoundedPicker(
-      title: "Interrupt every",
+      title: "Block my apps every",
       options: TimeIntervalOption.timeOptions,
       selected: $viewModel.selectedInterruptionTime,
       labelProvider: { $0.label }
@@ -50,16 +50,20 @@ struct AppInterruptionsSectionView: View {
   }
   
   private var bottomTextView: some View {
-    Text("Phone Jail will block the apps you select for for a set up period of time.")
+    Text("Phone Jail blocks the apps you choose for two minutes at a time.")
       .foregroundColor(Color.as_light_blue)
       .font(.system(size: 10, weight: .regular))
   }
-  
+
   private var whatToMonitorView: some View {
-    VStack(alignment: .leading, spacing: 16) {
-      headerView
-      selectorAppsView
+    VStack(alignment: .leading, spacing: 0) {
+      VStack(alignment: .leading, spacing: 12) {
+        headerView
+        selectorAppsView
+      }
       bottomTextView
+        .padding(.top, 4)
+        .padding(.bottom, 12)
       frequencyView
     }
   }

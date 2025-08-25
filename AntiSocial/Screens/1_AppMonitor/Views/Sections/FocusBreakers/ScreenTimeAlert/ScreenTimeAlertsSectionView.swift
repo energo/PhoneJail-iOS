@@ -37,7 +37,7 @@ struct ScreenTimeAlertsSectionView: View {
       whatToMonitorView
     }
     .padding(.horizontal, 20)
-    .padding(.vertical, 16)
+    //    .padding(.vertical, 16)
   }
   
   private var notifyView: some View {
@@ -50,10 +50,14 @@ struct ScreenTimeAlertsSectionView: View {
   }
   
   private var whatToMonitorView: some View {
-    VStack(alignment: .leading, spacing: 16) {
-      headerView
-      selectAppView
+    VStack(alignment: .leading, spacing: 0) {
+      VStack(alignment: .leading, spacing: 12) {
+        headerView
+        selectAppView
+      }
       bottomTextView
+        .padding(.top, 4)
+        .padding(.bottom, 12)
       notifyView
     }
   }
@@ -72,7 +76,7 @@ struct ScreenTimeAlertsSectionView: View {
   }
   
   private var bottomTextView: some View {
-    Text("Phone Jail will send you notifications telling you how long you've used the apps you've selected")
+    Text("Phone Jail will send you motivational notifications to help get you off your phone")
       .foregroundColor(Color.as_light_blue)
       .font(.system(size: 10, weight: .regular))
   }
@@ -169,8 +173,8 @@ struct ScreenTimeAlertsSectionView: View {
             viewModel.isAlertEnabled = newValue
           }
         ))
-          .foregroundStyle(Color.white)
-          .toggleStyle(SwitchToggleStyle(tint: .purple))
+        .foregroundStyle(Color.white)
+        .toggleStyle(SwitchToggleStyle(tint: .purple))
       }
     }
   }

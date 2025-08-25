@@ -37,11 +37,13 @@ struct AppMonitorScreen: View {
   @State private var scrollOffset: CGFloat = 0
   @State private var isDragging = false
   @State private var sectionPositions: [CGFloat] = []
+  @State private var isScrolling = false
   
   // MARK: - Constants
   private enum Constants {
     static let swipeThreshold: CGFloat = 50
-    static let animationDuration: Double = 0.6
+    static let animationDuration: Double = 0.5
+    static let scrollAnimationDuration: Double = 0.45
     static let headerPadding: CGFloat = 10
     static let horizontalPadding: CGFloat = 32
     static let sectionSpacing: CGFloat = 0
@@ -52,8 +54,7 @@ struct AppMonitorScreen: View {
     case appBlocking = 0
     case blockScheduler = 1
     case stats = 2
-    case appInterruptions = 3
-    case screenTimeAlerts = 4
+    case focusBreakers = 3
     
     var id: Int { rawValue }
     
@@ -62,8 +63,7 @@ struct AppMonitorScreen: View {
         case .appBlocking: return "ic_nav_app_block"
         case .blockScheduler: return "ic_nav_schedule"
         case .stats: return "ic_nav_stats"
-        case .appInterruptions: return "ic_nav_app_interrupt"
-        case .screenTimeAlerts: return "ic_nav_screen_alert"
+        case .focusBreakers: return "ic_nav_app_interrupt"
       }
     }
     
@@ -72,8 +72,7 @@ struct AppMonitorScreen: View {
         case .appBlocking: return "App Blocking"
         case .blockScheduler: return "Block Scheduler"
         case .stats: return "Statistics"
-        case .appInterruptions: return "App Interruptions"
-        case .screenTimeAlerts: return "Screen Time Alerts"
+        case .focusBreakers: return "Focus Breakers"
       }
     }
   }
@@ -139,6 +138,8 @@ private extension AppMonitorScreen {
         }
         .background(scrollOffsetReader(screenGeometry: screenGeometry))
       }
+      .scrollDismissesKeyboard(.immediately)
+      .scrollIndicators(.hidden)
       .refreshable {
         refreshScreenTime()
       }
@@ -185,11 +186,8 @@ private extension AppMonitorScreen {
       case .stats:
         content = AnyView(statsContent)
         needsTopSpacer = true
-      case .appInterruptions:
-        content = AnyView(appInterruptionsContent)
-        needsTopSpacer = true
-      case .screenTimeAlerts:
-        content = AnyView(screenTimeAlertContent)
+      case .focusBreakers:
+        content = AnyView(focusBreakersContent)
         needsTopSpacer = true
     }
     
@@ -244,56 +242,35 @@ private extension AppMonitorScreen {
       .frame(maxHeight: .infinity)
   }
   
-  var screenTimeAlertContent: some View {
-    VStack {
-      screenTimeAlertHeader
+  var focusBreakersContent: some View {
+    VStack(spacing: 20) {
+      // Combined header for Focus Breakers
+      focusBreakersHeader
         .padding(.top)
         .padding(.horizontal)
       
+      separatorView.padding(.horizontal, 20)
+
+      AppInterruptionsSectionView(viewModel: vmScreenInteraption)
+
       separatorView.padding(.horizontal, 20)
       
       ScreenTimeAlertsSectionView(viewModel: vmScreenAlert)
+        .padding(.bottom, 20)
     }
     .blurBackground()
   }
   
-  var screenTimeAlertHeader: some View {
-    HStack {
-      Image(.icNavScreenAlert)
-        .resizable()
-        .frame(width: 24, height: 24)
-        .foregroundColor(.white)
-
-      Text("Nudges")
-        .foregroundColor(.white)
-        .font(.system(size: 24, weight: .semibold))
-      Spacer()
-    }
-  }
-  
-  var appInterruptionsContent: some View {
-    VStack {
-      appInterruptionsHeader
-        .padding(.top)
-        .padding(.horizontal)
-      
-      separatorView.padding(.horizontal, 20)
-      
-      AppInterruptionsSectionView(viewModel: vmScreenInteraption)
-    }
-    .blurBackground()
-  }
-  
-  var appInterruptionsHeader: some View {
+  var focusBreakersHeader: some View {
     HStack {
       Image(.icNavAppInterrupt)
         .resizable()
         .frame(width: 24, height: 24)
         .foregroundColor(.white)
 
-      Text("Zaps")
+      Text("Nudges")
         .foregroundColor(.white)
-        .font(.system(size: 24, weight: .semibold))
+        .font(.system(size: 20, weight: .bold))
       Spacer()
     }
   }
@@ -351,13 +328,19 @@ private extension AppMonitorScreen {
   }
   
   private func navigationButton(for section: SectionInfo) -> some View {
-    Button(action: { currentSection = section.id }) {
+    Button(action: { 
+      guard currentSection != section.id else { return }
+      HapticManager.shared.impact(style: .light)
+      currentSection = section.id 
+    }) {
       Image(section.iconName)
         .resizable()
         .renderingMode(.template)
         .foregroundColor(currentSection == section.id ? .white : .white.opacity(0.5))
         .frame(width: currentSection == section.id ? 20 : 16, height: currentSection == section.id ? 20 : 16)
+        .animation(.easeInOut(duration: 0.2), value: currentSection == section.id)
     }
+    .disabled(isScrolling)
   }
   
   var swipeGesture: some Gesture {
@@ -430,26 +413,41 @@ private extension AppMonitorScreen {
   }
   
   func handleSwipeGesture(_ value: DragGesture.Value) {
+    guard !isScrolling else { return }
+    
     let threshold = Constants.swipeThreshold
     let maxSection = sections.count - 1
     
     if value.translation.height < -threshold && currentSection < maxSection {
+      HapticManager.shared.impact(style: .light)
       currentSection += 1
     } else if value.translation.height > threshold && currentSection > 0 {
+      HapticManager.shared.impact(style: .light)
       currentSection -= 1
     }
   }
   
   func scrollToSection(_ section: Int, scrollProxy: ScrollViewProxy, screenGeometry: GeometryProxy) {
-    withAnimation(.easeInOut(duration: Constants.animationDuration)) {
+    // Prevent multiple scroll animations
+    guard !isScrolling else { return }
+    
+    isScrolling = true
+    
+    // Strong pagination effect with easeInOut for snap feeling
+    withAnimation(.easeInOut(duration: Constants.scrollAnimationDuration)) {
       if let sectionInfo = sections.first(where: { $0.id == section }) {
         switch sectionInfo.type {
           case .appBlocking:
             scrollProxy.scrollTo("header", anchor: .bottom)
-          case .blockScheduler, .stats, .appInterruptions, .screenTimeAlerts:
+          case .blockScheduler, .stats, .focusBreakers:
             scrollProxy.scrollTo(section, anchor: .top)
         }
       }
+    }
+    
+    // Reset scrolling flag after animation completes
+    DispatchQueue.main.asyncAfter(deadline: .now() + Constants.scrollAnimationDuration + 0.2) {
+      isScrolling = false
     }
   }
   
