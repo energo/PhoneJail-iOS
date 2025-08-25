@@ -112,6 +112,7 @@
 		471FD1672E0AC22D00DE59AA /* Exceptions for "AntiSocial" folder in "DeviceActivityMonitorExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Models/AppBlocking/BlockSchedule.swift,
 				Models/AppUsage.swift,
 				Models/TimeOptions.swift,
 				Screens/1_AppMonitor/Views/Sections/AppBlocking/MyRestrictionModel.swift,

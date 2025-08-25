@@ -12,20 +12,6 @@ import ManagedSettings
 import os.log
 import Foundation
 
-// Simple BlockSchedule structure for extension
-struct BlockSchedule: Codable {
-    let id: String
-    let name: String
-    let startTime: DateComponents
-    let endTime: DateComponents
-    let daysOfWeek: Set<Int>
-    let selection: FamilyActivitySelection
-    let isStrictBlock: Bool
-    let isActive: Bool
-}
-
-// Optionally override any of the functions below.
-// Make sure that your class name matches the NSExtensionPrincipalClass in your Info.plist.
 class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   
   // Track last trigger time to prevent rapid re-triggers
