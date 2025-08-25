@@ -68,10 +68,10 @@ class BlockSchedulerService: ObservableObject {
     
     if duration < 15 {
       AppLogger.alert("Schedule duration too short: \(duration) minutes. iOS requires at least 15 minutes.")
-      LocalNotificationManager.scheduleExtensionNotification(
-        title: "⚠️ Schedule Too Short",
-        details: "Duration: \(duration) min\nMinimum required: 15 min\nPlease extend the schedule."
-      )
+//      LocalNotificationManager.scheduleExtensionNotification(
+//        title: "⚠️ Schedule Too Short",
+//        details: "Duration: \(duration) min\nMinimum required: 15 min\nPlease extend the schedule."
+//      )
       return
     }
     
@@ -83,15 +83,15 @@ class BlockSchedulerService: ObservableObject {
     )
     
     // Send notification BEFORE starting monitoring
-    LocalNotificationManager.scheduleExtensionNotification(
-      title: "📅 Schedule Created",
-      details: "ID: \(schedule.id)\n" +
-      "Name: \(schedule.name)\n" +
-      "Time: \(schedule.startTime.hour ?? 0):\(String(format: "%02d", schedule.startTime.minute ?? 0)) - " +
-      "\(schedule.endTime.hour ?? 0):\(String(format: "%02d", schedule.endTime.minute ?? 0))\n" +
-      "Days: \(schedule.shortDaysString)\n" +
-      "Apps: \(schedule.selection.applicationTokens.count)"
-    )
+//    LocalNotificationManager.scheduleExtensionNotification(
+//      title: "📅 Schedule Created",
+//      details: "ID: \(schedule.id)\n" +
+//      "Name: \(schedule.name)\n" +
+//      "Time: \(schedule.startTime.hour ?? 0):\(String(format: "%02d", schedule.startTime.minute ?? 0)) - " +
+//      "\(schedule.endTime.hour ?? 0):\(String(format: "%02d", schedule.endTime.minute ?? 0))\n" +
+//      "Days: \(schedule.shortDaysString)\n" +
+//      "Apps: \(schedule.selection.applicationTokens.count)"
+//    )
     
     // Start schedule monitoring
     do {
@@ -101,10 +101,10 @@ class BlockSchedulerService: ObservableObject {
       try center.startMonitoring(scheduleActivityName, during: blockingSchedule)
       activeMonitors.insert(schedule.id)
       
-      LocalNotificationManager.scheduleExtensionNotification(
-        title: "🎯 Schedule Activated",
-        details: "Activity: \(scheduleActivityName.rawValue)\nWill start at: \(schedule.startTime.hour ?? 0):\(String(format: "%02d", schedule.startTime.minute ?? 0))"
-      )
+//      LocalNotificationManager.scheduleExtensionNotification(
+//        title: "🎯 Schedule Activated",
+//        details: "Activity: \(scheduleActivityName.rawValue)\nWill start at: \(schedule.startTime.hour ?? 0):\(String(format: "%02d", schedule.startTime.minute ?? 0))"
+//      )
       
       // Apply restrictions ONLY if schedule is currently active
       applyRestrictions(schedule)
@@ -132,10 +132,10 @@ class BlockSchedulerService: ObservableObject {
       applyRestrictions(for: schedule)
       
       // Send debug notification that restrictions are applied immediately
-      LocalNotificationManager.scheduleExtensionNotification(
-        title: "🔒 Schedule Active NOW",
-        details: "ID: \(schedule.id)\n\(schedule.name) is active immediately\nRestrictions applied"
-      )
+//      LocalNotificationManager.scheduleExtensionNotification(
+//        title: "🔒 Schedule Active NOW",
+//        details: "ID: \(schedule.id)\n\(schedule.name) is active immediately\nRestrictions applied"
+//      )
       
       // Also create a blocking schedule for the remaining time
       let calendar = Calendar.current
@@ -177,10 +177,10 @@ class BlockSchedulerService: ObservableObject {
       removeRestrictions(for: schedule)
       
       // Send debug notification that schedule will start later
-      LocalNotificationManager.scheduleExtensionNotification(
-        title: "⏰ Schedule Pending",
-        details: "ID: \(schedule.id)\n\(schedule.name) will start at \(schedule.startTime.hour ?? 0):\(String(format: "%02d", schedule.startTime.minute ?? 0))"
-      )
+//      LocalNotificationManager.scheduleExtensionNotification(
+//        title: "⏰ Schedule Pending",
+//        details: "ID: \(schedule.id)\n\(schedule.name) will start at \(schedule.startTime.hour ?? 0):\(String(format: "%02d", schedule.startTime.minute ?? 0))"
+//      )
     }
   }
   
@@ -209,10 +209,10 @@ class BlockSchedulerService: ObservableObject {
     AppLogger.notice("Deactivated schedule: \(schedule.name)")
     
     // Send debug notification
-    LocalNotificationManager.scheduleExtensionNotification(
-      title: "🚫 Schedule Deactivated",
-      details: "\(schedule.name) has been deactivated"
-    )
+//    LocalNotificationManager.scheduleExtensionNotification(
+//      title: "🚫 Schedule Deactivated",
+//      details: "\(schedule.name) has been deactivated"
+//    )
   }
   
   func toggleSchedule(_ schedule: BlockSchedule) {

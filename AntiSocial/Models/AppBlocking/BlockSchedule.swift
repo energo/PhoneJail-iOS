@@ -182,12 +182,6 @@ extension BlockSchedule {
         var schedules = loadAll()
         schedules.append(schedule)
         saveAll(schedules)
-        
-        // Debug notification
-        LocalNotificationManager.scheduleExtensionNotification(
-            title: "💾 Schedule Added",
-            details: "ID: \(schedule.id)\nName: \(schedule.name)\nTotal schedules: \(schedules.count)"
-        )
     }
     
     static func update(_ schedule: BlockSchedule) {
@@ -195,12 +189,6 @@ extension BlockSchedule {
         if let index = schedules.firstIndex(where: { $0.id == schedule.id }) {
             schedules[index] = schedule
             saveAll(schedules)
-            
-            // Debug notification
-            LocalNotificationManager.scheduleExtensionNotification(
-                title: "📝 Schedule Updated",
-                details: "ID: \(schedule.id)\nName: \(schedule.name)\nActive: \(schedule.isActive)"
-            )
         }
     }
     
