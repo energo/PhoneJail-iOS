@@ -85,10 +85,10 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         scheduleId = activityName.replacingOccurrences(of: "schedule_", with: "")
       }
       
-      LocalNotificationManager.scheduleExtensionNotification(
-        title: "🔒 Interval START",
-        details: "Activity: \(activityName)\nSchedule ID: \(scheduleId) at \(timeString)"
-      )
+//      LocalNotificationManager.scheduleExtensionNotification(
+//        title: "🔒 Interval START",
+//        details: "Activity: \(activityName)\nSchedule ID: \(scheduleId) at \(timeString)"
+//      )
       
       // Load schedule and apply restrictions
       handleScheduleStart(scheduleId: scheduleId)
@@ -531,10 +531,10 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   private func applyScheduledBlockRestrictions(schedule: BlockSchedule) {
     let scheduleId = schedule.id
     
-    LocalNotificationManager.scheduleExtensionNotification(
-      title: "🔒 Applying Restrictions",
-      details: "Schedule: \(schedule.name)\nApps: \(schedule.selection.applicationTokens.count)"
-    )
+//    LocalNotificationManager.scheduleExtensionNotification(
+//      title: "🔒 Applying Restrictions",
+//      details: "Schedule: \(schedule.name)\nApps: \(schedule.selection.applicationTokens.count)"
+//    )
     
     // Apply restrictions using ManagedSettingsStore
     let storeName = ManagedSettingsStore.Name("scheduledBlock_\(scheduleId)")
@@ -559,8 +559,8 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     // Mark as active in SharedData
     SharedData.userDefaults?.set(true, forKey: "schedule_\(scheduleId)_active")
     SharedData.userDefaults?.set(Date().timeIntervalSince1970, forKey: "schedule_\(scheduleId)_startTimestamp")
-    SharedData.userDefaults?.set(true, forKey: SharedData.Widget.isBlocked)
-    SharedData.userDefaults?.set(schedule.isStrictBlock, forKey: SharedData.Widget.isStricted)
+//    SharedData.userDefaults?.set(true, forKey: SharedData.Widget.isBlocked)
+//    SharedData.userDefaults?.set(schedule.isStrictBlock, forKey: SharedData.Widget.isStricted)
     
     // Send notification
     LocalNotificationManager.scheduleExtensionNotification(
@@ -597,26 +597,26 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     SharedData.userDefaults?.removeObject(forKey: "schedule_\(scheduleId)_startTimestamp")
     
     // Check if any other schedules are active
-    let allScheduleIds = SharedData.userDefaults?.dictionaryRepresentation().keys
-      .filter { $0.contains("schedule_") && $0.contains("_active") }
-      .compactMap { key -> String? in
-        guard let isActive = SharedData.userDefaults?.bool(forKey: key), isActive else { return nil }
-        // Extract schedule ID from key like "schedule_UUID_active"
-        let components = key.split(separator: "_")
-        guard components.count >= 3 else { return nil }
-        return String(components[1])
-      } ?? []
+//    let allScheduleIds = SharedData.userDefaults?.dictionaryRepresentation().keys
+//      .filter { $0.contains("schedule_") && $0.contains("_active") }
+//      .compactMap { key -> String? in
+//        guard let isActive = SharedData.userDefaults?.bool(forKey: key), isActive else { return nil }
+//        // Extract schedule ID from key like "schedule_UUID_active"
+//        let components = key.split(separator: "_")
+//        guard components.count >= 3 else { return nil }
+//        return String(components[1])
+//      } ?? []
     
-    if allScheduleIds.isEmpty {
-      SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
-      SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isStricted)
-    }
+//    if allScheduleIds.isEmpty {
+//      SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
+//      SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isStricted)
+//    }
     
     // Send notification
-    LocalNotificationManager.scheduleExtensionNotification(
-      title: "📅 \(schedule.name) Ended",
-      details: "Scheduled apps are now accessible"
-    )
+//    LocalNotificationManager.scheduleExtensionNotification(
+//      title: "📅 \(schedule.name) Ended",
+//      details: "Scheduled apps are now accessible"
+//    )
   }
   
   // Removed - duplicate method, using the one with BlockSchedule parameter

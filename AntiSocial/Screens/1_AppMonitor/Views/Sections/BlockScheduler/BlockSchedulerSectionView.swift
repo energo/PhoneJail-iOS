@@ -14,7 +14,6 @@ struct BlockSchedulerSectionView: View {
   @EnvironmentObject var subscriptionManager: SubscriptionManager
   @StateObject private var schedulerService = BlockSchedulerService.shared
   
-  @State private var schedules: [BlockSchedule] = []
   @State private var showingAddSchedule = false
   @State private var selectedSchedule: BlockSchedule?
   @State private var showPaywall = false
@@ -23,15 +22,15 @@ struct BlockSchedulerSectionView: View {
   private let adaptive = AdaptiveValues.current
   
   var activeBlockedSchedules: [BlockSchedule] {
-    schedules.filter { $0.isActive && $0.isBlocked }
+    schedulerService.allSchedules.filter { $0.isActive && $0.isBlocked }
   }
   
   var activeNotBlockedSchedules: [BlockSchedule] {
-    schedules.filter { $0.isActive && !$0.isBlocked }
+    schedulerService.allSchedules.filter { $0.isActive && !$0.isBlocked }
   }
   
   var inactiveSchedules: [BlockSchedule] {
-    schedules.filter { !$0.isActive }
+    schedulerService.allSchedules.filter { !$0.isActive }
   }
   
   var body: some View {
@@ -39,7 +38,7 @@ struct BlockSchedulerSectionView: View {
       .padding(20)
       .blurBackground()
       .onAppear {
-        loadSchedules()
+        schedulerService.reloadSchedules()
       }
       .fullScreenCover(isPresented: $showingAddSchedule) {
         NewBlockSchedulerView(
@@ -285,10 +284,6 @@ struct BlockSchedulerSectionView: View {
   
   // MARK: - Functions
   
-  private func loadSchedules() {
-    schedules = BlockSchedule.loadAll()
-  }
-  
   private func addSchedule(_ schedule: BlockSchedule) {
     // Save the schedule
     BlockSchedule.add(schedule)
@@ -296,10 +291,10 @@ struct BlockSchedulerSectionView: View {
     // Activate it immediately if it's marked as active
     if schedule.isActive {
       schedulerService.activateSchedule(schedule)
+    } else {
+      // Still reload to show the new schedule
+      schedulerService.reloadSchedules()
     }
-    
-    // Reload schedules to update UI
-    loadSchedules()
   }
   
   private func updateSchedule(_ schedule: BlockSchedule) {
@@ -312,25 +307,23 @@ struct BlockSchedulerSectionView: View {
     } else {
       schedulerService.deactivateSchedule(schedule)
     }
-    
-    // Reload schedules to update UI
-    loadSchedules()
+    // No need to reload manually - schedulerService methods already do it
   }
   
   private func deleteSchedule(_ schedule: BlockSchedule) {
-    deactivateSchedule(schedule)
+    schedulerService.deactivateSchedule(schedule)
     BlockSchedule.delete(id: schedule.id)
-    loadSchedules()
+    schedulerService.reloadSchedules()
   }
   
   private func activateSchedule(_ schedule: BlockSchedule) {
     schedulerService.activateSchedule(schedule)
-    loadSchedules()
+    // No need to reload manually - activateSchedule already does it
   }
   
   private func deactivateSchedule(_ schedule: BlockSchedule) {
     schedulerService.deactivateSchedule(schedule)
-    loadSchedules()
+    // No need to reload manually - deactivateSchedule already does it
   }
 }
 

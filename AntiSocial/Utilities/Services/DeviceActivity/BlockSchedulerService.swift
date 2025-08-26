@@ -27,11 +27,12 @@ class BlockSchedulerService: ObservableObject {
   static let shared = BlockSchedulerService()
   
   @Published var activeSchedules: [BlockSchedule] = []
+  @Published var allSchedules: [BlockSchedule] = []
   private let center = DeviceActivityCenter()
   private var activeMonitors: Set<String> = []
   
   private init() {
-    loadActiveSchedules()
+    loadAllSchedules()
     setupSchedules()
   }
   
@@ -114,8 +115,8 @@ class BlockSchedulerService: ObservableObject {
       updatedSchedule.isActive = true
       BlockSchedule.update(updatedSchedule)
       
-      // Reload active schedules
-      loadActiveSchedules()
+      // Reload all schedules
+      loadAllSchedules()
       
       // Schedule notification
       scheduleNotification(for: schedule)
@@ -179,6 +180,9 @@ class BlockSchedulerService: ObservableObject {
       updatedSchedule.updatedAt = Date()
       BlockSchedule.update(updatedSchedule)
       
+      // Reload all schedules to reflect the change
+      loadAllSchedules()
+      
       // Send debug notification that schedule will start later
 //      LocalNotificationManager.scheduleExtensionNotification(
 //        title: "⏰ Schedule Pending",
@@ -203,8 +207,8 @@ class BlockSchedulerService: ObservableObject {
     updatedSchedule.isActive = false
     BlockSchedule.update(updatedSchedule)
     
-    // Reload active schedules
-    loadActiveSchedules()
+    // Reload all schedules
+    loadAllSchedules()
     
     // Cancel notifications
     cancelNotification(for: schedule)
@@ -250,11 +254,20 @@ class BlockSchedulerService: ObservableObject {
     activeSchedules = BlockSchedule.loadAll().filter { $0.isActive }
   }
   
+  private func loadAllSchedules() {
+    allSchedules = BlockSchedule.loadAll()
+    activeSchedules = allSchedules.filter { $0.isActive }
+  }
+  
   private func setupSchedules() {
     // Re-activate all active schedules on app launch
     for schedule in activeSchedules {
       activateSchedule(schedule)
     }
+  }
+  
+  func reloadSchedules() {
+    loadAllSchedules()
   }
   
   private func isScheduleActiveNow(_ schedule: BlockSchedule) -> Bool {
@@ -337,10 +350,11 @@ class BlockSchedulerService: ObservableObject {
     updatedSchedule.updatedAt = Date()
     BlockSchedule.update(updatedSchedule)
     
+    // Reload all schedules to reflect the change
+    loadAllSchedules()
+    
     // Save to SharedData for extensions
     SharedData.userDefaults?.set(true, forKey: "schedule_\(schedule.id)_active")
-    SharedData.userDefaults?.set(true, forKey: SharedData.Widget.isBlocked)
-    SharedData.userDefaults?.set(schedule.isStrictBlock, forKey: SharedData.Widget.isStricted)
     
     // Set the blocking timestamp for this schedule
     SharedData.userDefaults?.set(Date().timeIntervalSince1970, forKey: "schedule_\(schedule.id)_startTimestamp")
@@ -361,17 +375,20 @@ class BlockSchedulerService: ObservableObject {
     updatedSchedule.updatedAt = Date()
     BlockSchedule.update(updatedSchedule)
     
+    // Reload all schedules to reflect the change
+    loadAllSchedules()
+    
     // Clear from SharedData
     SharedData.userDefaults?.removeObject(forKey: "schedule_\(schedule.id)")
     SharedData.userDefaults?.removeObject(forKey: "schedule_\(schedule.id)_active")
     SharedData.userDefaults?.removeObject(forKey: "schedule_\(schedule.id)_startTimestamp")
     
     // Check if any other schedules are active, if not, clear global blocking state
-    let activeSchedules = BlockSchedule.loadAll().filter { $0.isActive && $0.id != schedule.id }
-    if activeSchedules.isEmpty {
-      SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
-      SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isStricted)
-    }
+//    let activeSchedules = BlockSchedule.loadAll().filter { $0.isActive && $0.id != schedule.id }
+//    if activeSchedules.isEmpty {
+//      SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
+//      SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isStricted)
+//    }
     
     AppLogger.trace("Removed restrictions for schedule: \(schedule.name), isBlocked set to false")
   }
@@ -379,22 +396,44 @@ class BlockSchedulerService: ObservableObject {
   // MARK: - Notifications
   
   private func scheduleNotification(for schedule: BlockSchedule) {
-    // Create trigger based on schedule
+    // Schedule both start and end notifications
     guard let startHour = schedule.startTime.hour,
-          let startMinute = schedule.startTime.minute else { return }
+          let startMinute = schedule.startTime.minute,
+          let endHour = schedule.endTime.hour,
+          let endMinute = schedule.endTime.minute else { return }
     
     for weekday in schedule.daysOfWeek {
-      var dateComponents = DateComponents()
-      dateComponents.weekday = weekday
-      dateComponents.hour = startHour
-      dateComponents.minute = startMinute
+      // Start notification
+      var startComponents = DateComponents()
+      startComponents.weekday = weekday
+      startComponents.hour = startHour
+      startComponents.minute = startMinute
       
-      // Use LocalNotificationManager for consistency
       LocalNotificationManager.shared.scheduleNotification(
-        title: "Block Schedule Active",
-        body: "\(schedule.name) is now active. Selected apps will be blocked.",
-        identifier: "schedule_\(schedule.id)_day_\(weekday)",
-        dateComponents: dateComponents,
+        title: "📅 \(schedule.name)",
+        body: "Apps blocked until \(String(format: "%02d:%02d", endHour, endMinute))",
+        identifier: "schedule_\(schedule.id)_day_\(weekday)_start",
+        dateComponents: startComponents,
+        repeats: true
+      )
+      
+      // End notification
+      var endComponents = DateComponents()
+      endComponents.weekday = weekday
+      endComponents.hour = endHour
+      endComponents.minute = endMinute
+      
+      // Handle next day if schedule crosses midnight
+      let nextWeekday = weekday == 7 ? 1 : weekday + 1
+      if endHour < startHour || (endHour == startHour && endMinute < startMinute) {
+        endComponents.weekday = nextWeekday
+      }
+      
+      LocalNotificationManager.shared.scheduleNotification(
+        title: "✅ \(schedule.name) Ended",
+        body: "Apps are now unblocked",
+        identifier: "schedule_\(schedule.id)_day_\(weekday)_end",
+        dateComponents: endComponents,
         repeats: true
       )
     }
@@ -403,7 +442,8 @@ class BlockSchedulerService: ObservableObject {
   private func cancelNotification(for schedule: BlockSchedule) {
     var identifiers: [String] = []
     for weekday in 1...7 {
-      identifiers.append("schedule_\(schedule.id)_day_\(weekday)")
+      identifiers.append("schedule_\(schedule.id)_day_\(weekday)_start")
+      identifiers.append("schedule_\(schedule.id)_day_\(weekday)_end")
     }
     
     LocalNotificationManager.shared.cancelNotifications(identifiers: identifiers)

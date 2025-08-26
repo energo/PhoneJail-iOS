@@ -70,10 +70,12 @@ struct NewBlockSchedulerView: View {
     .onChange(of: name) { _, _ in
       autoSaveIfNeeded()
     }
-    .onChange(of: startHour) { _, _ in
+    .onChange(of: startHour) { _, newValue in
+      updateEndTimeIfNeeded()
       autoSaveIfNeeded()
     }
-    .onChange(of: startMinute) { _, _ in
+    .onChange(of: startMinute) { _, newValue in
+      updateEndTimeIfNeeded()
       autoSaveIfNeeded()
     }
     .onChange(of: endHour) { _, _ in
@@ -574,12 +576,45 @@ struct NewBlockSchedulerView: View {
     onSave(newSchedule)
   }
   
+  private func updateEndTimeIfNeeded() {
+    // Calculate the current duration
+    let startMinutes = startHour * 60 + startMinute
+    let endMinutes = endHour * 60 + endMinute
+    
+    let duration: Int
+    if endMinutes >= startMinutes {
+      duration = endMinutes - startMinutes
+    } else {
+      // Overnight schedule
+      duration = (24 * 60 - startMinutes) + endMinutes
+    }
+    
+    // If duration is less than 15 minutes, auto-adjust end time to be 15 minutes after start
+    if duration < 15 {
+      let newEndTotalMinutes = startMinutes + 15
+      
+      if newEndTotalMinutes < 24 * 60 {
+        // Same day
+        endHour = newEndTotalMinutes / 60
+        endMinute = newEndTotalMinutes % 60
+      } else {
+        // Next day
+        let nextDayMinutes = newEndTotalMinutes - (24 * 60)
+        endHour = nextDayMinutes / 60
+        endMinute = nextDayMinutes % 60
+      }
+    }
+  }
+  
   private func autoSaveIfNeeded() {
     guard schedule != nil else { return }
     guard isValidSchedule else { return }
     
     saveScheduleWithStatus(isActive: isActive)
     hasUnsavedChanges = false
+    
+    // Notify the service to reload schedules
+    BlockSchedulerService.shared.reloadSchedules()
   }
   
   // MARK: - Helper Types
