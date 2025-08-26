@@ -27,9 +27,6 @@ struct MainView: View {
           OnboardingScreen(isShow: $isFirstRun)
         } else {
           AppMonitorScreen()
-            .onAppear {
-              ExtensionDebugReader.shared.printLastDebugLines()
-            }
         }
     }
   }
