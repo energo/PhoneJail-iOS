@@ -45,6 +45,8 @@ struct NewBlockSchedulerView: View {
     BGView(imageRsc: .bgMain) {
       VStack(spacing: 16) {
         headerView
+          .padding(.horizontal, 32)
+
         separatorView
           .padding(.horizontal, 32)
 
