@@ -117,9 +117,33 @@ struct NewBlockSchedulerView: View {
   private var headerView: some View {
     HStack {
       HStack(spacing: 8) {
-        Image(isActive ? .icLocked : .icUnlocked)
-          .frame(width: 24, height: 24)
-          .padding(8)
+//        Image(isActive ? .icLocked : .icUnlocked)
+//          .frame(width: 24, height: 24)
+//          .padding(8)
+        Group {
+          if schedule?.isActive ?? false && schedule?.isBlocked ?? false {
+            // Currently blocking - red locked icon
+            Image(.icLocked)
+              .resizable()
+              .frame(width: 24, height: 24)
+              .padding(8)
+
+          } else if schedule?.isActive ?? false && !(schedule?.isBlocked ?? false) {
+            // Active but not blocking now - normal locked icon
+            Image(.icUnlocked)
+              .resizable()
+              .frame(width: 24, height: 24)
+              .padding(8)
+
+          } else {
+            // Inactive - unlocked icon
+            Image(.icUnlocked)
+              .resizable()
+              .frame(width: 24, height: 24)
+              .padding(8)
+              .opacity(0.5)
+          }
+        }
         
         Text(schedule != nil ? name : "New Block Scheduler")
           .font(.system(size: 24, weight: .semibold))
@@ -133,8 +157,6 @@ struct NewBlockSchedulerView: View {
           .frame(width: 24, height: 24)
       }
     }
-    .padding(.horizontal)
-    .padding(.vertical, 8)
   }
   
   private var nameSection: some View {

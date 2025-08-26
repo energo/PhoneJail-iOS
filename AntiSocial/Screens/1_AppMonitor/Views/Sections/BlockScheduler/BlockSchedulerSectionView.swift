@@ -18,6 +18,7 @@ struct BlockSchedulerSectionView: View {
   @State private var showingAddSchedule = false
   @State private var selectedSchedule: BlockSchedule?
   @State private var showPaywall = false
+  @State private var expandedListType: ScheduleListType?
   
   private let adaptive = AdaptiveValues.current
   
@@ -71,6 +72,23 @@ struct BlockSchedulerSectionView: View {
             subscriptionManager.refreshSubscription()
           }
       }
+      .fullScreenCover(item: $expandedListType) { listType in
+        ExpandedScheduleListView(
+          listType: listType,
+          activeBlockedSchedules: activeBlockedSchedules,
+          activeNotBlockedSchedules: activeNotBlockedSchedules,
+          inactiveSchedules: inactiveSchedules,
+          onSelectSchedule: { schedule in
+            expandedListType = nil
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+              selectedSchedule = schedule
+            }
+          },
+          onClose: {
+            expandedListType = nil
+          }
+        )
+      }
   }
   
   private var contentView: some View {
@@ -122,15 +140,25 @@ struct BlockSchedulerSectionView: View {
   
   private var activeBlocksSection: some View {
     VStack(alignment: .leading, spacing: adaptive.spacing.small) {
-      HStack {
-        Text("Active Blocks (\(activeBlockedSchedules.count))")
-          .adaptiveFont(\.body)
-          .foregroundStyle(Color.white)
-        Spacer()
-        Image(systemName: "chevron.right")
-          .adaptiveFont(\.callout)
-          .foregroundStyle(Color.as_gray_light)
+      Button(action: {
+        if activeBlockedSchedules.count > 3 {
+          HapticManager.shared.impact(style: .light)
+          expandedListType = .active
+        }
+      }) {
+        HStack {
+          Text("Active Blocks (\(activeBlockedSchedules.count))")
+            .adaptiveFont(\.body)
+            .foregroundStyle(Color.white)
+          Spacer()
+          if activeBlockedSchedules.count > 3 {
+            Image(systemName: "chevron.right")
+              .adaptiveFont(\.callout)
+              .foregroundStyle(Color.as_gray_light)
+          }
+        }
       }
+      .disabled(activeBlockedSchedules.count <= 3)
       
       // Show currently blocking schedules first
       ForEach(activeBlockedSchedules.prefix(3)) { schedule in
@@ -141,15 +169,26 @@ struct BlockSchedulerSectionView: View {
   
   private var inactiveBlocksSection: some View {
     VStack(alignment: .leading, spacing: adaptive.spacing.small) {
-      HStack {
-        Text("Not Active Blocks (\(inactiveSchedules.count + activeNotBlockedSchedules.count))")
-          .adaptiveFont(\.body)
-          .foregroundStyle(Color.white)
-        Spacer()
-        Image(systemName: "chevron.right")
-          .adaptiveFont(\.callout)
-          .foregroundStyle(Color.as_gray_light)
+      Button(action: {
+        let totalCount = inactiveSchedules.count + activeNotBlockedSchedules.count
+        if totalCount > 3 {
+          HapticManager.shared.impact(style: .light)
+          expandedListType = .inactive
+        }
+      }) {
+        HStack {
+          Text("Not Active Blocks (\(inactiveSchedules.count + activeNotBlockedSchedules.count))")
+            .adaptiveFont(\.body)
+            .foregroundStyle(Color.white)
+          Spacer()
+          if (inactiveSchedules.count + activeNotBlockedSchedules.count) > 3 {
+            Image(systemName: "chevron.right")
+              .adaptiveFont(\.callout)
+              .foregroundStyle(Color.as_gray_light)
+          }
+        }
       }
+      .disabled((inactiveSchedules.count + activeNotBlockedSchedules.count) <= 3)
       
       // Show active but not currently blocking first (max 3)
       ForEach(activeNotBlockedSchedules.prefix(3)) { schedule in
