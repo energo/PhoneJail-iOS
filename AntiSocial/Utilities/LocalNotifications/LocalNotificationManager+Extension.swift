@@ -12,7 +12,7 @@ import UserNotifications
 extension LocalNotificationManager {
   
   // Static method that can be called from app extensions
-  static func scheduleExtensionNotification(title: String, details: String = "", delay: TimeInterval = 1) {
+  static func scheduleExtensionNotification(title: String, details: String = "", delay: TimeInterval = 1, identifier: String? = nil) {
     let center = UNUserNotificationCenter.current()
     center.delegate = DTNNotificationHandler.shared
     
@@ -25,11 +25,15 @@ extension LocalNotificationManager {
         
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: delay, repeats: false)
         
-        // Create unique identifier with timestamp for screen time alerts
-        let timestamp = Date().timeIntervalSince1970
-//        let identifier = "\(title)-\(details)-\(timestamp)".replacingOccurrences(of: " ", with: "-")
-        let identifier = UUID().uuidString + timestamp.stringFromTimeInterval()
-        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+        // Use provided identifier or create unique one
+        let notificationId: String
+        if let identifier = identifier {
+          notificationId = identifier
+        } else {
+          let timestamp = Date().timeIntervalSince1970
+          notificationId = UUID().uuidString + timestamp.stringFromTimeInterval()
+        }
+        let request = UNNotificationRequest(identifier: notificationId, content: content, trigger: trigger)
         
         center.add(request) { error in
           if let error = error {

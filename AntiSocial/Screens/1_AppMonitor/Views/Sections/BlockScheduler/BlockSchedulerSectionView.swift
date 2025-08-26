@@ -12,6 +12,7 @@ import RevenueCatUI
 struct BlockSchedulerSectionView: View {
   @EnvironmentObject var deviceActivityService: DeviceActivityService
   @EnvironmentObject var subscriptionManager: SubscriptionManager
+  @EnvironmentObject var scheduleNotificationHandler: ScheduleNotificationHandler
   @StateObject private var schedulerService = BlockSchedulerService.shared
   
   @State private var showingAddSchedule = false
@@ -38,6 +39,10 @@ struct BlockSchedulerSectionView: View {
       .padding(20)
       .blurBackground()
       .onAppear {
+        schedulerService.reloadSchedules()
+      }
+      .onReceive(scheduleNotificationHandler.$lastUpdateTimestamp) { _ in
+        // Force reload when schedule notification handler triggers an update
         schedulerService.reloadSchedules()
       }
       .fullScreenCover(isPresented: $showingAddSchedule) {

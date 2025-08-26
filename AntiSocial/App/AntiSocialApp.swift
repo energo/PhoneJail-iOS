@@ -38,6 +38,7 @@ struct AntiSocialApp: App {
   @StateObject private var subscriptionManager = SubscriptionManager.shared
   @StateObject private var deviceActivityService = DeviceActivityService.shared
   @StateObject private var familyControlsManager = FamilyControlsManager.shared
+  @StateObject private var scheduleNotificationHandler = ScheduleNotificationHandler.shared
   @State private var midnightTimer: Timer?
   @AppStorage("isFirstRun") private var isFirstRun: Bool = true
 
@@ -49,12 +50,14 @@ struct AntiSocialApp: App {
             .environmentObject(subscriptionManager)
             .environmentObject(deviceActivityService)
             .environmentObject(familyControlsManager)
+            .environmentObject(scheduleNotificationHandler)
             .task {
               if !isFirstRun {
                 LocalNotificationManager.shared.requestAuthorization { isNotificationAuthed in
                   AppLogger.trace("isNotificationAuthed \(isNotificationAuthed)")
                   
-                  UNUserNotificationCenter.current().delegate = DTNNotificationHandler.shared
+                  // Set ScheduleNotificationHandler as the delegate to handle schedule notifications
+                  UNUserNotificationCenter.current().delegate = scheduleNotificationHandler
                 }
               }
             }

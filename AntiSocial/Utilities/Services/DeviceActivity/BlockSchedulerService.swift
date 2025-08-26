@@ -34,6 +34,7 @@ class BlockSchedulerService: ObservableObject {
   private init() {
     loadAllSchedules()
     setupSchedules()
+    setupNotificationObservers()
   }
   
   // MARK: - Public Methods
@@ -267,7 +268,27 @@ class BlockSchedulerService: ObservableObject {
   }
   
   func reloadSchedules() {
-    loadAllSchedules()
+    let schedules = BlockSchedule.loadAll()
+    
+    DispatchQueue.main.async { [weak self] in
+      guard let self = self else { return }
+      
+      // Force UI update by sending objectWillChange
+      self.objectWillChange.send()
+      
+      // Update the published properties
+      self.allSchedules = schedules
+      self.activeSchedules = schedules.filter { $0.isActive }
+      
+      AppLogger.notice("📊 Reloaded schedules: \(schedules.count) total, \(self.activeSchedules.count) active")
+    }
+  }
+  
+  // MARK: - Notification Observers
+  
+  private func setupNotificationObservers() {
+    // We don't need to observe here - ScheduleNotificationHandler will handle notifications
+    // and trigger updates through its delegate methods
   }
   
   private func isScheduleActiveNow(_ schedule: BlockSchedule) -> Bool {

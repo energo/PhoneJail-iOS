@@ -18,6 +18,7 @@ struct AppMonitorScreen: View {
   // MARK: - Environment Objects
   @EnvironmentObject var subscriptionManager: SubscriptionManager
   @EnvironmentObject var familyControlsManager: FamilyControlsManager
+  @EnvironmentObject var scheduleNotificationHandler: ScheduleNotificationHandler
   @Environment(\.scenePhase) var scenePhase
   
   // MARK: - View Models

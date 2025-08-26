@@ -562,11 +562,12 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
 //    SharedData.userDefaults?.set(true, forKey: SharedData.Widget.isBlocked)
 //    SharedData.userDefaults?.set(schedule.isStrictBlock, forKey: SharedData.Widget.isStricted)
     
-    // Send notification
-    LocalNotificationManager.scheduleExtensionNotification(
-      title: "📅 \(schedule.name) Active",
-      details: "\(schedule.selection.applicationTokens.count) apps are now blocked"
-    )
+//    // Send notification with schedule identifier
+//    LocalNotificationManager.scheduleExtensionNotification(
+//      title: "📅 \(schedule.name) Active",
+//      details: "\(schedule.selection.applicationTokens.count) apps are now blocked",
+//      identifier: "schedule_\(scheduleId)_started"
+//    )
     
     // Log for Focus Time statistics
     logScheduleSessionStart(schedule: schedule)
@@ -595,6 +596,13 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     // Mark as inactive in SharedData
     SharedData.userDefaults?.set(false, forKey: "schedule_\(scheduleId)_active")
     SharedData.userDefaults?.removeObject(forKey: "schedule_\(scheduleId)_startTimestamp")
+    
+//    // Send notification with schedule identifier
+//    LocalNotificationManager.scheduleExtensionNotification(
+//      title: "✅ \(schedule.name) Ended",
+//      details: "Apps are now unblocked",
+//      identifier: "schedule_\(scheduleId)_ended"
+//    )
     
     // Check if any other schedules are active
 //    let allScheduleIds = SharedData.userDefaults?.dictionaryRepresentation().keys
