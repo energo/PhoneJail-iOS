@@ -118,8 +118,8 @@ class AppInterruptionViewModel: ObservableObject {
       applications: enabledTokens,
       categories: updatedSelection.categoryTokens,
       webDomains: updatedSelection.webDomainTokens,
-      threshold: DateComponents(minute: timeLimitMinutes),
-      includesPastActivity: true
+      threshold: DateComponents(minute: timeLimitMinutes)
+      // Don't include includesPastActivity - default is false, which is what we want
     )
     
     events[DeviceActivityEvent.Name.interruption] = event

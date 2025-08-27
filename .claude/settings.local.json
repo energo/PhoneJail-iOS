@@ -26,7 +26,12 @@
       "Bash(swiftc:*)",
       "Bash(swift build:*)",
       "Bash(swift:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(git stash:*)",
+      "Bash(pkill:*)",
+      "Bash(git add:*)",
+      "Bash(git reset:*)",
+      "Bash(git log:*)"
     ],
     "deny": []
   }
