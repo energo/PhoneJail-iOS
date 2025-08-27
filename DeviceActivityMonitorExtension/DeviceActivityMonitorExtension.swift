@@ -47,11 +47,6 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   override func intervalDidStart(for activity: DeviceActivityName) {
     super.intervalDidStart(for: activity)
     
-    LocalNotificationManager.scheduleExtensionNotification(
-      title: "🔄 Interval Did Start",
-      details: ""
-    )
-
     let formatter = DateFormatter()
     formatter.dateFormat = "HH:mm:ss"
     let timeString = formatter.string(from: Date())
@@ -72,39 +67,40 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       return
     }
     
-    // Handle interruption monitoring start
+    // Handle interruption monitoring start - just log, don't trigger anything
     if activity == .appMonitoringInterruption {
-      LocalNotificationManager.scheduleExtensionNotification(
-        title: "⚡ Interruption Monitoring Started",
-        details: "Monitoring apps for interruption threshold at \(timeString)"
-      )
+      // Only log for debugging, don't send user notifications or trigger blocking
+      saveDebugInfo("Interruption monitoring interval started at \(timeString)")
       
-      // Log selection info
+      // Log selection info for debugging
       if let selection = SharedData.selectedInterruptionsActivity {
-        saveDebugInfo("Interruption monitoring started with \(selection.applicationTokens.count) apps")
-        logger.notice("Started interruption monitoring for \(selection.applicationTokens.count) apps")
+        saveDebugInfo("Monitoring \(selection.applicationTokens.count) apps for interruption threshold")
+        logger.notice("Interruption monitoring active for \(selection.applicationTokens.count) apps")
       } else {
         saveDebugInfo("WARNING: Interruption monitoring started but no selection found!")
         logger.warning("Interruption monitoring started but no selection in SharedData")
       }
+      // Don't trigger any blocking or notifications here - wait for threshold
       return
     }
     
-    // Handle alert monitoring start
+    // Handle alert monitoring start - just log, don't trigger anything
     if activity == .appMonitoringAlert {
-      LocalNotificationManager.scheduleExtensionNotification(
-        title: "🔔 Alert Monitoring Started",
-        details: "Monitoring apps for screen time alerts at \(timeString)"
-      )
+      // Only log for debugging, don't send user notifications
+      saveDebugInfo("Alert monitoring interval started at \(timeString)")
       
-      // Log selection info
+      // Log selection info for debugging
       if let selection = SharedData.selectedAlertActivity {
-        saveDebugInfo("Alert monitoring started with \(selection.applicationTokens.count) apps")
-        logger.notice("Started alert monitoring for \(selection.applicationTokens.count) apps")
+        saveDebugInfo("Monitoring \(selection.applicationTokens.count) apps for screen time alerts")
+        logger.notice("Alert monitoring active for \(selection.applicationTokens.count) apps")
+        
+        // Reset usage counters at interval start (new day)
+        checkAndResetDailyCounters()
       } else {
         saveDebugInfo("WARNING: Alert monitoring started but no selection found!")
         logger.warning("Alert monitoring started but no selection in SharedData")
       }
+      // Don't trigger any alerts here - wait for threshold
       return
     }
     
@@ -115,11 +111,6 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   
   override func intervalDidEnd(for activity: DeviceActivityName) {
     super.intervalDidEnd(for: activity)
-    
-    LocalNotificationManager.scheduleExtensionNotification(
-      title: "🔄 intervalDidEnd",
-      details: ""
-    )
     
     let activityName = "\(activity.rawValue)"
     
@@ -202,16 +193,8 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     saveDebugInfo("eventDidReachThreshold called - Event: \(event.rawValue), Activity: \(activity.rawValue) at \(timeString)")
     logger.notice("Threshold reached - Event: \(event.rawValue), Activity: \(activity.rawValue)")
     
-    // Send notification for debugging
-    LocalNotificationManager.scheduleExtensionNotification(
-      title: "📊 Threshold Reached",
-      details: "Event: \(event.rawValue)\nActivity: \(activity.rawValue)\nTime: \(timeString)"
-    )
-        
-    LocalNotificationManager.scheduleExtensionNotification(
-      title: "⚠️ eventDidReachThreshold",
-      details: "\(event)"
-    )
+    // Debug notification only - real notifications will be sent in handlers
+    saveDebugInfo("Processing threshold for \(event.rawValue)")
     
     // Check if this is an interruption event
     if event == DeviceActivityEvent.Name.interruption {
@@ -431,7 +414,8 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       applications: selection.applicationTokens,
       categories: selection.categoryTokens,
       webDomains: selection.webDomainTokens,
-      threshold: DateComponents(minute: timeLimitMinutes)
+      threshold: DateComponents(minute: timeLimitMinutes),
+      includesPastActivity: true  // Include past activity when starting fresh monitoring
     )
     
     let events = [DeviceActivityEvent.Name.interruption: event]
@@ -512,11 +496,14 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       return
     }
     
+    // When restarting after threshold, don't include past activity
+    // This ensures we only count NEW usage from this point forward
     let event = DeviceActivityEvent(
       applications: selection.applicationTokens,
       categories: selection.categoryTokens,
       webDomains: selection.webDomainTokens,
-      threshold: DateComponents(minute: timeLimitMinutes)
+      threshold: DateComponents(minute: timeLimitMinutes),
+      includesPastActivity: false  // Important: start fresh counting after each threshold
     )
     
     let events = [eventName: event]
