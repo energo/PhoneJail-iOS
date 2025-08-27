@@ -98,19 +98,29 @@ class ScreenTimeAlertViewModel: ObservableObject {
     // Reset usage counters when starting fresh monitoring
     SharedData.resetAppUsageTimes()
     
-    // Save selection before starting monitoring
-    SharedData.selectedAlertActivity = model.activitySelection
-    AppLogger.notice("Saved alert selection with \(model.activitySelection.applicationTokens.count) apps")
-    
+    // Get enabled tokens
     let enabledTokens = Set(monitoredApps.filter { $0.isMonitored }.map { $0.token })
+    
+    // Update the model's selection with only enabled tokens
+    var updatedSelection = model.activitySelection
+    updatedSelection.applicationTokens = enabledTokens
+    
+    // Save the updated selection before starting monitoring
+    SharedData.selectedAlertActivity = updatedSelection
+    AppLogger.notice("Saved alert selection with \(enabledTokens.count) enabled apps (from \(model.activitySelection.applicationTokens.count) total)")
+    
+    // Verify saved data
+    if let savedSelection = SharedData.selectedAlertActivity {
+      AppLogger.notice("Verified saved selection has \(savedSelection.applicationTokens.count) apps")
+    }
     
     // Create event with threshold
     var events: [DeviceActivityEvent.Name: DeviceActivityEvent] = [:]
     
     let event = DeviceActivityEvent(
       applications: enabledTokens,
-      categories: model.activitySelection.categoryTokens,
-      webDomains: model.activitySelection.webDomainTokens,
+      categories: updatedSelection.categoryTokens,
+      webDomains: updatedSelection.webDomainTokens,
       threshold: DateComponents(minute: timeLimitMinutes),
       includesPastActivity: true
     )

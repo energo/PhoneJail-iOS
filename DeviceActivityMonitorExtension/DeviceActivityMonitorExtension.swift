@@ -19,6 +19,29 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   private var lastAlertTrigger: Date?
   private let minimumTriggerInterval: TimeInterval = 120 // 2 minutes minimum between triggers
   
+  private let logger = Logger(subsystem: "com.app.antisocial", category: "DeviceActivityMonitor")
+  
+  // Helper to save debug info to file for later retrieval
+  private func saveDebugInfo(_ info: String, filename: String = "extension_debug.txt") {
+    if let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.app.antisocial.sharedData") {
+      let fileURL = containerURL.appendingPathComponent(filename)
+      let timestamp = DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .medium)
+      let content = "\n[\(timestamp)]\n\(info)\n"
+      
+      if FileManager.default.fileExists(atPath: fileURL.path) {
+        if let handle = try? FileHandle(forWritingTo: fileURL) {
+          handle.seekToEndOfFile()
+          if let data = content.data(using: .utf8) {
+            handle.write(data)
+          }
+          handle.closeFile()
+        }
+      } else {
+        try? content.write(to: fileURL, atomically: true, encoding: .utf8)
+      }
+    }
+  }
+  
   
   //MARK: - Interval Start/End
   override func intervalDidStart(for activity: DeviceActivityName) {
@@ -29,6 +52,9 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       details: ""
     )
 
+    let formatter = DateFormatter()
+    formatter.dateFormat = "HH:mm:ss"
+    let timeString = formatter.string(from: Date())
     
     // Check if this is a schedule activity starting
     let activityName = "\(activity.rawValue)"
@@ -45,6 +71,46 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       handleScheduleStart(scheduleId: scheduleId)
       return
     }
+    
+    // Handle interruption monitoring start
+    if activity == .appMonitoringInterruption {
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "⚡ Interruption Monitoring Started",
+        details: "Monitoring apps for interruption threshold at \(timeString)"
+      )
+      
+      // Log selection info
+      if let selection = SharedData.selectedInterruptionsActivity {
+        saveDebugInfo("Interruption monitoring started with \(selection.applicationTokens.count) apps")
+        logger.notice("Started interruption monitoring for \(selection.applicationTokens.count) apps")
+      } else {
+        saveDebugInfo("WARNING: Interruption monitoring started but no selection found!")
+        logger.warning("Interruption monitoring started but no selection in SharedData")
+      }
+      return
+    }
+    
+    // Handle alert monitoring start
+    if activity == .appMonitoringAlert {
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "🔔 Alert Monitoring Started",
+        details: "Monitoring apps for screen time alerts at \(timeString)"
+      )
+      
+      // Log selection info
+      if let selection = SharedData.selectedAlertActivity {
+        saveDebugInfo("Alert monitoring started with \(selection.applicationTokens.count) apps")
+        logger.notice("Started alert monitoring for \(selection.applicationTokens.count) apps")
+      } else {
+        saveDebugInfo("WARNING: Alert monitoring started but no selection found!")
+        logger.warning("Alert monitoring started but no selection in SharedData")
+      }
+      return
+    }
+    
+    // Log any other activities for debugging
+    saveDebugInfo("intervalDidStart called for unknown activity: \(activity.rawValue)")
+    logger.notice("intervalDidStart for activity: \(activity.rawValue)")
   }
   
   override func intervalDidEnd(for activity: DeviceActivityName) {
@@ -127,6 +193,20 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   //MARK: - Threshold
   override func eventDidReachThreshold(_ event: DeviceActivityEvent.Name, activity: DeviceActivityName) {
     super.eventDidReachThreshold(event, activity: activity)
+    
+    // Log threshold event
+    let formatter = DateFormatter()
+    formatter.dateFormat = "HH:mm:ss"
+    let timeString = formatter.string(from: Date())
+    
+    saveDebugInfo("eventDidReachThreshold called - Event: \(event.rawValue), Activity: \(activity.rawValue) at \(timeString)")
+    logger.notice("Threshold reached - Event: \(event.rawValue), Activity: \(activity.rawValue)")
+    
+    // Send notification for debugging
+    LocalNotificationManager.scheduleExtensionNotification(
+      title: "📊 Threshold Reached",
+      details: "Event: \(event.rawValue)\nActivity: \(activity.rawValue)\nTime: \(timeString)"
+    )
         
     LocalNotificationManager.scheduleExtensionNotification(
       title: "⚠️ eventDidReachThreshold",
