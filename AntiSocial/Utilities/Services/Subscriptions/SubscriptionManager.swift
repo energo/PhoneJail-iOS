@@ -369,16 +369,13 @@ class SubscriptionManager: ObservableObject, SubscriptionManagerProtocol {
   func canStartNewBlock() -> Bool {
     // Check if subscription is active
     if isSubscriptionActive {
-      AppLogger.alert("canStartNewBlock: Subscription is active, returning true")
       return true
     }
     
     // Check weekly limit
     let blocksThisWeek = currentUsage(for: .weeklyBlocks)
     let limit = limit(for: .weeklyBlocks)
-    
-    AppLogger.alert("canStartNewBlock: blocksThisWeek=\(blocksThisWeek), limit=\(limit.count)")
-    
+        
     return blocksThisWeek < limit.count
   }
   

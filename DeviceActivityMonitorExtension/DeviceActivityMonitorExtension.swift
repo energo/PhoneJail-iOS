@@ -20,56 +20,15 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   private var lastInterruptionTrigger: Date?
   private var lastAlertTrigger: Date?
   private let minimumTriggerInterval: TimeInterval = 120 // 2 minutes minimum between triggers
-    
-  // Helper to save debug info to file for later retrieval
-  private func saveDebugInfo(_ info: String, filename: String = "extension_debug.txt") {
-    if let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.app.antisocial.sharedData") {
-      let fileURL = containerURL.appendingPathComponent(filename)
-      let timestamp = DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .medium)
-      let content = "\n[\(timestamp)]\n\(info)\n"
-      
-      if FileManager.default.fileExists(atPath: fileURL.path) {
-        if let handle = try? FileHandle(forWritingTo: fileURL) {
-          handle.seekToEndOfFile()
-          if let data = content.data(using: .utf8) {
-            handle.write(data)
-          }
-          handle.closeFile()
-        }
-      } else {
-        try? content.write(to: fileURL, atomically: true, encoding: .utf8)
-      }
-    }
-  }
   
-  // MARK: - Helper Methods
-  private func checkAndResetDailyCounters() {
-    let calendar = Calendar.current
-    let now = Date()
-    
-    // Get last reset date
-    let lastResetTimestamp = SharedData.userDefaults?.double(forKey: "lastUsageCounterReset") ?? 0
-    let lastResetDate = Date(timeIntervalSince1970: lastResetTimestamp)
-    
-    // Check if we're in a new day
-    if !calendar.isDateInToday(lastResetDate) {
-      // Reset counters
-      SharedData.resetAppUsageTimes()
-      
-      // Save new reset timestamp
-      SharedData.userDefaults?.set(now.timeIntervalSince1970, forKey: "lastUsageCounterReset")
-      
-    }
-  }
-  
-  //MARK: - Interval Start/End
+  //MARK: - Interval Delegates Methods
   override func intervalDidStart(for activity: DeviceActivityName) {
     super.intervalDidStart(for: activity)
     
-//    LocalNotificationManager.scheduleExtensionNotification(
-//      title: "🔄 Interval Did Start",
-//      details: ""
-//    )
+    LocalNotificationManager.scheduleExtensionNotification(
+      title: "🔄 Interval Did Start",
+      details: ""
+    )
 
     let formatter = DateFormatter()
     formatter.dateFormat = "HH:mm:ss"
@@ -96,64 +55,13 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     }
   }
   
-  private func handleScheduleStart(scheduleId: String) {
-    // Load all schedules from SharedData
-    guard let data = SharedData.userDefaults?.data(forKey: "blockSchedules"),
-          let schedules = try? JSONDecoder().decode([BlockSchedule].self, from: data),
-          let schedule = schedules.first(where: { $0.id == scheduleId }) else {
-      
-//      LocalNotificationManager.scheduleExtensionNotification(
-//        title: "❌ Schedule Not Found Start",
-//        details: "Could not find schedule with ID: \(scheduleId)"
-//      )
-      return
-    }
-    
-//    LocalNotificationManager.scheduleExtensionNotification(
-//      title: "📊 Schedule Data Check",
-//      details: "ID: \(schedule.id)\nName: \(schedule.name)\nApps: \(schedule.selection.applicationTokens.count)"
-//    )
-    
-    // Check if today is in the schedule's days
-    let calendar = Calendar.current
-    let weekday = calendar.component(.weekday, from: Date())
-    
-    if !schedule.daysOfWeek.contains(weekday) {
-//      LocalNotificationManager.scheduleExtensionNotification(
-//        title: "📅 Not Today",
-//        details: "Schedule \(schedule.name) not active on weekday \(weekday)"
-//      )
-      return
-    }
-    
-    // Apply restrictions
-    applyScheduledBlockRestrictions(schedule: schedule)
-  }
-  
-  private func handleScheduleEnd(scheduleId: String) {
-    // Load all schedules from SharedData
-    guard let data = SharedData.userDefaults?.data(forKey: "blockSchedules"),
-          let schedules = try? JSONDecoder().decode([BlockSchedule].self, from: data),
-          let schedule = schedules.first(where: { $0.id == scheduleId }) else {
-      
-//      LocalNotificationManager.scheduleExtensionNotification(
-//        title: "❌ Schedule Not Found End",
-//        details: "Could not find schedule with ID: \(scheduleId)"
-//      )
-      return
-    }
-    
-    // Remove restrictions
-    removeScheduledBlockRestrictions(schedule: schedule)
-  }
-  
   override func intervalDidEnd(for activity: DeviceActivityName) {
     super.intervalDidEnd(for: activity)
     
-//    LocalNotificationManager.scheduleExtensionNotification(
-//      title: "🔄 intervalDidEnd",
-//      details: ""
-//    )
+    LocalNotificationManager.scheduleExtensionNotification(
+      title: "🔄 intervalDidEnd",
+      details: ""
+    )
 
     let formatter = DateFormatter()
     formatter.dateFormat = "HH:mm:ss"
@@ -243,7 +151,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     // Monitoring finished silently
   }
   
-  //MARK: - Threshold
+  //MARK: - Inrterval Threshold
   override func eventDidReachThreshold(_ event: DeviceActivityEvent.Name, activity: DeviceActivityName) {
     super.eventDidReachThreshold(event, activity: activity)
     
@@ -266,13 +174,14 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     restartMonitoring(for: activity)
   }
   
+  //MARK: - Screen Time Alert
   private func handleTresholdScreenAlert(_ event: DeviceActivityEvent.Name) {
     let now = Date()
     
     lastAlertTrigger = now
     
     // Check if we need to reset counters (new day)
-    checkAndResetDailyCounters()
+//    checkAndResetDailyCounters()
     
     // Get alert interval - force minimum of 1 minute
     let storedValue = SharedData.userDefaults?.integer(forKey: SharedData.ScreenTime.selectedTime) ?? 0
@@ -280,39 +189,8 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     
     if let selection = SharedData.selectedAlertActivity {
       
-      // Simple approach - track total time for all monitored apps
-      let appKey = "total_screen_time"
-      
-      // Try to get app name from tokenDisplayNameMap by checking all tokens
-      var displayName = "your phone"
-      for token in selection.applicationTokens {
-        let tokenString = String(describing: token)
-        if !SharedData.appName(for: tokenString).isEmpty && SharedData.appName(for: tokenString) != "Приложение" {
-          displayName = SharedData.appName(for: tokenString)
-          break
-        }
-      }
-      
-      // Get current usage
-      let currentUsageSeconds = SharedData.getAppUsageTime(for: appKey)
-      
-      // Skip first trigger completely - don't add time, don't send notification
-      if currentUsageSeconds == 0 {
-        // Mark that we've seen the first trigger by setting a minimal value
-        SharedData.updateAppUsageTime(for: appKey, additionalTime: 0.1)
-        return
-      }
-      
-      // For all subsequent triggers, add the actual interval time
-      let additionalSeconds = Double(alertIntervalMinutes * 60)
-      SharedData.updateAppUsageTime(for: appKey, additionalTime: additionalSeconds)
-      
-      // Get total usage time
-      let totalUsageSeconds = SharedData.getAppUsageTime(for: appKey)
-      let totalUsageMinutes = Int(totalUsageSeconds / 60)
-      
       // Get personalized message
-      let message = getPersonalizedMessage(for: totalUsageMinutes, appName: displayName)
+      let message = getPersonalizedMessage()
       
       LocalNotificationManager.scheduleExtensionNotification(
         title: "⏰ Screen Time Alert",
@@ -367,24 +245,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       )
     }
   }
-
-  //MARK: - Interval Warnings
-  override func intervalWillStartWarning(for activity: DeviceActivityName) {
-    super.intervalWillStartWarning(for: activity)
-    // Handle the warning before the interval starts.
-  }
-  
-  override func intervalWillEndWarning(for activity: DeviceActivityName) {
-    super.intervalWillEndWarning(for: activity)
-    // Handle the warning before the interval ends.
-  }
-  
-  override func eventWillReachThresholdWarning(_ event: DeviceActivityEvent.Name, activity: DeviceActivityName) {
-    super.eventWillReachThresholdWarning(event, activity: activity)
     
-    // Handle the warning before the event reaches its threshold.
-  }
-  
   //MARK: - Start Interruption Monitoring
   private func startInterruptionMonitoring() {
     // Starting interruption monitoring
@@ -533,7 +394,58 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     }
   }
   
-  // MARK: - Scheduled Block Handlers
+  //MARK: - Schedule Blocks
+  private func handleScheduleStart(scheduleId: String) {
+    // Load all schedules from SharedData
+    guard let data = SharedData.userDefaults?.data(forKey: "blockSchedules"),
+          let schedules = try? JSONDecoder().decode([BlockSchedule].self, from: data),
+          let schedule = schedules.first(where: { $0.id == scheduleId }) else {
+      
+//      LocalNotificationManager.scheduleExtensionNotification(
+//        title: "❌ Schedule Not Found Start",
+//        details: "Could not find schedule with ID: \(scheduleId)"
+//      )
+      return
+    }
+    
+//    LocalNotificationManager.scheduleExtensionNotification(
+//      title: "📊 Schedule Data Check",
+//      details: "ID: \(schedule.id)\nName: \(schedule.name)\nApps: \(schedule.selection.applicationTokens.count)"
+//    )
+    
+    // Check if today is in the schedule's days
+    let calendar = Calendar.current
+    let weekday = calendar.component(.weekday, from: Date())
+    
+    if !schedule.daysOfWeek.contains(weekday) {
+//      LocalNotificationManager.scheduleExtensionNotification(
+//        title: "📅 Not Today",
+//        details: "Schedule \(schedule.name) not active on weekday \(weekday)"
+//      )
+      return
+    }
+    
+    // Apply restrictions
+    applyScheduledBlockRestrictions(schedule: schedule)
+  }
+  
+  private func handleScheduleEnd(scheduleId: String) {
+    // Load all schedules from SharedData
+    guard let data = SharedData.userDefaults?.data(forKey: "blockSchedules"),
+          let schedules = try? JSONDecoder().decode([BlockSchedule].self, from: data),
+          let schedule = schedules.first(where: { $0.id == scheduleId }) else {
+      
+//      LocalNotificationManager.scheduleExtensionNotification(
+//        title: "❌ Schedule Not Found End",
+//        details: "Could not find schedule with ID: \(scheduleId)"
+//      )
+      return
+    }
+    
+    // Remove restrictions
+    removeScheduledBlockRestrictions(schedule: schedule)
+  }
+
   private func applyScheduledBlockRestrictions(schedule: BlockSchedule) {
     let scheduleId = schedule.id
     
@@ -657,7 +569,6 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   }
   
   // Removed - duplicate method, using the one with BlockSchedule parameter
-  
   private func logScheduleSessionEnd(scheduleId: String) {
     // Calculate and log blocking time to Focus Time statistics
     if let sessionData = SharedData.userDefaults?.data(forKey: "schedule_session_\(scheduleId)"),
@@ -692,7 +603,6 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       SharedData.userDefaults?.removeObject(forKey: "schedule_session_\(scheduleId)")
     }
   }
-  
   
   private func isTodayInSchedule(scheduleId: String) -> Bool {
     // Check if we have days of week data
@@ -929,74 +839,63 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     }
   }
   
-  private func getPersonalizedMessage(for minutes: Int, appName: String) -> String {
-    switch minutes {
-      case 0..<5:
-        return "Your thumb needs a break. Put down your phone."
-      case 5..<10:
-        return "Still scrolling? Time to stop."
-      case 10..<15:
-        return "Screens won’t cuddle you back. Block your phone."
-      case 15..<20:
-        return "Put down your phone. Go touch grass. Seriously."
-      case 20..<25:
-        return "Your future self just rolled their eyes. Log off?"
-      case 25..<30:
-        return "Plot twist: nothing new on your feed."
-      case 30..<35:
-        return "Why not get dopamine from the real world?"
-      case 35..<40:
-        return "This app thinks you’re cute offline."
-      case 40..<45:
-        return "Congrats. You just beat your high score in procrastination."
-      case 45..<50:
-        return "Spoiler: You won’t find meaning here."
-      case 50..<55:
-        return "Breaking news: Your life is happening elsewhere."
-      case 55..<60:
-        return "Your screen time is judging you."
-      case 60..<70:
-        return "Achievement unlocked: Wasted time."
-      case 70..<80:
-        return "Even your battery is tired of this. Block your phone."
-      case 80..<90:
-        return "If scrolling burned calories, you’d be ripped."
-      case 90..<100:
-        return "Real life has better graphics. Go live it."
-      case 100..<110:
-        return "Stop scrolling. Start strolling. (Go take a walk, buddy)"
-      case 110..<120:
-        return "Go do literally anything cooler than this."
-      case 120..<130:
-        return "Life > feed. Choose wisely."
-      case 130..<140:
-        return "Go outside. The graphics are insane."
-      case 140..<150:
-        return "You’re one scroll away from nothing. Stop."
-      case 150..<160:
-        return "Endless feed. Endless waste. Stop."
-      case 160..<170:
-        return "You’re in a loop. Break it."
-      case 170..<180:
-        return "One more scroll and you officially qualify as furniture."
-      case 180..<190:
-        return "Breaking news: Your thumb has filed a complaint."
-      case 190..<200:
-        return "This feed is junk food. Go eat real life."
-      case 200..<210:
-        return "Nothing new here. Even your feed is bored."
-      case 210..<220:
-        return "Too much screen time shrinks your attention span to 8 seconds."
-      case 220..<230:
-        return "Studies show phone use kills focus. But hey, you’re really focused on scrolling."
-      case 230..<240:
-        return "Life expectancy = ~80 years. You’ll spend 9 of them staring at a rectangle."
-      case 240..<250:
-        return "Phone addiction raises anxiety by 30%. Keep scrolling if you’re into that."
-      case 250..<260:
-        return "Heavy phone users sleep an hour less. Worth it?"
-      default:
-        return "Go live your life — your feed will still be here."
+  private func getPersonalizedMessage() -> String {
+      let messages = [
+          "Your thumb needs a break. Put down your phone.",
+          "Still scrolling? Time to stop.",
+          "Screens won’t cuddle you back. Block your phone.",
+          "Put down your phone. Go touch grass. Seriously.",
+          "Your future self just rolled their eyes. Log off?",
+          "Plot twist: nothing new on your feed.",
+          "Why not get dopamine from the real world?",
+          "This app thinks you’re cute offline.",
+          "Congrats. You just beat your high score in procrastination.",
+          "Spoiler: You won’t find meaning here.",
+          "Breaking news: Your life is happening elsewhere.",
+          "Your screen time is judging you.",
+          "Achievement unlocked: Wasted time.",
+          "Even your battery is tired of this. Block your phone.",
+          "If scrolling burned calories, you’d be ripped.",
+          "Real life has better graphics. Go live it.",
+          "Stop scrolling. Start strolling. (Go take a walk, buddy)",
+          "Go do literally anything cooler than this.",
+          "Life > feed. Choose wisely.",
+          "Go outside. The graphics are insane.",
+          "You’re one scroll away from nothing. Stop.",
+          "Endless feed. Endless waste. Stop.",
+          "You’re in a loop. Break it.",
+          "One more scroll and you officially qualify as furniture.",
+          "Breaking news: Your thumb has filed a complaint.",
+          "This feed is junk food. Go eat real life.",
+          "Nothing new here. Even your feed is bored.",
+          "Too much screen time shrinks your attention span to 8 seconds.",
+          "Studies show phone use kills focus. But hey, you’re really focused on scrolling.",
+          "Life expectancy = ~80 years. You’ll spend 9 of them staring at a rectangle.",
+          "Phone addiction raises anxiety by 30%. Keep scrolling if you’re into that.",
+          "Heavy phone users sleep an hour less. Worth it?",
+          "Go live your life — your feed will still be here."
+      ]
+      
+      return messages.randomElement() ?? "Go live your life — your feed will still be here."
+  }
+  
+  // MARK: - Helper Methods
+  private func checkAndResetDailyCounters() {
+    let calendar = Calendar.current
+    let now = Date()
+    
+    // Get last reset date
+    let lastResetTimestamp = SharedData.userDefaults?.double(forKey: "lastUsageCounterReset") ?? 0
+    let lastResetDate = Date(timeIntervalSince1970: lastResetTimestamp)
+    
+    // Check if we're in a new day
+    if !calendar.isDateInToday(lastResetDate) {
+      // Reset counters
+      SharedData.resetAppUsageTimes()
+      
+      // Save new reset timestamp
+      SharedData.userDefaults?.set(now.timeIntervalSince1970, forKey: "lastUsageCounterReset")
+      
     }
   }
 }

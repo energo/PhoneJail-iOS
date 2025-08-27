@@ -286,44 +286,5 @@ public class SharedData {
       userDefaults?.set(try? JSONEncoder().encode(newValue), forKey: Keys.selectedBlockingActivity)
     }
   }
-  
-  // MARK: - App Activity Storage
-  
-  /// Simplified app info for storage
-  public struct StoredAppInfo: Codable {
-    public let tokenString: String
-    public let displayName: String
-    public let category: String
-    public let bundleId: String
-    
-    public init(tokenString: String, displayName: String, category: String, bundleId: String) {
-      self.tokenString = tokenString
-      self.displayName = displayName
-      self.category = category
-      self.bundleId = bundleId
-    }
-  }
-  
-  /// Save app list
-  public static func saveAppList(_ apps: [StoredAppInfo]) {
-    guard let data = try? JSONEncoder().encode(apps) else { return }
-    userDefaults?.set(data, forKey: Keys.appDeviceActivityList)
-    userDefaults?.synchronize() // Force sync for cross-extension access
-  }
-  
-  /// Get saved app list
-  public static func getAppList() -> [StoredAppInfo] {
-    guard let data = userDefaults?.data(forKey: Keys.appDeviceActivityList),
-          let apps = try? JSONDecoder().decode([StoredAppInfo].self, from: data) else {
-      return []
-    }
-    return apps
-  }
-  
-  /// Find app name by token string
-  public static func findAppName(for tokenString: String) -> String? {
-    let apps = getAppList()
-    return apps.first(where: { $0.tokenString == tokenString })?.displayName
-  }
 }
 

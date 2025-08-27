@@ -107,7 +107,6 @@ class ScreenTimeAlertViewModel: ObservableObject {
     
     // Save the updated selection before starting monitoring
     SharedData.selectedAlertActivity = updatedSelection
-    AppLogger.notice("Saved alert selection with \(enabledTokens.count) enabled apps (from \(model.activitySelection.applicationTokens.count) total)")
     
     // Verify saved data
     if let savedSelection = SharedData.selectedAlertActivity {
