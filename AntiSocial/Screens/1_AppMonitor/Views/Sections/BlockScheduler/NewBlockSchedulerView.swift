@@ -15,7 +15,9 @@ struct WeekDay {
 }
 
 struct NewBlockSchedulerView: View {
-  @Environment(\.dismiss) private var dismiss
+//  @Environment(\.dismiss) private var dismiss
+  @Environment(\.presentationMode) private var presentationMode
+
   @EnvironmentObject var deviceActivityService: DeviceActivityService
   
   let schedule: BlockSchedule?
@@ -63,10 +65,18 @@ struct NewBlockSchedulerView: View {
     .onAppear {
       loadScheduleData()
     }
-    .familyActivityPicker(
-      isPresented: $showingActivityPicker,
-      selection: $selection
-    )
+    .sheet(isPresented: $showingActivityPicker) {
+        FamilyActivityPickerWrapper(
+            isPresented: $showingActivityPicker,
+            selection: $selection
+        )
+        .background(BackgroundKillView())
+        .interactiveDismissDisabled()
+    }
+//    .familyActivityPicker(
+//      isPresented: $showingActivityPicker,
+//      selection: $selection
+//    )
     .onChange(of: name) { _, _ in
       autoSaveIfNeeded()
     }
@@ -156,7 +166,9 @@ struct NewBlockSchedulerView: View {
       
       Spacer()
       
-      Button(action: { dismiss() }) {
+      Button(action: {
+        self.presentationMode.wrappedValue.dismiss()
+      }) {
         Image(.icNavClose)
           .frame(width: 24, height: 24)
       }
@@ -434,7 +446,7 @@ struct NewBlockSchedulerView: View {
       autoSaveIfNeeded()
     case .delete:
       onDelete?()
-      dismiss()
+        self.presentationMode.wrappedValue.dismiss()
     case .strictBlock:
       isStrictBlock = true
       autoSaveIfNeeded()
@@ -548,7 +560,7 @@ struct NewBlockSchedulerView: View {
   
   private func activateAndSaveSchedule() {
     saveScheduleWithStatus(isActive: true)
-    dismiss()
+    self.presentationMode.wrappedValue.dismiss()
   }
   
   private func saveScheduleWithStatus(isActive activeStatus: Bool) {
