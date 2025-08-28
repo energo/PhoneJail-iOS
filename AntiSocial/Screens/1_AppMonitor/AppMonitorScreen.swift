@@ -54,8 +54,9 @@ struct AppMonitorScreen: View {
   private enum SectionType: Int, CaseIterable {
     case appBlocking = 0
     case blockScheduler = 1
-    case focusBreakers = 2
-    case stats = 3
+    case pomodoro = 2
+    case focusBreakers = 3
+    case stats = 4
     
     var id: Int { rawValue }
     
@@ -63,6 +64,7 @@ struct AppMonitorScreen: View {
       switch self {
         case .appBlocking: return "ic_nav_app_block"
         case .blockScheduler: return "ic_nav_schedule"
+        case .pomodoro: return "ic_nav_pomodoro" // Using timer icon
         case .stats: return "ic_nav_stats"
         case .focusBreakers: return "ic_nav_app_interrupt"
       }
@@ -72,6 +74,7 @@ struct AppMonitorScreen: View {
       switch self {
         case .appBlocking: return "App Blocking"
         case .blockScheduler: return "Block Scheduler"
+        case .pomodoro: return "Pomodoro Focus"
         case .stats: return "Statistics"
         case .focusBreakers: return "Focus Breakers"
       }
@@ -184,6 +187,9 @@ private extension AppMonitorScreen {
       case .blockScheduler:
         content = AnyView(blockSchedulerContent)
         needsTopSpacer = true
+      case .pomodoro:
+        content = AnyView(pomodoroContent)
+        needsTopSpacer = true
       case .stats:
         content = AnyView(statsContent)
         needsTopSpacer = true
@@ -234,6 +240,10 @@ private extension AppMonitorScreen {
   
   var blockSchedulerContent: some View {
     BlockSchedulerSectionView()
+  }
+  
+  var pomodoroContent: some View {
+    PomodoroSectionView()
   }
   
   var statsContent: some View {
@@ -440,7 +450,7 @@ private extension AppMonitorScreen {
         switch sectionInfo.type {
           case .appBlocking:
             scrollProxy.scrollTo("header", anchor: .bottom)
-          case .blockScheduler, .stats, .focusBreakers:
+          case .blockScheduler, .pomodoro, .stats, .focusBreakers:
             scrollProxy.scrollTo(section, anchor: .top)
         }
       }
