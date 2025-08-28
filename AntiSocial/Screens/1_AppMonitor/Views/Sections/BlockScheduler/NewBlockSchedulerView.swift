@@ -17,8 +17,9 @@ struct WeekDay {
 struct NewBlockSchedulerView: View {
 //  @Environment(\.dismiss) private var dismiss
   @Environment(\.presentationMode) private var presentationMode
-
   @EnvironmentObject var deviceActivityService: DeviceActivityService
+  @State private var navigationPath = NavigationPath()
+
   
   let schedule: BlockSchedule?
   let onSave: (BlockSchedule) -> Void
@@ -65,7 +66,7 @@ struct NewBlockSchedulerView: View {
     .onAppear {
       loadScheduleData()
     }
-    .sheet(isPresented: $showingActivityPicker) {
+    .fullScreenCover(isPresented: $showingActivityPicker) {
         FamilyActivityPickerWrapper(
             isPresented: $showingActivityPicker,
             selection: $selection
@@ -73,10 +74,6 @@ struct NewBlockSchedulerView: View {
         .background(BackgroundKillView())
         .interactiveDismissDisabled()
     }
-//    .familyActivityPicker(
-//      isPresented: $showingActivityPicker,
-//      selection: $selection
-//    )
     .onChange(of: name) { _, _ in
       autoSaveIfNeeded()
     }
