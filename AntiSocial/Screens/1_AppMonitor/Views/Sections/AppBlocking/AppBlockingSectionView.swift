@@ -234,7 +234,6 @@ struct AppBlockingSectionView: View {
           durationSection
           separatorView
           whatToBlockView
-//          separatorView
         }
         .padding(.horizontal)
         .padding(.top)
@@ -243,7 +242,6 @@ struct AppBlockingSectionView: View {
         // ZStack для strictBlockView, separatorView и swipeBlockView с диалогом
         ZStack {
           VStack(alignment: .leading, spacing: adaptive.spacing.medium) {
-            separatorView
             strictBlockView
             separatorView
             

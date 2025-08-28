@@ -54,8 +54,8 @@ struct AppMonitorScreen: View {
   private enum SectionType: Int, CaseIterable {
     case appBlocking = 0
     case blockScheduler = 1
-    case stats = 2
-    case focusBreakers = 3
+    case focusBreakers = 2
+    case stats = 3
     
     var id: Int { rawValue }
     

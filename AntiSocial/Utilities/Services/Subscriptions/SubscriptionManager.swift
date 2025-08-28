@@ -383,7 +383,7 @@ class SubscriptionManager: ObservableObject, SubscriptionManagerProtocol {
     let before = currentUsage(for: .weeklyBlocks)
     incrementUsage(for: .weeklyBlocks)
     let after = currentUsage(for: .weeklyBlocks)
-    AppLogger.alert("incrementBlockUsage: before=\(before), after=\(after)")
+//    AppLogger.alert("incrementBlockUsage: before=\(before), after=\(after)")
   }
   
   // MARK: - Interruption/Alert Day Tracking
