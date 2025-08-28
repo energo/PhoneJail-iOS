@@ -30,10 +30,11 @@ extension HowWorks {
 
 struct HowWorksView: View {
   let options = HowWorks.options
+  @State private var animatedItems: Set<Int> = []
   
   var body: some View {
     VStack(spacing: 12) {
-      ForEach(options, id: \.self) { option in
+      ForEach(Array(options.enumerated()), id: \.element) { index, option in
         VStack(alignment: .leading) {
           HStack {
             Image(option.titleIcon)
@@ -57,8 +58,28 @@ struct HowWorksView: View {
           RoundedRectangle(cornerRadius: 30)
             .fill(Color.white.opacity(0.07))
         )
+        .offset(y: animatedItems.contains(index) ? 0 : -50)
+        .opacity(animatedItems.contains(index) ? 1 : 0)
+        .animation(
+          .spring(response: 0.6, dampingFraction: 0.8, blendDuration: 0)
+            .delay(Double(index) * 0.15),
+          value: animatedItems.contains(index)
+        )
       }
     }
     .padding(.horizontal, 16)
+    .onAppear {
+      // Trigger animations with staggered delay
+      // Start after a small delay to ensure the parent view is visible
+      for index in 0..<options.count {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2 + Double(index) * 0.12) {
+          animatedItems.insert(index)
+        }
+      }
+    }
+    .onDisappear {
+      // Reset animation state when view disappears
+      animatedItems.removeAll()
+    }
   }
 }
