@@ -44,10 +44,10 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         scheduleId = activityName.replacingOccurrences(of: "schedule_", with: "")
       }
       
-      LocalNotificationManager.scheduleExtensionNotification(
-        title: "🔒 Interval START",
-        details: "Activity: \(activityName)\nSchedule ID: \(scheduleId) at \(timeString)"
-      )
+//      LocalNotificationManager.scheduleExtensionNotification(
+//        title: "🔒 Interval START",
+//        details: "Activity: \(activityName)\nSchedule ID: \(scheduleId) at \(timeString)"
+//      )
       
       // Load schedule and apply restrictions
       handleScheduleStart(scheduleId: scheduleId)
@@ -448,10 +448,10 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   private func applyScheduledBlockRestrictions(schedule: BlockSchedule) {
     let scheduleId = schedule.id
     
-    LocalNotificationManager.scheduleExtensionNotification(
-      title: "🔒 Applying Restrictions",
-      details: "Schedule: \(schedule.name)\nApps: \(schedule.selection.applicationTokens.count)"
-    )
+//    LocalNotificationManager.scheduleExtensionNotification(
+//      title: "🔒 Applying Restrictions",
+//      details: "Schedule: \(schedule.name)\nApps: \(schedule.selection.applicationTokens.count)"
+//    )
     
     // Apply restrictions using ManagedSettingsStore
     let storeName = ManagedSettingsStore.Name("scheduledBlock_\(scheduleId)")
@@ -480,10 +480,10 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     SharedData.userDefaults?.set(schedule.isStrictBlock, forKey: SharedData.Widget.isStricted)
     
     // Send notification
-    LocalNotificationManager.scheduleExtensionNotification(
-      title: "📅 \(schedule.name) Active",
-      details: "\(schedule.selection.applicationTokens.count) apps are now blocked"
-    )
+//    LocalNotificationManager.scheduleExtensionNotification(
+//      title: "📅 \(schedule.name) Active",
+//      details: "\(schedule.selection.applicationTokens.count) apps are now blocked"
+//    )
     
     // Log for Focus Time statistics
     logScheduleSessionStart(schedule: schedule)
@@ -530,10 +530,10 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     }
     
     // Send notification
-    LocalNotificationManager.scheduleExtensionNotification(
-      title: "📅 \(schedule.name) Ended",
-      details: "Scheduled apps are now accessible"
-    )
+//    LocalNotificationManager.scheduleExtensionNotification(
+//      title: "📅 \(schedule.name) Ended",
+//      details: "Scheduled apps are now accessible"
+//    )
   }
   
   // Removed - duplicate method, using the one with BlockSchedule parameter
