@@ -100,18 +100,23 @@ class AppInterruptionViewModel: ObservableObject {
     AppLogger.notice("Saved interruptions selection with \(model.activitySelection.applicationTokens.count) apps")
     
     let enabledTokens = Set(monitoredApps.filter { $0.isMonitored }.map { $0.token })
-    
+        
     // Create event with threshold
     var events: [DeviceActivityEvent.Name: DeviceActivityEvent] = [:]
     
+    // ВАЖНО: Создаем ОДИН event со ВСЕМИ приложениями
+    // iOS будет считать ОБЩЕЕ время использования ВСЕХ приложений
+    // Это ограничение iOS API - мы не можем узнать какое конкретное приложение использовалось
     let event = DeviceActivityEvent(
-      applications: enabledTokens,
+      applications: enabledTokens,  // ВСЕ выбранные приложения
       categories: model.activitySelection.categoryTokens,
       webDomains: model.activitySelection.webDomainTokens,
       threshold: DateComponents(minute: timeLimitMinutes)
     )
     
     events[DeviceActivityEvent.Name.interruption] = event
+    
+    AppLogger.notice("Created interruption event with \(enabledTokens.count) apps. iOS will track TOTAL usage!")
     
     let schedule = DeviceActivitySchedule(
       intervalStart: DateComponents(hour: 0, minute: 0, second: 0),

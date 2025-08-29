@@ -139,13 +139,13 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       
       // Clear interruption state
       SharedData.userDefaults?.removeObject(forKey: SharedData.ScreenTime.isInterruptionBlock)
-      // Interruption schedule is handled by the main schedule system now
       
       // Restart interruption monitoring if enabled
-//      let isEnabled = SharedData.userDefaults?.bool(forKey: SharedData.ScreenTime.isInterruptionsEnabled) ?? false
-//      if isEnabled {
-//        startInterruptionMonitoring()
-//      }
+      let isEnabled = SharedData.userDefaults?.bool(forKey: SharedData.ScreenTime.isInterruptionsEnabled) ?? false
+      if isEnabled {
+        // Перезапускаем мониторинг после окончания блокировки
+        restartMonitoring(for: .appMonitoringInterruption)
+      }
     }
     
     // Monitoring finished silently
@@ -164,6 +164,8 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     // Check if this is an interruption event
     if event == DeviceActivityEvent.Name.interruption {
       handleTresholdScreenInterruption(event)
+      // НЕ перезапускаем мониторинг для interruption - он перезапустится после окончания блокировки
+      return
     }
     
     // Check if this is a screen alert event
@@ -219,16 +221,13 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     
     // Processing interruption
     if let selection = SharedData.selectedInterruptionsActivity {
-      // Found selection with apps
-      
+
       // Save the current time as last interruption time
       SharedData.userDefaults?.set(Date().timeIntervalSince1970, forKey: SharedData.AppBlocking.lastInterruptionBlockTime)
       
-      // Don't stop monitoring - we'll restart it after the interruption block ends
-      
       LocalNotificationManager.scheduleExtensionNotification(
         title: "⏸️ Take a Break",
-        details: "Apps blocked for 2 minutes"
+        details: "Monitored apps blocked for 2 minutes"
       )
       
       BlockingNotificationServiceForInterruptions.shared.startBlocking(
