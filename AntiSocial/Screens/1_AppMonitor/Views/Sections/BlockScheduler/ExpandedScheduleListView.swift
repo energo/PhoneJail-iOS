@@ -49,16 +49,23 @@ struct ExpandedScheduleListView: View {
     BGView(imageRsc: .bgMain) {
       VStack(spacing: 16) {
         headerView
-        
-        
+          .padding(.horizontal, 32)
+        separatorView
+          .padding(.horizontal, 32)
+
         contentView
-          .padding(20)
+          .padding(.vertical, 20)
           .blurBackground()
-          .padding(.horizontal, adaptive.spacing.medium)
+          .padding(.horizontal, 32)
           .padding(.vertical, adaptive.spacing.small)
 
+        Spacer()
       }
     }
+  }
+  
+  private var separatorView: some View {
+    SeparatorView()
   }
   
   private var contentView: some View {
@@ -82,7 +89,7 @@ struct ExpandedScheduleListView: View {
           }
         }
         
-        Spacer()
+//        Spacer()
       }
       .padding()
     }
@@ -101,7 +108,6 @@ struct ExpandedScheduleListView: View {
           .frame(width: 24, height: 24)
       }
     }
-    .padding(.horizontal)
     .padding(.vertical, 8)
   }
   
