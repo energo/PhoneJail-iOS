@@ -461,16 +461,14 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     
     // Apply shield for visual blocking
     store.shield.applications = schedule.selection.applicationTokens
-    
-    if schedule.isStrictBlock {
-      // Strict mode - block all categories
-      store.shield.applicationCategories = ShieldSettings.ActivityCategoryPolicy.all()
-    } else {
-      // Normal mode - only block selected categories
-      store.shield.applicationCategories = ShieldSettings.ActivityCategoryPolicy.specific(schedule.selection.categoryTokens)
-    }
-    
+    store.shield.applicationCategories = schedule.selection.categoryTokens.isEmpty
+    ? nil
+    : ShieldSettings.ActivityCategoryPolicy.specific(schedule.selection.categoryTokens)
     store.shield.webDomains = schedule.selection.webDomainTokens
+
+    if schedule.isStrictBlock {      
+      store.application.denyAppRemoval = true
+    }
     
     // Mark as active in SharedData
     SharedData.userDefaults?.set(true, forKey: "schedule_\(scheduleId)_active")

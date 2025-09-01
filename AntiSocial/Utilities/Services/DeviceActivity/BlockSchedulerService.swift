@@ -349,17 +349,14 @@ class BlockSchedulerService: ObservableObject {
     
     // Apply shield for visual blocking
     store.shield.applications = schedule.selection.applicationTokens
-    
-    if schedule.isStrictBlock {
-      // Strict mode - block all categories
-//      store.shield.applicationCategories = ShieldSettings.ActivityCategoryPolicy.all()
-      store.application.denyAppRemoval = true
-    } else {
-      // Normal mode - only block selected categories
-      store.shield.applicationCategories = ShieldSettings.ActivityCategoryPolicy.specific(schedule.selection.categoryTokens)
-    }
-    
+    store.shield.applicationCategories = schedule.selection.categoryTokens.isEmpty
+    ? nil
+    : ShieldSettings.ActivityCategoryPolicy.specific(schedule.selection.categoryTokens)
     store.shield.webDomains = schedule.selection.webDomainTokens
+
+    if schedule.isStrictBlock {
+      store.application.denyAppRemoval = true
+    }
     
     // Also set additional restrictions like in regular blocking
     store.media.denyExplicitContent = true
