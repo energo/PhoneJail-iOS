@@ -28,17 +28,16 @@ final class LocalNotificationManager {
     let content = UNMutableNotificationContent()
     content.title = "🔒 App Blocking Mode Started"
     content.body = "Your selected apps are now blocked"
-    content.categoryIdentifier = "customIdentifier"
-    content.userInfo = ["customData": "fizzbuzz"]
+    content.categoryIdentifier = "blocking-app"
     content.sound = .default
 
     let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
     let request = UNNotificationRequest(identifier: "blocking-start", content: content, trigger: trigger)
     
     notificationCenter.add(request) { error in
-      if let error = error {
+//      if let error = error {
 //        AppLogger.critical(error, details: "Notification scheduling error")
-      }
+//      }
     }
   }
   
@@ -46,17 +45,16 @@ final class LocalNotificationManager {
     let content = UNMutableNotificationContent()
     content.title = "✅ App Blocking Mode Ended"
     content.body = "Great job! Your apps are now accessible"
-    content.categoryIdentifier = "customIdentifier"
-    content.userInfo = ["customData": "fizzbuzz"]
+    content.categoryIdentifier = "blocking-app"
     content.sound = .default
 
     let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: false)
     let request = UNNotificationRequest(identifier: "blocking-end", content: content, trigger: trigger)
     
     notificationCenter.add(request) { error in
-      if let error = error {
+//      if let error = error {
 //        AppLogger.critical(error, details: "Notification scheduling error")
-      }
+//      }
     }
   }
   

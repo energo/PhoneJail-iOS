@@ -354,9 +354,7 @@ class BlockSchedulerService: ObservableObject {
     : ShieldSettings.ActivityCategoryPolicy.specific(schedule.selection.categoryTokens)
     store.shield.webDomains = schedule.selection.webDomainTokens
 
-    if schedule.isStrictBlock {
-      store.application.denyAppRemoval = true
-    }
+    store.application.denyAppRemoval = schedule.isStrictBlock
     
     // Also set additional restrictions like in regular blocking
     store.media.denyExplicitContent = true

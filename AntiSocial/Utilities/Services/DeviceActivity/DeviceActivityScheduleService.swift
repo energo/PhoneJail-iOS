@@ -126,6 +126,9 @@ class DeviceActivityScheduleService {
   
   static func stopSchedule() {
     center.stopMonitoring([.appBlocking])
+    
+    // Cancel related notifications
+    LocalNotificationManager.shared.cancelNotifications(identifiers: ["blocking-start", "blocking-end"])
   }
   
   static func setInterruptionSchedule(endHour: Int, endMins: Int, selection: FamilyActivitySelection) {

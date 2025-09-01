@@ -87,6 +87,9 @@ final class BlockingNotificationService: ObservableObject {
 
   func stopBlocking(selection: FamilyActivitySelection) {
     AppLogger.alert("stopBlocking selection")
+    
+    // Cancel related notifications
+    LocalNotificationManager.shared.cancelNotifications(identifiers: ["blocking-end"])
 
     SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
     SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
@@ -98,6 +101,7 @@ final class BlockingNotificationService: ObservableObject {
     SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endMinutes)
 
 //    WidgetCenter.shared.reloadAllTimelines()
+
 
     // Complete blocking sessions for each app
     Task {
@@ -113,16 +117,6 @@ final class BlockingNotificationService: ObservableObject {
         }
       }
     }
-
-    // Save real usage duration (legacy support)
-//    if let startTimestamp = UserDefaults(suiteName: "group.ScreenTimeTestApp.sharedData")?.double(forKey: "restrictionStartTime") {
-//      let duration = Date().timeIntervalSince1970 - startTimestamp
-//      let today = Date()
-//      for app in selection.applications {
-//        FocusedTimeStatsStore.shared.saveUsage(for: app.localizedDisplayName ?? "App", date: today, duration: duration)
-//      }
-//      UserDefaults(suiteName: "group.ScreenTimeTestApp.sharedData")?.removeObject(forKey: "restrictionStartTime")
-//    }
     
     resetBlockingState()
   }

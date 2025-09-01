@@ -466,9 +466,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     : ShieldSettings.ActivityCategoryPolicy.specific(schedule.selection.categoryTokens)
     store.shield.webDomains = schedule.selection.webDomainTokens
 
-    if schedule.isStrictBlock {      
-      store.application.denyAppRemoval = true
-    }
+    store.application.denyAppRemoval = schedule.isStrictBlock
     
     // Mark as active in SharedData
     SharedData.userDefaults?.set(true, forKey: "schedule_\(scheduleId)_active")
