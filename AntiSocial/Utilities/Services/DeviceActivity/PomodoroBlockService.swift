@@ -36,31 +36,24 @@ final class PomodoroBlockService: ObservableObject {
   // MARK: - API
   /// Запускает помодоро-блок на N минут (минимум 5)
   func start(minutes: Int, allowWebBlock: Bool = true, allowedApps: Set<ApplicationToken> = []) {
-    let m = max(5, minutes)
-    let unlockDate = Date().addingTimeInterval(TimeInterval(m * 60))
-    SharedData.userDefaults?.set(unlockDate.timeIntervalSince1970, forKey: defaultsKey)
-    
-    // 1) Вешаем щит на всё
-    store.shield.applicationCategories = .all()
-    if allowWebBlock { store.shield.webDomainCategories = .all() }
-    
-    // 2) Если нужны исключения (allowlist)
-    //        if !allowedApps.isEmpty {
-    //            store.exceptions.applications = allowedApps
-    //        } else {
-    //            store.exceptions.applications = []
-    //        }
-    
-    // 3) Локалка «начали» и «закончим»
-    scheduleLocalNotifications(unlockDate: unlockDate, durationMinutes: m)
-    
-    // 4) Тикер для UI + авто-снятие
-    startTicker(unlockDate: unlockDate)
-    
-    // 5) Резервный фоновый «разблокировщик»
-    scheduleBGUnlock(at: unlockDate)
-    
-    isActive = true
+//    let m = max(5, minutes)
+//    let unlockDate = Date().addingTimeInterval(TimeInterval(m * 60))
+//    SharedData.userDefaults?.set(unlockDate.timeIntervalSince1970, forKey: defaultsKey)
+//    
+//    // 1) Вешаем щит на всё
+//    store.shield.applicationCategories = .all()
+//    if allowWebBlock { store.shield.webDomainCategories = .all() }
+//    
+//    // 3) Локалка «начали» и «закончим»
+//    scheduleLocalNotifications(unlockDate: unlockDate, durationMinutes: m)
+//    
+//    // 4) Тикер для UI + авто-снятие
+//    startTicker(unlockDate: unlockDate)
+//    
+//    // 5) Резервный фоновый «разблокировщик»
+//    scheduleBGUnlock(at: unlockDate)
+//    
+//    isActive = true
   }
   
   /// Принудительно снимает блок
@@ -108,16 +101,16 @@ final class PomodoroBlockService: ObservableObject {
   }
   
   private func restoreIfNeeded() {
-    guard let unlock = savedUnlockDate() else { return }
-    if Date() < unlock {
-      // Приложение перезапустили — вернуть «щит» и тикер
-      store.shield.applicationCategories = .all()
-      store.shield.webDomainCategories = .all()
-      startTicker(unlockDate: unlock)
-      isActive = true
-    } else {
-      stop()
-    }
+//    guard let unlock = savedUnlockDate() else { return }
+//    if Date() < unlock {
+//      // Приложение перезапустили — вернуть «щит» и тикер
+//      store.shield.applicationCategories = .all()
+//      store.shield.webDomainCategories = .all()
+//      startTicker(unlockDate: unlock)
+//      isActive = true
+//    } else {
+//      stop()
+//    }
   }
   
   private func savedUnlockDate() -> Date? {
