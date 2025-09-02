@@ -249,3 +249,56 @@ let dbPath = FileManager.default
 - `AntiSocial/Utilities/Constants/SharedDataConstants.swift`: Shared data keys
 - `DeviceActivityMonitorExtension/DeviceActivityMonitorExtension.swift`: Background monitoring
 - `Shield/ShieldConfigurationExtension.swift`: App blocking UI
+
+## Development Tools and Configuration
+
+### Required VS Code Extensions for iOS Development
+Based on your project configuration, these extensions are recommended:
+- **Swift Language Support**: `sswg.swift-lang` or `swiftlang.swift-vscode`
+- **SweetPad**: `sweetpad.sweetpad` - iOS/Swift development with Xcode integration
+- **CodeLLDB**: `vadimcn.vscode-lldb` - Debugging support
+- **LLDB DAP**: `llvm-vs-code-extensions.lldb-dap` - LLDB debugger integration
+
+### Debugging Configuration
+```json
+{
+    "lldb.library": "/Applications/Xcode.app/Contents/SharedFrameworks/LLDB.framework/Versions/A/LLDB",
+    "lldb.launch.expressions": "native"
+}
+```
+
+### Additional Tools
+- **REST Client**: For testing API endpoints
+- **Claude Code**: AI assistance integrated in VS Code
+- **Cline**: Additional AI development assistance
+
+## Essential Documentation References
+
+### Apple Developer Documentation
+- **Screen Time & Family Controls**: https://developer.apple.com/documentation/familycontrols
+- **DeviceActivity Framework**: https://developer.apple.com/documentation/deviceactivity
+- **ManagedSettings**: https://developer.apple.com/documentation/managedsettings
+- **App Extensions**: https://developer.apple.com/documentation/foundation/app_extension_support
+- **SwiftUI**: https://developer.apple.com/documentation/swiftui
+- **Combine Framework**: https://developer.apple.com/documentation/combine
+
+### Firebase Documentation
+- **Firebase Auth iOS**: https://firebase.google.com/docs/auth/ios/start
+- **Cloud Firestore iOS**: https://firebase.google.com/docs/firestore/quickstart#ios
+- **Google Sign-In**: https://developers.google.com/identity/sign-in/ios/start
+- **Firebase Analytics**: https://firebase.google.com/docs/analytics/get-started?platform=ios
+
+### Third-Party Libraries
+- **GRDB (SQLite)**: https://github.com/groue/GRDB.swift
+- **RevenueCat**: https://docs.revenuecat.com/docs/ios
+- **Codemagic CI/CD**: https://docs.codemagic.io/yaml-quick-start/building-a-native-ios-app/
+
+### Swift & iOS Development
+- **Swift Language Guide**: https://docs.swift.org/swift-book/documentation/the-swift-programming-language
+- **Human Interface Guidelines**: https://developer.apple.com/design/human-interface-guidelines
+- **App Store Review Guidelines**: https://developer.apple.com/app-store/review/guidelines/
+
+### Testing & Debugging
+- **XCTest Framework**: https://developer.apple.com/documentation/xctest
+- **Instruments**: https://help.apple.com/instruments/mac/current/
+- **TestFlight**: https://developer.apple.com/testflight/
