@@ -10,7 +10,7 @@ final class GRDBStorage {
   static let shared = GRDBStorage()
   internal var writer: DatabaseWriter?
   private var userId: String?
-
+  
   private init() {
     do {
       let url = try FileManager.default
@@ -22,18 +22,18 @@ final class GRDBStorage {
       AppLogger.critical(error, details: "GRDB Init Error")
     }
   }
-
+  
   func setUserId(_ id: String) {
     self.userId = id
   }
-
+  
   private func ensureUserId() throws -> String {
     guard let id = userId else {
       throw NSError(domain: "GRDBItemsStorage", code: 1, userInfo: [NSLocalizedDescriptionKey: "userId not set"])
     }
     return id
   }
-
+  
   private func setupDatabase() throws {
     try writer?.write { db in
       try db.create(table: ASUser.databaseTableName, ifNotExists: true) { t in
@@ -48,11 +48,8 @@ final class GRDBStorage {
         t.column("mainGoal", .text)
       }
     }
-    
-    // Настройка таблиц для блокировки приложений
-    try setupBlockingTables()
   }
-
+  
   func saveUser(_ user: ASUser) async throws {
     try await writer?.write { db in
       var u = user
@@ -60,7 +57,7 @@ final class GRDBStorage {
       try u.save(db)
     }
   }
-
+  
   func loadUser() async throws -> ASUser? {
     let id = try ensureUserId()
     return try await writer?.read { db in
@@ -69,28 +66,24 @@ final class GRDBStorage {
         .fetchOne(db)
     }
   }
-
+  
   func deleteUser() async throws {
     let id = try ensureUserId()
     try await writer?.write { db in
       _ = try ASUser.filter(key: id).deleteAll(db)
     }
   }
-
+  
   func ensureDatabaseSchema() async throws {
     try await writer?.write { db in
       let userTableExists = try self.tableExists(db, tableName: ASUser.databaseTableName)
-      let blockingTableExists = try self.tableExists(db, tableName: "app_blocking_sessions")
       
       if !userTableExists {
         try self.setupDatabase()
-      } else if !blockingTableExists {
-        // Если user таблица есть, но blocking таблиц нет - создаем их
-        try self.setupBlockingTables()
       }
     }
   }
-
+  
   private func tableExists(_ db: Database, tableName: String) throws -> Bool {
     let count = try Int.fetchOne(db, sql: """
       SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?
