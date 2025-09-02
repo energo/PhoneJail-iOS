@@ -30,28 +30,6 @@ final class BlockingNotificationService: ObservableObject {
     // Сохраняем timestamp начала блокировки
     SharedData.userDefaults?.set(Date().timeIntervalSince1970, forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
     
-    // Сохраняем токены приложений и категорий для логирования
-    var allTokens: [ApplicationToken] = []
-    
-    // Добавляем токены приложений
-    allTokens.append(contentsOf: selection.applicationTokens)
-    
-    // Добавляем токены из категорий
-    for category in selection.categoryTokens {
-      // Категория содержит несколько приложений, но мы не можем получить их токены напрямую
-      // Поэтому создаем фиктивный токен для категории
-      // В реальности категория блокирует все приложения в ней
-    }
-    
-    // Если нет отдельных приложений, но есть категории, создаем хотя бы один токен для логирования
-    if allTokens.isEmpty && !selection.categoryTokens.isEmpty {
-      // Используем фиктивный токен для представления категорий
-      // Это нужно только для статистики
-      print("BlockingNotificationService: Using categories, not individual apps")
-    }
-    
-    let appTokens = allTokens
-    
     let (endHour, endMin) = getEndTime(hourDuration: hours, minuteDuration: minutes)
     restrictionModel.endHour = endHour
     restrictionModel.endMins = endMin
@@ -91,19 +69,25 @@ final class BlockingNotificationService: ObservableObject {
     // Log blocking session using new AppBlockingLogger
     let plannedDuration = TimeInterval(hours * 3600 + minutes * 60)
     Task { @MainActor in
-      if !appTokens.isEmpty {
-        print("BlockingNotificationService: Starting blocking with \(appTokens.count) apps")
+      // Всегда логируем сессию, независимо от того, есть ли приложения или категории
+      // Если есть отдельные приложения - используем их
+      // Если нет приложений, но есть категории - создаем сессию для категорий
+      // Если есть и то и другое - все равно логируем с приложениями (категории учитываются через selection)
+      
+      if !selection.applicationTokens.isEmpty {
+        let apps = Array(selection.applicationTokens)
+        print("BlockingNotificationService: Starting blocking with \(apps.count) apps and \(selection.categoryTokens.count) categories")
         _ = AppBlockingLogger.shared.startAppBlockingSession(
-          apps: appTokens,
+          apps: apps,
           duration: plannedDuration
         )
       } else if !selection.categoryTokens.isEmpty {
-        print("BlockingNotificationService: Starting blocking with categories")
+        print("BlockingNotificationService: Starting blocking with \(selection.categoryTokens.count) categories only")
         _ = AppBlockingLogger.shared.startAppBlockingSessionForCategories(
           duration: plannedDuration
         )
       } else {
-        print("BlockingNotificationService: No apps or categories selected for blocking")
+        print("BlockingNotificationService: Warning - No apps or categories selected for blocking")
       }
     }
   }

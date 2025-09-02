@@ -268,7 +268,10 @@ final class AppBlockingLogger: ObservableObject {
         }
         
         let duration = session.actualDuration ?? 0
-        print("AppBlockingLogger: Ending \(type.rawValue) session \(sessionId), completed: \(completed), duration: \(duration) seconds")
+        print("AppBlockingLogger: Ending \(type.rawValue) session \(sessionId)")
+        print("  - Completed: \(completed)")
+        print("  - Duration: \(duration) seconds (\(duration/60) minutes)")
+        print("  - Blocked apps: \(session.blockedApps)")
         
         // Сохраняем завершенную сессию
         saveCompletedSession(session)
@@ -436,7 +439,6 @@ final class AppBlockingLogger: ObservableObject {
         // Сохраняем обновленный список
         if let data = try? JSONEncoder().encode(sessions) {
             SharedData.userDefaults?.set(data, forKey: key)
-            SharedData.userDefaults?.synchronize() // Форсируем сохранение
             
             print("AppBlockingLogger: Saved session to key '\(key)'. Total sessions: \(sessions.count)")
         }
@@ -493,6 +495,8 @@ final class AppBlockingLogger: ObservableObject {
         
         // Сохраняем обновленное значение
         SharedData.userDefaults?.set(newLifetime, forKey: SharedData.AppBlocking.lifetimeTotalBlockingTime)
+        
+        print("AppBlockingLogger: Updated lifetime stats from \(currentLifetime)s to \(newLifetime)s (added \(addingDuration)s)")
     }
     
     private func updateHourlyData() {
@@ -575,7 +579,6 @@ final class AppBlockingLogger: ObservableObject {
             
             // Также сохраняем в legacy формате для обратной совместимости
             SharedData.userDefaults?.set(data, forKey: "hourlyBlockingData_\(dateKey)")
-            SharedData.userDefaults?.synchronize()
             
             let totalMinutes = hourlyStats.reduce(0, +)
             print("AppBlockingLogger: Updated hourly stats for '\(dateKey)'. Total minutes: \(totalMinutes)")
