@@ -239,6 +239,7 @@ struct BlockSchedulerSectionView: View {
             .adaptiveFont(\.body)
             .fontWeight(.semibold)
             .foregroundStyle(Color.white)
+            .multilineTextAlignment(.leading)
           
           Text("\(schedule.timeRangeString) • \(schedule.shortDaysString)")
             .adaptiveFont(\.callout)
