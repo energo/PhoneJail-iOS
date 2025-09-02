@@ -177,19 +177,45 @@ public class SharedData {
     return getHourlyBlockingData(for: Date())
   }
   
-  /// Структура для хранения данных о сессиях блокировки
+  /// Новая структура сессии блокировки (из AppBlockingLogger)
+  public struct BlockingSession: Codable {
+    public let id: String
+    public let type: String // BlockingType as string
+    public let startTime: Date
+    public var endTime: Date?
+    public let blockedApps: [String]
+    public var isCompleted: Bool
+    public var actualDuration: TimeInterval?
+  }
+  
+  /// Структура для хранения данных о сессиях блокировки (legacy)
   public struct BlockingSessionInfo: Codable {
     public let startTime: Date
     public let endTime: Date?
     public let appName: String
   }
   
-  /// Get blocking sessions for a specific date
+  /// Get blocking sessions for a specific date (legacy format)
   public static func getBlockingSessions(for date: Date) -> [BlockingSessionInfo] {
     let formatter = DateFormatter()
     formatter.dateFormat = "yyyy-MM-dd"
     let dateKey = formatter.string(from: date)
     
+    // Try to get new format first (from AppBlockingLogger)
+    if let sessionData = userDefaults?.data(forKey: "blocking_sessions_\(dateKey)") {
+      // Convert new BlockingSession format to BlockingSessionInfo
+      if let sessions = try? JSONDecoder().decode([BlockingSession].self, from: sessionData) {
+        return sessions.map { session in
+          BlockingSessionInfo(
+            startTime: session.startTime,
+            endTime: session.endTime,
+            appName: "Focus Time" // Generic name since we don't store app names in new format
+          )
+        }
+      }
+    }
+    
+    // Fallback to legacy format
     if let sessionData = userDefaults?.data(forKey: "blockingSessions_\(dateKey)"),
        let sessions = try? JSONDecoder().decode([BlockingSessionInfo].self, from: sessionData) {
       return sessions

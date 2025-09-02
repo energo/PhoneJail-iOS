@@ -8,510 +8,609 @@
 import Foundation
 import ManagedSettings
 
+// MARK: - Blocking Types
 
+enum BlockingType: String, Codable {
+    case appBlocking      // Focus Time - ручная блокировка пользователем
+    case appInterruption  // Автоматическая блокировка при превышении лимита
+    case scheduleBlocking // Автоматическая блокировка по расписанию
+}
 
-/// Структура для хранения статистики блокировок за день
-struct TodayBlockingStats {
-    let totalBlockingTime: TimeInterval
-    let completedSessions: Int
-    let totalSessions: Int
+// MARK: - Data Models
+
+struct BlockingSession: Codable {
+    let id: String
+    let type: BlockingType
+    let startTime: Date
+    var endTime: Date?
+    let blockedApps: [String] // Application token strings
+    var isCompleted: Bool
+    var actualDuration: TimeInterval? // в секундах
     
-    static var empty: TodayBlockingStats {
-        TodayBlockingStats(totalBlockingTime: 0, completedSessions: 0, totalSessions: 0)
+    init(type: BlockingType, blockedApps: [String]) {
+        self.id = UUID().uuidString
+        self.type = type
+        self.startTime = Date()
+        self.endTime = nil
+        self.blockedApps = blockedApps
+        self.isCompleted = false
+        self.actualDuration = nil
+    }
+    
+    mutating func complete() {
+        self.endTime = Date()
+        self.isCompleted = true
+        self.actualDuration = endTime?.timeIntervalSince(startTime)
+    }
+    
+    mutating func interrupt() {
+        self.endTime = Date()
+        self.isCompleted = false
+        self.actualDuration = endTime?.timeIntervalSince(startTime)
     }
 }
 
-/// Сервис для логирования и управления блокировками приложений
+struct DailyStats: Codable {
+    let date: Date
+    var totalBlockingTime: TimeInterval
+    var completedSessions: Int
+    var totalSessions: Int
+    var appBlockingTime: TimeInterval
+    var interruptionTime: TimeInterval
+    var scheduleBlockingTime: TimeInterval
+    
+    init(date: Date) {
+        self.date = Calendar.current.startOfDay(for: date)
+        self.totalBlockingTime = 0
+        self.completedSessions = 0
+        self.totalSessions = 0
+        self.appBlockingTime = 0
+        self.interruptionTime = 0
+        self.scheduleBlockingTime = 0
+    }
+}
+
+// MARK: - AppBlockingLogger
+
+/// Унифицированный сервис для логирования всех типов блокировок приложений
+/// Использует SharedData (App Group UserDefaults) для хранения данных, доступных всем расширениям
 @MainActor
 final class AppBlockingLogger: ObservableObject {
     
     static let shared = AppBlockingLogger()
     
-    @Published private(set) var activeSessions: [AppBlockingSession] = []
-    @Published private(set) var todayStats: [DailyAppBlockingStats] = []
-    @Published private(set) var allTimeStats: [DailyAppBlockingStats] = []
+    // Store multiple concurrent sessions
+    // AppBlocking and AppInterruption can have only one active session
+    // ScheduleBlocking can have multiple active sessions
+    @Published private(set) var activeAppBlockingSession: BlockingSession?
+    @Published private(set) var activeInterruptionSession: BlockingSession?
+    @Published private(set) var activeScheduleSessions: [String: BlockingSession] = [:] // Key is session ID
+    @Published private(set) var todayStats: DailyStats
+    
+    private let calendar = Calendar.current
+    private let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
     
     private init() {
-        // Загружаем статистику при инициализации
-        Task {
-            await loadActiveSessions()
-            await loadTodayStats()
-            await loadAllTimeStats()
-        }
+        self.todayStats = DailyStats(date: Date())
+        loadActiveSessions()
+        loadTodayStats()
     }
     
     // MARK: - Session Management
     
-    /// Начать сессию блокировки приложения
-    func startBlockingSession(
-        applicationToken: ApplicationToken,
-        appDisplayName: String,
-        plannedDuration: TimeInterval
-    ) async throws -> AppBlockingSession {
-        guard let currentUser = Storage.shared.user else {
-            throw AppBlockingError.userNotSet
+    /// Начать сессию блокировки приложений
+    private func startSession(type: BlockingType, apps: [ApplicationToken]) -> String {
+        // Преобразуем токены в строки для сохранения
+        // ApplicationToken не может быть сериализован напрямую, сохраняем как String description
+        let appTokenStrings = apps.map { token in
+            // Используем description токена как уникальный идентификатор
+            String(describing: token)
         }
         
-        let session = try AppBlockingSession(
-            userId: currentUser.id,
-            applicationToken: applicationToken,
-            appDisplayName: appDisplayName,
-            startDate: Date(),
-            plannedDuration: plannedDuration
-        )
+        let session = BlockingSession(type: type, blockedApps: appTokenStrings)
         
-        try await Storage.shared.saveBlockingSession(session)
-        
-        await loadActiveSessions()
-        
-        // Обновляем SharedData чтобы активная сессия сразу отобразилась в графике
-        Task {
-            await saveBlockingSessionsToSharedData()
+        // Сохраняем сессию в зависимости от типа
+        switch type {
+        case .appBlocking:
+            self.activeAppBlockingSession = session
+            saveActiveSession(session, key: "active_app_blocking_session")
+        case .appInterruption:
+            self.activeInterruptionSession = session
+            saveActiveSession(session, key: "active_interruption_session")
+        case .scheduleBlocking:
+            self.activeScheduleSessions[session.id] = session
+            saveScheduleSessions()
         }
         
-        AppLogger.notice("Started blocking session for \(appDisplayName), duration: \(plannedDuration)s")
+        // Обновляем статистику
+        updateHourlyData()
         
-        return session
+        print("AppBlockingLogger: Started \(type.rawValue) session with ID: \(session.id), apps: \(appTokenStrings.count)")
+        if !appTokenStrings.isEmpty {
+            print("AppBlockingLogger: App tokens: \(appTokenStrings.prefix(3))...") // Показываем первые 3 для отладки
+        }
+        
+        return session.id
     }
     
-    /// Завершить сессию блокировки (успешно)
-    func completeBlockingSession(_ sessionId: String) async throws {
-        guard let currentUser = Storage.shared.user else {
-            throw AppBlockingError.userNotSet
-        }
+    /// Начать сессию App Blocking (Focus Time)
+    func startAppBlockingSession(apps: [ApplicationToken], duration: TimeInterval) -> String {
+        let sessionId = startSession(type: .appBlocking, apps: apps)
         
-        var sessions = try await Storage.shared.getBlockingSessions(for: currentUser.id)
-        guard let index = sessions.firstIndex(where: { $0.id == sessionId }) else {
-            throw AppBlockingError.sessionNotFound
-        }
+        // Сохраняем запланированное время окончания
+        let unlockDate = Date().addingTimeInterval(duration)
+        SharedData.userDefaults?.set(unlockDate, forKey: SharedData.AppBlocking.unlockDate)
+        SharedData.userDefaults?.set(Date().timeIntervalSince1970, forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
         
-        var session = sessions[index]
-        session.complete(actualEndDate: Date())
-        
-        try await Storage.shared.updateBlockingSession(session)
-        try await Storage.shared.updateDailyStatsForSession(session)
-        
-        await loadActiveSessions()
-        await loadTodayStats()
-        await loadAllTimeStats()
-        
-        AppLogger.notice("Completed blocking session for \(session.appDisplayName)")
+        return sessionId
     }
     
-    /// Прервать сессию блокировки (досрочно)
-    func interruptBlockingSession(_ sessionId: String) async throws {
-        guard let currentUser = Storage.shared.user else {
-            throw AppBlockingError.userNotSet
-        }
+    /// Начать сессию App Blocking без конкретных токенов (для категорий)
+    func startAppBlockingSessionForCategories(duration: TimeInterval) -> String {
+        // Создаем сессию без конкретных токенов приложений
+        let session = BlockingSession(type: .appBlocking, blockedApps: ["Categories"])
         
-        var sessions = try await Storage.shared.getBlockingSessions(for: currentUser.id)
-        guard let index = sessions.firstIndex(where: { $0.id == sessionId }) else {
-            throw AppBlockingError.sessionNotFound
-        }
+        // Сохраняем сессию
+        self.activeAppBlockingSession = session
+        saveActiveSession(session, key: "active_app_blocking_session")
         
-        var session = sessions[index]
-        session.interrupt(actualEndDate: Date())
+        // Обновляем статистику
+        updateHourlyData()
         
-        try await Storage.shared.updateBlockingSession(session)
-        try await Storage.shared.updateDailyStatsForSession(session)
+        // Сохраняем запланированное время окончания
+        let unlockDate = Date().addingTimeInterval(duration)
+        SharedData.userDefaults?.set(unlockDate, forKey: SharedData.AppBlocking.unlockDate)
+        SharedData.userDefaults?.set(Date().timeIntervalSince1970, forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
         
-        await loadActiveSessions()
-        await loadTodayStats()
-        await loadAllTimeStats()
+        print("AppBlockingLogger: Started appBlocking session for categories with ID: \(session.id)")
         
-        AppLogger.notice("Interrupted blocking session for \(session.appDisplayName)")
+        return session.id
     }
     
-    // MARK: - Data Loading
+    /// Начать сессию App Interruption (превышение лимита)
+    func startInterruptionSession(app: ApplicationToken) -> String {
+        let sessionId = startSession(type: .appInterruption, apps: [app])
+        
+        // Interruption всегда на 2 минуты
+        let unlockDate = Date().addingTimeInterval(120)
+        SharedData.userDefaults?.set(unlockDate, forKey: SharedData.AppBlocking.unlockDate)
+        
+        return sessionId
+    }
     
-    /// Загрузить активные сессии
-    func loadActiveSessions() async {
-        do {
-            guard let currentUser = Storage.shared.user else { return }
+    /// Начать сессию App Interruption для категорий
+    func startInterruptionSessionForCategories() -> String {
+        // Создаем сессию без конкретных токенов приложений
+        let session = BlockingSession(type: .appInterruption, blockedApps: ["Categories"])
+        
+        // Сохраняем сессию
+        self.activeInterruptionSession = session
+        saveActiveSession(session, key: "active_interruption_session")
+        
+        // Обновляем статистику
+        updateHourlyData()
+        
+        // Interruption всегда на 2 минуты
+        let unlockDate = Date().addingTimeInterval(120)
+        SharedData.userDefaults?.set(unlockDate, forKey: SharedData.AppBlocking.unlockDate)
+        
+        print("AppBlockingLogger: Started appInterruption session for categories with ID: \(session.id)")
+        
+        return session.id
+    }
+    
+    /// Начать сессию Schedule Blocking (по расписанию)
+    func startScheduleSession(apps: [ApplicationToken], scheduleName: String) -> String {
+        let sessionId = startSession(type: .scheduleBlocking, apps: apps)
+        
+        // Для schedule блокировок время окончания определяется расписанием
+        // Сохраняем имя расписания для отладки
+        SharedData.userDefaults?.set(scheduleName, forKey: "current_schedule_name")
+        
+        return sessionId
+    }
+    
+    /// Начать сессию Schedule Blocking для категорий
+    func startScheduleSessionForCategories(scheduleName: String) -> String {
+        // Создаем сессию без конкретных токенов приложений
+        let session = BlockingSession(type: .scheduleBlocking, blockedApps: ["Categories"])
+        
+        // Сохраняем сессию (может быть несколько одновременно)
+        self.activeScheduleSessions[session.id] = session
+        saveScheduleSessions()
+        
+        // Обновляем статистику
+        updateHourlyData()
+        
+        // Сохраняем имя расписания для отладки
+        SharedData.userDefaults?.set(scheduleName, forKey: "current_schedule_name")
+        
+        print("AppBlockingLogger: Started scheduleBlocking session for categories with ID: \(session.id), schedule: \(scheduleName)")
+        
+        return session.id
+    }
+    
+    /// Завершить сессию блокировки по ID
+    func endSession(sessionId: String, completed: Bool) {
+        // Find session by ID
+        var foundSession: BlockingSession? = nil
+        var foundType: BlockingType? = nil
+        
+        // Check app blocking session
+        if activeAppBlockingSession?.id == sessionId {
+            foundSession = activeAppBlockingSession
+            foundType = .appBlocking
+        }
+        // Check interruption session
+        else if activeInterruptionSession?.id == sessionId {
+            foundSession = activeInterruptionSession
+            foundType = .appInterruption
+        }
+        // Check schedule sessions
+        else if let scheduleSession = activeScheduleSessions[sessionId] {
+            foundSession = scheduleSession
+            foundType = .scheduleBlocking
+        }
+        
+        guard var session = foundSession, let type = foundType else {
+            print("AppBlockingLogger: No active session with ID: \(sessionId)")
+            return
+        }
+        
+        if completed {
+            session.complete()
+        } else {
+            session.interrupt()
+        }
+        
+        let duration = session.actualDuration ?? 0
+        print("AppBlockingLogger: Ending \(type.rawValue) session \(sessionId), completed: \(completed), duration: \(duration) seconds")
+        
+        // Сохраняем завершенную сессию
+        saveCompletedSession(session)
+        
+        // Обновляем статистику
+        updateDailyStats(with: session)
+        updateHourlyData()
+        
+        // Удаляем сессию из активных
+        switch type {
+        case .appBlocking:
+            self.activeAppBlockingSession = nil
+            SharedData.userDefaults?.removeObject(forKey: "active_app_blocking_session")
+            SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.unlockDate)
+            SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
+        case .appInterruption:
+            self.activeInterruptionSession = nil
+            SharedData.userDefaults?.removeObject(forKey: "active_interruption_session")
+        case .scheduleBlocking:
+            self.activeScheduleSessions.removeValue(forKey: sessionId)
+            saveScheduleSessions()
+        }
+    }
+    
+    /// Завершить сессию блокировки по типу (для AppBlocking и AppInterruption)
+    func endSession(type: BlockingType, completed: Bool) {
+        let session: BlockingSession?
+        
+        switch type {
+        case .appBlocking:
+            session = activeAppBlockingSession
+        case .appInterruption:
+            session = activeInterruptionSession
+        case .scheduleBlocking:
+            print("AppBlockingLogger: Cannot end schedule session by type - use sessionId")
+            return
+        }
+        
+        guard let activeSession = session else {
+            print("AppBlockingLogger: No active session of type: \(type.rawValue)")
+            return
+        }
+        
+        endSession(sessionId: activeSession.id, completed: completed)
+    }
+    
+    // MARK: - Data Access
+    
+    /// Получить активную сессию по типу
+    func getCurrentSession(type: BlockingType) -> BlockingSession? {
+        switch type {
+        case .appBlocking:
+            return activeAppBlockingSession
+        case .appInterruption:
+            return activeInterruptionSession
+        case .scheduleBlocking:
+            // Return first schedule session if any
+            return activeScheduleSessions.values.first
+        }
+    }
+    
+    /// Получить все активные schedule сессии
+    func getActiveScheduleSessions() -> [BlockingSession] {
+        return Array(activeScheduleSessions.values)
+    }
+    
+    /// Получить все активные сессии
+    func getAllActiveSessions() -> [BlockingSession] {
+        var sessions: [BlockingSession] = []
+        if let appSession = activeAppBlockingSession {
+            sessions.append(appSession)
+        }
+        if let interruptionSession = activeInterruptionSession {
+            sessions.append(interruptionSession)
+        }
+        sessions.append(contentsOf: activeScheduleSessions.values)
+        return sessions
+    }
+    
+    /// Получить почасовую статистику за указанную дату
+    func getHourlyStats(for date: Date) -> [Int] {
+        let dateKey = dateFormatter.string(from: date)
+        let key = "hourly_stats_\(dateKey)"
+        
+        if let data = SharedData.userDefaults?.data(forKey: key),
+           let stats = try? JSONDecoder().decode([Int].self, from: data) {
+            return stats
+        }
+        
+        return Array(repeating: 0, count: 24)
+    }
+    
+    /// Получить дневную статистику за указанную дату
+    func getDailyStats(for date: Date) -> DailyStats {
+        let dateKey = dateFormatter.string(from: date)
+        let key = "daily_stats_\(dateKey)"
+        
+        if let data = SharedData.userDefaults?.data(forKey: key),
+           let stats = try? JSONDecoder().decode(DailyStats.self, from: data) {
+            return stats
+        }
+        
+        return DailyStats(date: date)
+    }
+    
+    /// Получить все сессии блокировки за указанную дату
+    func getBlockingSessions(for date: Date) -> [BlockingSession] {
+        let dateKey = dateFormatter.string(from: date)
+        let key = "blocking_sessions_\(dateKey)"
+        
+        if let data = SharedData.userDefaults?.data(forKey: key),
+           let sessions = try? JSONDecoder().decode([BlockingSession].self, from: data) {
+            return sessions
+        }
+        
+        return []
+    }
+    
+    // MARK: - Private Methods
+    
+    private func loadActiveSessions() {
+        // Load app blocking session
+        if let data = SharedData.userDefaults?.data(forKey: "active_app_blocking_session"),
+           let session = try? JSONDecoder().decode(BlockingSession.self, from: data) {
+            self.activeAppBlockingSession = session
+        }
+        
+        // Load interruption session
+        if let data = SharedData.userDefaults?.data(forKey: "active_interruption_session"),
+           let session = try? JSONDecoder().decode(BlockingSession.self, from: data) {
+            self.activeInterruptionSession = session
+        }
+        
+        // Load schedule sessions
+        if let data = SharedData.userDefaults?.data(forKey: "active_schedule_sessions"),
+           let sessions = try? JSONDecoder().decode([String: BlockingSession].self, from: data) {
+            self.activeScheduleSessions = sessions
+        }
+    }
+    
+    private func loadTodayStats() {
+        self.todayStats = getDailyStats(for: Date())
+    }
+    
+    private func saveActiveSession(_ session: BlockingSession, key: String) {
+        if let data = try? JSONEncoder().encode(session) {
+            SharedData.userDefaults?.set(data, forKey: key)
+        }
+    }
+    
+    private func saveScheduleSessions() {
+        if let data = try? JSONEncoder().encode(activeScheduleSessions) {
+            SharedData.userDefaults?.set(data, forKey: "active_schedule_sessions")
+        }
+    }
+    
+    private func saveCompletedSession(_ session: BlockingSession) {
+        let dateKey = dateFormatter.string(from: session.startTime)
+        let key = "blocking_sessions_\(dateKey)"
+        
+        // Загружаем существующие сессии
+        var sessions = getBlockingSessions(for: session.startTime)
+        sessions.append(session)
+        
+        // Сохраняем обновленный список
+        if let data = try? JSONEncoder().encode(sessions) {
+            SharedData.userDefaults?.set(data, forKey: key)
+            SharedData.userDefaults?.synchronize() // Форсируем сохранение
             
-            let sessions = try await Storage.shared.getActiveBlockingSessions(for: currentUser.id)
-            self.activeSessions = sessions
-        } catch {
-            AppLogger.critical(error, details: "Failed to load active blocking sessions")
+            print("AppBlockingLogger: Saved session to key '\(key)'. Total sessions: \(sessions.count)")
         }
     }
     
-    /// Загрузить статистику за сегодня
-    func loadTodayStats() async {
-        do {
-            guard let currentUser = Storage.shared.user else { return }
-            
-            let stats = try await Storage.shared.getDailyBlockingStats(for: currentUser.id, date: Date())
+    private func updateDailyStats(with session: BlockingSession) {
+        let dateKey = dateFormatter.string(from: session.startTime)
+        let key = "daily_stats_\(dateKey)"
+        
+        var stats = getDailyStats(for: session.startTime)
+        
+        // Обновляем общую статистику
+        stats.totalSessions += 1
+        if session.isCompleted {
+            stats.completedSessions += 1
+        }
+        
+        let duration = session.actualDuration ?? 0
+        stats.totalBlockingTime += duration
+        
+        // Обновляем статистику по типам
+        switch session.type {
+        case .appBlocking:
+            stats.appBlockingTime += duration
+        case .appInterruption:
+            stats.interruptionTime += duration
+        case .scheduleBlocking:
+            stats.scheduleBlockingTime += duration
+        }
+        
+        // Сохраняем обновленную статистику
+        if let data = try? JSONEncoder().encode(stats) {
+            SharedData.userDefaults?.set(data, forKey: key)
+        }
+        
+        // Обновляем статистику для сегодня
+        if calendar.isDateInToday(session.startTime) {
             self.todayStats = stats
             
-            // Сохраняем данные в SharedData для доступа из расширения
-            updateSharedStats()
-        } catch {
-            AppLogger.critical(error, details: "Failed to load today's blocking stats")
-        }
-    }
-    
-    /// Обновить статистику в SharedData для расширения
-    @MainActor
-    private func updateSharedStats() {
-        let totalTime = getTodayTotalBlockingTime()
-        let completedCount = getTodayCompletedSessions()
-        let totalCount = getTodayTotalSessions()
-        
-        SharedData.userDefaults?.set(totalTime, forKey: SharedData.AppBlocking.todayTotalBlockingTime)
-        SharedData.userDefaults?.set(completedCount, forKey: SharedData.AppBlocking.todayCompletedSessions)
-        SharedData.userDefaults?.set(totalCount, forKey: SharedData.AppBlocking.todayTotalSessions)
-        
-        // Сохраняем часовые данные и сессии
-        Task {
-            await saveHourlyBlockingDataToSharedData()
-            await saveBlockingSessionsToSharedData()
+            // Обновляем legacy ключи для обратной совместимости
+            SharedData.userDefaults?.set(stats.totalBlockingTime, forKey: SharedData.AppBlocking.todayTotalBlockingTime)
+            SharedData.userDefaults?.set(stats.completedSessions, forKey: SharedData.AppBlocking.todayCompletedSessions)
+            SharedData.userDefaults?.set(stats.totalSessions, forKey: SharedData.AppBlocking.todayTotalSessions)
         }
         
-        SharedData.userDefaults?.synchronize() // Форсируем синхронизацию
+        // Обновляем lifetime статистику
+        updateLifetimeStats(addingDuration: duration)
+    }
+    
+    private func updateLifetimeStats(addingDuration: TimeInterval) {
+        // Получаем текущее lifetime время
+        let currentLifetime = SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.lifetimeTotalBlockingTime) ?? 0
+        let newLifetime = currentLifetime + addingDuration
         
-        let hours = Int(totalTime) / 3600
-        let minutes = (Int(totalTime) % 3600) / 60
-        let remainingMinutes = Int(totalTime.truncatingRemainder(dividingBy: 3600) / 60)
-        AppLogger.notice("Updated shared blocking stats: \(hours)h \(remainingMinutes)m (\(totalTime)s total), \(completedCount)/\(totalCount) sessions")
+        // Сохраняем обновленное значение
+        SharedData.userDefaults?.set(newLifetime, forKey: SharedData.AppBlocking.lifetimeTotalBlockingTime)
     }
     
-    // MARK: - Statistics
-    
-    /// Получить общее время блокировки за сегодня
-    func getTodayTotalBlockingTime() -> TimeInterval {
-        return todayStats.reduce(0) { $0 + $1.totalBlockedDuration }
-    }
-    
-    /// Получить количество завершенных сессий за сегодня
-    func getTodayCompletedSessions() -> Int {
-        return todayStats.reduce(0) { $0 + $1.completedSessionsCount }
-    }
-    
-    /// Получить общее количество сессий за сегодня
-    func getTodayTotalSessions() -> Int {
-        return todayStats.reduce(0) { $0 + $1.sessionsCount }
-    }
-    
-    /// Получить процент завершенных сессий за сегодня
-    func getTodayCompletionRate() -> Double {
-        let total = getTodayTotalSessions()
-        guard total > 0 else { return 0 }
+    private func updateHourlyData() {
+        let today = Date()
+        let dateKey = dateFormatter.string(from: today)
+        let key = "hourly_stats_\(dateKey)"
         
-        let completed = getTodayCompletedSessions()
-        return Double(completed) / Double(total) * 100
-    }
-    
-    /// Получить топ заблокированных приложений
-    func getTopBlockedApps(limit: Int = 5) async throws -> [(appName: String, totalDuration: TimeInterval)] {
-        guard let currentUser = Storage.shared.user else {
-            throw AppBlockingError.userNotSet
-        }
+        // Создаем массив для 24 часов (в минутах)
+        var hourlyStats = Array(repeating: 0, count: 24)
         
-        return try await Storage.shared.getTopBlockedApps(for: currentUser.id, limit: limit)
-    }
-    
-    // MARK: - Cleanup
-    
-    /// Очистить старые данные (старше указанной даты)
-    func cleanupOldData(olderThan date: Date) async throws {
-        try await Storage.shared.deleteOldBlockingData(olderThan: date)
-        AppLogger.notice("Cleaned up blocking data older than \(date)")
-    }
-    
-    /// Очистить данные старше 30 дней
-    func cleanupOldData() async throws {
-        let thirtyDaysAgo = Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? Date()
-        try await cleanupOldData(olderThan: thirtyDaysAgo)
-    }
-    
-    // MARK: - Helpers
-    
-    /// Найти активную сессию для приложения
-    func findActiveSession(for applicationToken: ApplicationToken) -> AppBlockingSession? {
-        return activeSessions.first { session in
-            do {
-                let sessionToken = try session.getApplicationToken()
-                return sessionToken == applicationToken
-            } catch {
-                return false
+        // Обрабатываем все сессии за сегодня
+        let sessions = getBlockingSessions(for: today)
+        
+        for session in sessions {
+            guard let endTime = session.endTime else { continue }
+            
+            let startHour = calendar.component(.hour, from: session.startTime)
+            let endHour = calendar.component(.hour, from: endTime)
+            
+            // Распределяем время по часам
+            if startHour == endHour {
+                // Сессия в пределах одного часа
+                let minutes = Int(endTime.timeIntervalSince(session.startTime) / 60)
+                hourlyStats[startHour] += minutes
+            } else {
+                // Сессия охватывает несколько часов
+                for hour in startHour...endHour {
+                    if hour < 24 {
+                        var minutesInHour = 60
+                        
+                        if hour == startHour {
+                            // Первый час - считаем от начала сессии до конца часа
+                            let startMinute = calendar.component(.minute, from: session.startTime)
+                            minutesInHour = 60 - startMinute
+                        } else if hour == endHour {
+                            // Последний час - считаем от начала часа до конца сессии
+                            let endMinute = calendar.component(.minute, from: endTime)
+                            minutesInHour = endMinute
+                        }
+                        
+                        hourlyStats[hour] += minutesInHour
+                    }
+                }
             }
         }
-    }
-    
-    /// Проверить, заблокировано ли приложение сейчас
-    func isAppCurrentlyBlocked(_ applicationToken: ApplicationToken) -> Bool {
-        return findActiveSession(for: applicationToken) != nil
-    }
-    
-    /// Принудительно обновить все данные и SharedData
-    func refreshAllData() async {
-        await loadActiveSessions()
-        await loadTodayStats()
-        await loadAllTimeStats()
-    }
-    
-    /// Загрузить всю статистику
-    func loadAllTimeStats() async {
-        do {
-            guard let currentUser = Storage.shared.user else { return }
-            
-            let stats = try await Storage.shared.getAllBlockingStats(for: currentUser.id)
-            self.allTimeStats = stats
-            
-            // Обновляем lifetime статистику в SharedData
-            await updateLifetimeStats()
-        } catch {
-            AppLogger.critical(error, details: "Failed to load all-time blocking stats")
-        }
-    }
-    
-    /// Получить общее время блокировки за все время
-    func getAllTimeTotalBlockingTime() -> TimeInterval {
-        // Суммируем время из всех DailyAppBlockingStats
-        let totalFromStats = allTimeStats.reduce(0) { $0 + $1.totalBlockedDuration }
         
-        // Добавляем время из активных сессий
-        let activeTime = activeSessions.reduce(0) { total, session in
-            if session.endDate == nil {
-                // Активная сессия - считаем текущее время
-                return total + Date().timeIntervalSince(session.startDate)
+        // Добавляем все текущие активные сессии
+        let allActiveSessions = getAllActiveSessions()
+        for currentSession in allActiveSessions {
+            let startHour = calendar.component(.hour, from: currentSession.startTime)
+            let currentHour = calendar.component(.hour, from: Date())
+            
+            if startHour == currentHour {
+                // Сессия в пределах текущего часа
+                let minutes = Int(Date().timeIntervalSince(currentSession.startTime) / 60)
+                hourlyStats[currentHour] += minutes
+            } else {
+                // Сессия охватывает несколько часов
+                for hour in startHour...currentHour {
+                    if hour < 24 {
+                        var minutesInHour = 60
+                        
+                        if hour == startHour {
+                            let startMinute = calendar.component(.minute, from: currentSession.startTime)
+                            minutesInHour = 60 - startMinute
+                        } else if hour == currentHour {
+                            let currentMinute = calendar.component(.minute, from: Date())
+                            minutesInHour = currentMinute
+                        }
+                        
+                        hourlyStats[hour] += minutesInHour
+                    }
+                }
             }
-            return total
         }
         
-        return totalFromStats + activeTime
+        // Сохраняем почасовую статистику
+        if let data = try? JSONEncoder().encode(hourlyStats) {
+            SharedData.userDefaults?.set(data, forKey: key)
+            
+            // Также сохраняем в legacy формате для обратной совместимости
+            SharedData.userDefaults?.set(data, forKey: "hourlyBlockingData_\(dateKey)")
+            SharedData.userDefaults?.synchronize()
+            
+            let totalMinutes = hourlyStats.reduce(0, +)
+            print("AppBlockingLogger: Updated hourly stats for '\(dateKey)'. Total minutes: \(totalMinutes)")
+        }
     }
     
-    /// Обновить lifetime статистику
-    private func updateLifetimeStats() async {
-        let totalTime = getAllTimeTotalBlockingTime()
-        
-        SharedData.userDefaults?.set(totalTime, forKey: SharedData.AppBlocking.lifetimeTotalBlockingTime)
-        SharedData.userDefaults?.synchronize() // Форсируем синхронизацию
-        
-        let hours = Int(totalTime) / 3600
-        let minutes = (Int(totalTime) % 3600) / 60
-        AppLogger.notice("Updated lifetime blocking time: \(hours)h \(minutes)m")
-    }
+    // MARK: - Static Helper Methods
     
-    // MARK: - Static Methods for Extensions
-    
-    /// Получить статистику блокировок за сегодня из SharedData (для использования в расширениях)
-    static func getTodayBlockingStatsFromSharedData() -> TodayBlockingStats {
-        let totalBlockingTime = SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.todayTotalBlockingTime) ?? 0
-        let completedSessions = SharedData.userDefaults?.integer(forKey: SharedData.AppBlocking.todayCompletedSessions) ?? 0
-        let totalSessions = SharedData.userDefaults?.integer(forKey: SharedData.AppBlocking.todayTotalSessions) ?? 0
-        
-        return TodayBlockingStats(
-            totalBlockingTime: totalBlockingTime,
-            completedSessions: completedSessions,
-            totalSessions: totalSessions
-        )
-    }
-    
-    /// Получить суммарное время блокировок за сегодня (статический метод для расширений)
-    static func getTodayTotalBlockingTimeFromSharedData() -> TimeInterval {
+    /// Получить общее время блокировки за сегодня (для расширений)
+    static func getTodayTotalBlockingTime() -> TimeInterval {
         return SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.todayTotalBlockingTime) ?? 0
     }
     
-    /// Получить количество завершенных сессий за сегодня (статический метод для расширений)
-    static func getTodayCompletedSessionsFromSharedData() -> Int {
+    /// Получить количество завершенных сессий за сегодня (для расширений)
+    static func getTodayCompletedSessions() -> Int {
         return SharedData.userDefaults?.integer(forKey: SharedData.AppBlocking.todayCompletedSessions) ?? 0
     }
     
-    /// Получить суммарное время блокировок за все время (статический метод для расширений)
-    static func getLifetimeTotalBlockingTimeFromSharedData() -> TimeInterval {
-        return SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.lifetimeTotalBlockingTime) ?? 0
-    }
-    
-    /// Сохранить данные о сессиях блокировки в SharedData
-    private func saveBlockingSessionsToSharedData() async {
-        var sessionInfos: [SharedData.BlockingSessionInfo] = []
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-        
-        do {
-            guard let currentUser = Storage.shared.user else { return }
-            
-            // Получаем все сессии за сегодня
-            let allSessions = try await Storage.shared.getBlockingSessions(for: currentUser.id)
-            let todaySessions = allSessions.filter { session in
-                let sessionEnd = session.endDate ?? Date()
-                return session.startDate >= today || sessionEnd >= today
-            }
-            
-            // Преобразуем в BlockingSessionInfo
-            for session in todaySessions {
-                let info = SharedData.BlockingSessionInfo(
-                    startTime: session.startDate,
-                    endTime: session.endDate,
-                    appName: session.appDisplayName
-                )
-                sessionInfos.append(info)
-            }
-        } catch {
-            AppLogger.critical(error, details: "Failed to load blocking sessions for SharedData")
-        }
-        
-        // Сохраняем в SharedData
+    /// Получить почасовую статистику за сегодня (для расширений)
+    static func getTodayHourlyStats() -> [Int] {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         let dateKey = formatter.string(from: Date())
+        let key = "hourly_stats_\(dateKey)"
         
-        if let sessionData = try? JSONEncoder().encode(sessionInfos) {
-            SharedData.userDefaults?.set(sessionData, forKey: "blockingSessions_\(dateKey)")
-            SharedData.userDefaults?.synchronize()
-            
-            AppLogger.notice("🔹 Saved \(sessionInfos.count) blocking sessions for date \(dateKey)")
-            for (index, session) in sessionInfos.enumerated() {
-                let duration = (session.endTime ?? Date()).timeIntervalSince(session.startTime)
-                let startHour = Calendar.current.component(.hour, from: session.startTime)
-                let endHour = Calendar.current.component(.hour, from: session.endTime ?? Date())
-                AppLogger.notice("🔹 Session \(index + 1): \(session.appName), \(startHour):00-\(endHour):00, duration: \(Int(duration/60)) minutes")
-            }
-            
-          // Убираем частое уведомление - оставляем только в логах
-          // LocalNotificationManager.scheduleExtensionNotification(
-          //   title:  "💾 Blocking Sessions Saved",
-          //   details: "Saved \(sessionInfos.count) sessions for \(dateKey)"
-          // )
-        } else {
-            AppLogger.alert("Failed to encode blocking sessions")
-          // LocalNotificationManager.scheduleExtensionNotification(
-          //   title:  "❌ Failed to save sessions",
-          //   details: "Encoding failed for \(dateKey)"
-          // )
+        if let data = SharedData.userDefaults?.data(forKey: key),
+           let stats = try? JSONDecoder().decode([Int].self, from: data) {
+            return stats
         }
+        
+        return Array(repeating: 0, count: 24)
     }
     
-    /// Получить часовые данные блокировок за сегодня и сохранить в SharedData
-    func saveHourlyBlockingDataToSharedData() async {
-        // Создаем массив для 24 часов
-        var hourlyData = Array(repeating: 0.0, count: 24)
-        let calendar = Calendar.current
-        
-        // Обрабатываем завершенные сессии из todayStats
-        for stat in todayStats {
-            // Каждая статистика может содержать несколько сессий
-            // Распределяем общее время равномерно по дню (упрощенный подход)
-            let hoursBlocked = stat.totalBlockedDuration / 3600.0
-            let startHour = 0 // Можно улучшить, если хранить время начала в статистике
-            let endHour = min(23, Int(hoursBlocked))
-            
-            if startHour <= endHour {
-                for hour in startHour...endHour {
-                    if hour < 24 {
-                        hourlyData[hour] += min(3600, stat.totalBlockedDuration - Double(hour * 3600))
-                    }
-                }
-            }
-        }
-        
-        // Обрабатываем активные сессии
-        for session in activeSessions {
-            if session.endDate == nil {
-                // Активная сессия
-                let startHour = calendar.component(.hour, from: session.startDate)
-                let currentHour = calendar.component(.hour, from: Date())
-                let duration = Date().timeIntervalSince(session.startDate)
-                
-                // Распределяем время по часам
-                // Проверяем, если сессия началась вчера
-                if startHour > currentHour {
-                    // Сессия началась вчера, обрабатываем только сегодняшние часы
-                    for hour in 0...currentHour {
-                        if hour < 24 {
-                            let hourStart = calendar.date(bySettingHour: hour, minute: 0, second: 0, of: Date()) ?? Date()
-                            let hourEnd = calendar.date(bySettingHour: hour + 1, minute: 0, second: 0, of: Date()) ?? Date()
-                            
-                            let sessionEnd = min(Date(), hourEnd)
-                            
-                            if sessionEnd > hourStart {
-                                hourlyData[hour] += sessionEnd.timeIntervalSince(hourStart)
-                            }
-                        }
-                    }
-                } else {
-                    // Обычный случай - сессия началась сегодня
-                    for hour in startHour...currentHour {
-                        if hour < 24 {
-                            let hourStart = calendar.date(bySettingHour: hour, minute: 0, second: 0, of: session.startDate) ?? session.startDate
-                            let hourEnd = calendar.date(bySettingHour: hour + 1, minute: 0, second: 0, of: session.startDate) ?? Date()
-                            
-                            let sessionStart = max(session.startDate, hourStart)
-                            let sessionEnd = min(Date(), hourEnd)
-                            
-                            if sessionEnd > sessionStart {
-                                hourlyData[hour] += sessionEnd.timeIntervalSince(sessionStart)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Сохраняем в SharedData с датой в ключе
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        let dateKey = formatter.string(from: Date())
-        
-        if let jsonData = try? JSONEncoder().encode(hourlyData) {
-            SharedData.userDefaults?.set(jsonData, forKey: "hourlyBlockingData_\(dateKey)")
-            SharedData.userDefaults?.synchronize()
-        }
-        
-        // Также сохраняем информацию о сессиях
-        await saveBlockingSessionsToSharedData()
-    }
-    
-    /// Получить часовые данные блокировок из SharedData (для расширений)
-    static func getHourlyBlockingDataFromSharedData() -> [Double] {
-        guard let jsonData = SharedData.userDefaults?.data(forKey: SharedData.AppBlocking.hourlyBlockingData),
-              let hourlyData = try? JSONDecoder().decode([Double].self, from: jsonData) else {
-            return Array(repeating: 0.0, count: 24)
-        }
-        return hourlyData
-    }
-}
-
-// MARK: - Error Types
-
-enum AppBlockingError: LocalizedError {
-    case userNotSet
-    case sessionNotFound
-    case invalidToken
-    
-    var errorDescription: String? {
-        switch self {
-        case .userNotSet:
-            return "User not set in Storage"
-        case .sessionNotFound:
-            return "Blocking session not found"
-        case .invalidToken:
-            return "Invalid application token"
-        }
-    }
-}
-
-// MARK: - Convenience Extensions
-
-extension AppBlockingLogger {
-    
-    /// Начать блокировку с данными приложения из MonitoredApp
-    func startBlockingSession(
-        for monitoredApp: MonitoredApp,
-        plannedDuration: TimeInterval
-    ) async throws -> AppBlockingSession {
-        return try await startBlockingSession(
-            applicationToken: monitoredApp.token,
-            appDisplayName: monitoredApp.displayName,
-            plannedDuration: plannedDuration
-        )
-    }
-    
-    /// Получить время форматированное для отображения
-    func formatDuration(_ duration: TimeInterval) -> String {
+    /// Форматировать длительность для отображения
+    static func formatDuration(_ duration: TimeInterval) -> String {
         let hours = Int(duration) / 3600
         let minutes = (Int(duration) % 3600) / 60
         
@@ -521,9 +620,53 @@ extension AppBlockingLogger {
             return "\(minutes)мин"
         }
     }
+}
+
+// MARK: - Convenience Extensions
+
+extension AppBlockingLogger {
     
-    /// Получить форматированное время блокировки за сегодня
-    func getTodayFormattedBlockingTime() -> String {
-        return formatDuration(getTodayTotalBlockingTime())
+    /// Проверить, есть ли активная сессия блокировки
+    var hasActiveSession: Bool {
+        return activeAppBlockingSession != nil || 
+               activeInterruptionSession != nil || 
+               !activeScheduleSessions.isEmpty
     }
-} 
+    
+    /// Проверить, есть ли активная сессия определенного типа
+    func hasActiveSession(type: BlockingType) -> Bool {
+        switch type {
+        case .appBlocking:
+            return activeAppBlockingSession != nil
+        case .appInterruption:
+            return activeInterruptionSession != nil
+        case .scheduleBlocking:
+            return !activeScheduleSessions.isEmpty
+        }
+    }
+    
+    /// Получить время до окончания текущей сессии
+    var timeUntilUnlock: TimeInterval? {
+        guard let unlockDate = SharedData.userDefaults?.object(forKey: SharedData.AppBlocking.unlockDate) as? Date else {
+            return nil
+        }
+        return unlockDate.timeIntervalSinceNow
+    }
+    
+    /// Получить процент завершенных сессий за сегодня
+    var todayCompletionRate: Double {
+        guard todayStats.totalSessions > 0 else { return 0 }
+        return Double(todayStats.completedSessions) / Double(todayStats.totalSessions) * 100
+    }
+    
+    /// Обновить все данные (для обратной совместимости)
+    func refreshAllData() async {
+        // В новой версии данные обновляются автоматически из SharedData
+        // Этот метод оставлен для обратной совместимости
+        await MainActor.run {
+            loadActiveSessions()
+            loadTodayStats()
+            updateHourlyData()
+        }
+    }
+}

@@ -584,14 +584,14 @@ struct AppBlockingSectionView: View {
     
     // Валидация: если elapsed > 24 часов, что-то пошло не так
     guard elapsed >= 0 && elapsed < TimeInterval(Constants.TimeCalculation.secondsInDay) else {
-      AppLogger.alert("Invalid elapsed time: \(elapsed) seconds from timestamp: \(timestamp)")
+//      AppLogger.alert("Invalid elapsed time: \(elapsed) seconds from timestamp: \(timestamp)")
       return Constants.TimeFormat.initialBlocked
     }
     
     let hours = Int(elapsed) / Constants.TimeCalculation.secondsInHour
     let minutes = (Int(elapsed) % Constants.TimeCalculation.secondsInHour) / Constants.TimeCalculation.secondsInMinute
     
-    AppLogger.trace("Blocked time: \(hours)h \(minutes)m (elapsed: \(elapsed)s)")
+//    AppLogger.trace("Blocked time: \(hours)h \(minutes)m (elapsed: \(elapsed)s)")
     return String(format: Constants.TimeFormat.blockedFormat, hours, minutes)
   }
   

@@ -9,6 +9,7 @@
 import Foundation
 import WidgetKit
 import FamilyControls
+import ManagedSettings
 
 
 
@@ -28,6 +29,28 @@ final class BlockingNotificationService: ObservableObject {
     SharedData.userDefaults?.set(true, forKey: SharedData.Widget.isBlocked)
     // Сохраняем timestamp начала блокировки
     SharedData.userDefaults?.set(Date().timeIntervalSince1970, forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
+    
+    // Сохраняем токены приложений и категорий для логирования
+    var allTokens: [ApplicationToken] = []
+    
+    // Добавляем токены приложений
+    allTokens.append(contentsOf: selection.applicationTokens)
+    
+    // Добавляем токены из категорий
+    for category in selection.categoryTokens {
+      // Категория содержит несколько приложений, но мы не можем получить их токены напрямую
+      // Поэтому создаем фиктивный токен для категории
+      // В реальности категория блокирует все приложения в ней
+    }
+    
+    // Если нет отдельных приложений, но есть категории, создаем хотя бы один токен для логирования
+    if allTokens.isEmpty && !selection.categoryTokens.isEmpty {
+      // Используем фиктивный токен для представления категорий
+      // Это нужно только для статистики
+      print("BlockingNotificationService: Using categories, not individual apps")
+    }
+    
+    let appTokens = allTokens
     
     let (endHour, endMin) = getEndTime(hourDuration: hours, minuteDuration: minutes)
     restrictionModel.endHour = endHour
@@ -63,30 +86,29 @@ final class BlockingNotificationService: ObservableObject {
       
       // Устанавливаем ограничения - самая тяжелая операция
       await DeviceActivityService.shared.setShieldRestrictionsAsync(restrictionModel.isStricted)
-      AppLogger.notice("Shield restrictions set for blocking session")
     }
 
-    // Log blocking sessions for each app
+    // Log blocking session using new AppBlockingLogger
     let plannedDuration = TimeInterval(hours * 3600 + minutes * 60)
-    Task {
-      // Выполняем в фоновой очереди, чтобы не блокировать UI
-      for app in selection.applications {
-        guard let appToken = app.token else { continue }
-        do {
-          _ = try await AppBlockingLogger.shared.startBlockingSession(
-            applicationToken: appToken,
-            appDisplayName: app.localizedDisplayName ?? "Unknown App",
-            plannedDuration: plannedDuration
-          )
-        } catch {
-          AppLogger.critical(error, details: "Failed to start blocking session for \(app.localizedDisplayName ?? "Unknown App")")
-        }
+    Task { @MainActor in
+      if !appTokens.isEmpty {
+        print("BlockingNotificationService: Starting blocking with \(appTokens.count) apps")
+        _ = AppBlockingLogger.shared.startAppBlockingSession(
+          apps: appTokens,
+          duration: plannedDuration
+        )
+      } else if !selection.categoryTokens.isEmpty {
+        print("BlockingNotificationService: Starting blocking with categories")
+        _ = AppBlockingLogger.shared.startAppBlockingSessionForCategories(
+          duration: plannedDuration
+        )
+      } else {
+        print("BlockingNotificationService: No apps or categories selected for blocking")
       }
     }
   }
 
   func stopBlocking(selection: FamilyActivitySelection) {
-    AppLogger.alert("stopBlocking selection")
     
     // Cancel related notifications
     LocalNotificationManager.shared.cancelNotifications(identifiers: ["blocking-end"])
@@ -103,18 +125,13 @@ final class BlockingNotificationService: ObservableObject {
 //    WidgetCenter.shared.reloadAllTimelines()
 
 
-    // Complete blocking sessions for each app
-    Task {
-      // Выполняем в фоновой очереди
-      for app in selection.applications {
-        guard let appToken = app.token else { continue }
-        if let activeSession = await AppBlockingLogger.shared.findActiveSession(for: appToken) {
-          do {
-            try await AppBlockingLogger.shared.completeBlockingSession(activeSession.id)
-          } catch {
-            AppLogger.critical(error, details: "Failed to complete blocking session for \(app.localizedDisplayName ?? "Unknown App")")
-          }
-        }
+    // Complete blocking session using new AppBlockingLogger
+    Task { @MainActor in
+      if let currentSession = AppBlockingLogger.shared.getCurrentSession(type: .appBlocking) {
+        print("BlockingNotificationService: Ending blocking session \(currentSession.id)")
+        AppBlockingLogger.shared.endSession(sessionId: currentSession.id, completed: true)
+      } else {
+        print("BlockingNotificationService: No current app blocking session to end")
       }
     }
     
@@ -135,16 +152,10 @@ final class BlockingNotificationService: ObservableObject {
     SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
     service.stopAppRestrictions()
     
-    // Interrupt all active blocking sessions
-    Task {
-      // Выполняем в фоновой очереди
-      let activeSessions = await AppBlockingLogger.shared.activeSessions
-      for session in activeSessions {
-        do {
-          try await AppBlockingLogger.shared.interruptBlockingSession(session.id)
-        } catch {
-          AppLogger.critical(error, details: "Failed to interrupt blocking session for \(session.appDisplayName)")
-        }
+    // Interrupt current blocking session using new AppBlockingLogger
+    Task { @MainActor in
+      if let currentSession = AppBlockingLogger.shared.getCurrentSession(type: .appBlocking) {
+        AppBlockingLogger.shared.endSession(sessionId: currentSession.id, completed: false)
       }
     }
   }

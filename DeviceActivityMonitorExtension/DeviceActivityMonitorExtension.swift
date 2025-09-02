@@ -134,6 +134,9 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         details: "You can use your apps again"
       )
       
+      // Log interruption session end
+      // Note: Interruption sessions are short (2 min) and handled locally
+      
       // Clear shield restrictions for interruption store
       DeviceActivityService.shared.stopAppRestrictions(storeName: .interruption)
       
@@ -224,6 +227,9 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
 
       // Save the current time as last interruption time
       SharedData.userDefaults?.set(Date().timeIntervalSince1970, forKey: SharedData.AppBlocking.lastInterruptionBlockTime)
+      
+      // Log interruption session start
+      // Note: Interruption sessions are short (2 min) and handled locally
       
       LocalNotificationManager.scheduleExtensionNotification(
         title: "⏸️ Take a Break",
@@ -447,11 +453,6 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   private func applyScheduledBlockRestrictions(schedule: BlockSchedule) {
     let scheduleId = schedule.id
     
-//    LocalNotificationManager.scheduleExtensionNotification(
-//      title: "🔒 Applying Restrictions",
-//      details: "Schedule: \(schedule.name)\nApps: \(schedule.selection.applicationTokens.count)"
-//    )
-    
     // Apply restrictions using ManagedSettingsStore
     let storeName = ManagedSettingsStore.Name("scheduledBlock_\(scheduleId)")
     let store = ManagedSettingsStore(named: storeName)
@@ -474,14 +475,15 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     SharedData.userDefaults?.set(true, forKey: SharedData.Widget.isBlocked)
     SharedData.userDefaults?.set(schedule.isStrictBlock, forKey: SharedData.Widget.isStricted)
     
-    // Send notification
-//    LocalNotificationManager.scheduleExtensionNotification(
-//      title: "📅 \(schedule.name) Active",
-//      details: "\(schedule.selection.applicationTokens.count) apps are now blocked"
-//    )
-    
-    // Log for Focus Time statistics
-    logScheduleSessionStart(schedule: schedule)
+    // Log schedule session start using AppBlockingLogger
+    Task { @MainActor in
+      let apps = Array(schedule.selection.applicationTokens)
+      if !apps.isEmpty {
+        _ = AppBlockingLogger.shared.startScheduleSession(apps: apps, scheduleName: schedule.name)
+      } else if !schedule.selection.categoryTokens.isEmpty {
+        _ = AppBlockingLogger.shared.startScheduleSessionForCategories(scheduleName: schedule.name)
+      }
+    }
   }
   
   // Removed - duplicate method, using the one with BlockSchedule parameter
@@ -489,13 +491,16 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   private func removeScheduledBlockRestrictions(schedule: BlockSchedule) {
     let scheduleId = schedule.id
     
-//    LocalNotificationManager.scheduleExtensionNotification(
-//      title: "🔓 Removing Restrictions",
-//      details: "Schedule: \(schedule.name)"
-//    )
-    
-    // Log session end for statistics
-    logScheduleSessionEnd(scheduleId: scheduleId)
+    // Log session end using AppBlockingLogger
+    Task { @MainActor in
+      // Since there can be multiple schedule sessions, we need to find the one for this schedule
+      // For now, end all schedule sessions when a schedule ends
+      // In the future, we should track session IDs per schedule
+      let scheduleSessions = AppBlockingLogger.shared.getActiveScheduleSessions()
+      for session in scheduleSessions {
+        AppBlockingLogger.shared.endSession(sessionId: session.id, completed: true)
+      }
+    }
     
     // Remove restrictions using ManagedSettingsStore
     let storeName = ManagedSettingsStore.Name("scheduledBlock_\(scheduleId)")
@@ -523,12 +528,6 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
       SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isStricted)
     }
-    
-    // Send notification
-//    LocalNotificationManager.scheduleExtensionNotification(
-//      title: "📅 \(schedule.name) Ended",
-//      details: "Scheduled apps are now accessible"
-//    )
   }
   
   // Removed - duplicate method, using the one with BlockSchedule parameter
@@ -539,6 +538,55 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     let selection = schedule.selection
     
     let startTime = Date().timeIntervalSince1970
+    
+    // Calculate schedule duration in seconds
+    let calendar = Calendar.current
+    let now = Date()
+    
+    var startComponents = calendar.dateComponents([.year, .month, .day], from: now)
+    startComponents.hour = schedule.startTime.hour
+    startComponents.minute = schedule.startTime.minute
+    
+    var endComponents = calendar.dateComponents([.year, .month, .day], from: now)
+    endComponents.hour = schedule.endTime.hour
+    endComponents.minute = schedule.endTime.minute
+    
+    let duration: TimeInterval
+    if let startDate = calendar.date(from: startComponents),
+       let endDate = calendar.date(from: endComponents) {
+      if endDate > startDate {
+        duration = endDate.timeIntervalSince(startDate)
+      } else {
+        // Overnight schedule - add 24 hours to end date
+        let nextDayEndDate = calendar.date(byAdding: .day, value: 1, to: endDate) ?? endDate
+        duration = nextDayEndDate.timeIntervalSince(startDate)
+      }
+    } else {
+      duration = 3600 // Default to 1 hour if calculation fails
+    }
+    
+    // Create individual app sessions for Focus Time tracking
+    for appToken in selection.applicationTokens {
+      let appTokenString = String(describing: appToken)
+      let appSessionKey = "app_session_\(appTokenString)"
+      
+      // Create app session data
+      let appSessionData: [String: Any] = [
+        "appToken": appTokenString,
+        "scheduleId": scheduleId,
+        "scheduleName": scheduleName,
+        "startDate": startTime,
+        "endDate": 0, // Will be set when session ends
+        "plannedDuration": duration,
+        "actualDuration": 0,
+        "wasCompleted": false
+      ]
+      
+      // Save individual app session
+      if let data = try? JSONSerialization.data(withJSONObject: appSessionData) {
+        SharedData.userDefaults?.set(data, forKey: appSessionKey)
+      }
+    }
     
     // Store schedule blocking session start for statistics
     var sessionData: [String: Any] = [
@@ -563,6 +611,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   }
   
   // Removed - duplicate method, using the one with BlockSchedule parameter
+  
   private func logScheduleSessionEnd(scheduleId: String) {
     // Calculate and log blocking time to Focus Time statistics
     if let sessionData = SharedData.userDefaults?.data(forKey: "schedule_session_\(scheduleId)"),
@@ -571,6 +620,33 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       
       let endTime = Date().timeIntervalSince1970
       let duration = endTime - startTime
+      
+      // Complete blocking sessions for each app in the schedule
+      if let appTokensData = sessionInfo["appTokens"] as? Data,
+         let appTokenStrings = try? JSONDecoder().decode([String].self, from: appTokensData) {
+        
+        for appTokenString in appTokenStrings {
+          // Mark app session as completed in SharedData
+          let appSessionKey = "app_session_\(appTokenString)"
+          if let appSessionData = SharedData.userDefaults?.data(forKey: appSessionKey),
+             let appSession = try? JSONSerialization.jsonObject(with: appSessionData) as? [String: Any] {
+            
+            // Update session with completion data
+            var updatedSession = appSession
+            updatedSession["endDate"] = endTime
+            updatedSession["actualDuration"] = duration
+            updatedSession["wasCompleted"] = true
+            
+            // Save updated session
+            if let updatedData = try? JSONSerialization.data(withJSONObject: updatedSession) {
+              SharedData.userDefaults?.set(updatedData, forKey: "completed_\(appSessionKey)")
+            }
+            
+            // Remove active session
+            SharedData.userDefaults?.removeObject(forKey: appSessionKey)
+          }
+        }
+      }
       
       // Update total blocking time for today
       let currentTotal = SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.todayTotalBlockingTime) ?? 0
