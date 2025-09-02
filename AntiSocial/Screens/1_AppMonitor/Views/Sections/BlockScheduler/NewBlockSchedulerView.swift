@@ -20,6 +20,8 @@ struct NewBlockSchedulerView: View {
   @EnvironmentObject var deviceActivityService: DeviceActivityService
   @State private var navigationPath = NavigationPath()
 
+  private let adaptive = AdaptiveValues.current
+
   
   let schedule: BlockSchedule?
   let onSave: (BlockSchedule) -> Void
@@ -284,22 +286,21 @@ struct NewBlockSchedulerView: View {
         
         // Categories
         if !selection.categoryTokens.isEmpty {
-          HStack {
+          HStack(spacing: adaptive.spacing.small) {
             Text("Categories")
-              .foregroundStyle(Color.white)
+              .foregroundColor(.white)
+              .adaptiveFont(\.subheadline)
             
             Spacer()
             
-            Text("\(selection.categoryTokens.count)")
-              .foregroundStyle(Color.as_white_light)
+            CategoryTokensView(
+              tokens: selection.categoryTokens,
+              spacing: adaptive.spacing.xxSmall
+            )
             
             Image(systemName: "chevron.right")
-              .foregroundStyle(Color.as_white_light)
+              .foregroundColor(Color.as_white_light)
           }
-          .padding(.horizontal, 16)
-          .padding(.vertical, 12)
-          .background(Color.white.opacity(0.07))
-          .clipShape(RoundedRectangle(cornerRadius: 30))
         }
       }
     }
@@ -495,7 +496,7 @@ struct NewBlockSchedulerView: View {
       return false // Schedule too short
     }
     
-    return !selectedDays.isEmpty && !selection.applicationTokens.isEmpty
+    return !selectedDays.isEmpty && !selection.applicationTokens.isEmpty || !selectedDays.isEmpty && !selection.categoryTokens.isEmpty
   }
   
   // MARK: - Functions
