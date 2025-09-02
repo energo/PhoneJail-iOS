@@ -396,6 +396,7 @@ struct NewBlockSchedulerView: View {
       .frame(width: UIScreen.main.bounds.width / 3 * 2)
       .background(Color.as_gradietn_button_purchase)
       .clipShape(RoundedRectangle(cornerRadius: 9999))
+      .opacity(isValidSchedule ? 1 : 0.5)
     }
     .disabled(!isValidSchedule)
   }
@@ -422,6 +423,7 @@ struct NewBlockSchedulerView: View {
     Button(action: {
       isActive = true
       autoSaveIfNeeded()
+      self.presentationMode.wrappedValue.dismiss()
     }) {
       HStack {
         Spacer()
@@ -439,15 +441,16 @@ struct NewBlockSchedulerView: View {
   
   private func handleDialogConfirmation(_ dialog: DialogType) {
     switch dialog {
-    case .deactivate:
-      isActive = false
-      autoSaveIfNeeded()
-    case .delete:
-      onDelete?()
+      case .deactivate:
+        isActive = false
+        autoSaveIfNeeded()
         self.presentationMode.wrappedValue.dismiss()
-    case .strictBlock:
-      isStrictBlock = true
-      autoSaveIfNeeded()
+      case .delete:
+        onDelete?()
+        self.presentationMode.wrappedValue.dismiss()
+      case .strictBlock:
+        isStrictBlock = true
+        autoSaveIfNeeded()
     }
     activeDialog = nil
   }
