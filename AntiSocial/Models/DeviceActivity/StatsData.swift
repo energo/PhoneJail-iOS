@@ -21,28 +21,41 @@ struct StatsData {
   }
   
   var focusedPercent: Int {
-    let totalSeconds: TimeInterval = 86400 // 24 hours
+    // Считаем от полных 24 часов (86400 секунд)
+    let totalSeconds: TimeInterval = 86400
     let percentage = (focusedDuration / totalSeconds) * 100
+    
     // Если есть хоть какое-то focused время (больше 0), но меньше 1%, показываем 1%
     if focusedDuration > 0 && percentage < 1 {
       return 1
     }
+    
     return Int(percentage)
   }
   
   var distractedPercent: Int {
-    let totalSeconds: TimeInterval = 86400 // 24 hours
+    // Считаем от полных 24 часов (86400 секунд)
+    let totalSeconds: TimeInterval = 86400
     let percentage = (distractedDuration / totalSeconds) * 100
+    
     // Если есть хоть какое-то distracted время (больше 0), но меньше 1%, показываем 1%
     if distractedDuration > 0 && percentage < 1 {
       return 1
     }
+    
     return Int(percentage)
   }
   
   var offlinePercent: Int {
-    // Calculate offline as remainder to ensure total is always 100%
-    return max(0, 100 - focusedPercent - distractedPercent)
+    // Offline - это оставшееся время от 24 часов
+    // focused + distracted + offline = 100%
+    let focused = focusedPercent
+    let distracted = distractedPercent
+    
+    // Гарантируем, что сумма не превышает 100%
+    let remaining = 100 - focused - distracted
+    
+    return max(0, remaining)
   }
   
 }

@@ -31,16 +31,22 @@ struct StatsActivityReport: DeviceActivityReportScene {
             guard let token = app.application.token else { continue }
             let appName = app.application.localizedDisplayName ?? "App"
             
-            // For chart visualization, we need approximate times
-            // Using segment interval start as base
-            let start = segmentInterval.start
-            let end = start.addingTimeInterval(duration)
+            // ВАЖНО: DeviceActivity API не предоставляет точное время использования каждого приложения
+            // Только общую длительность за сегмент. Мы не можем знать точные часы использования.
+            // Поэтому распределяем время равномерно по периоду сегмента для визуализации.
             
+            // Вариант 1: Распределить пропорционально по всему сегменту
+            // Это даст более реалистичное распределение по часам
+            let segmentDuration = segmentInterval.duration
+            let segmentHours = segmentDuration / 3600.0 // часы в сегменте
+            
+            // Создаем псевдо-сессию для отображения в чартах
+            // Размазываем использование по всему интервалу сегмента пропорционально
             let session = AppUsageSession(
               token: token,
               appName: appName,
-              start: start,
-              end: end,
+              start: segmentInterval.start,
+              end: segmentInterval.end, // используем конец сегмента
               duration: duration
             )
             
@@ -55,9 +61,24 @@ struct StatsActivityReport: DeviceActivityReportScene {
     // Calculate focused duration from chart data (convert minutes to seconds)
     let focusedDuration = chartData.reduce(0.0) { $0 + Double($1.focusedMinutes * 60) }
     
-    // Use totalDuration (actual screen time) minus focused time for distracted duration
-    // This avoids double counting overlapping app sessions
-    let distractedDuration = max(0, totalDuration - focusedDuration)
+    // Calculate distracted duration from chart data (convert minutes to seconds)
+    // Distracted time is independent from focused time!
+    let distractedDuration = chartData.reduce(0.0) { $0 + Double($1.distractedMinutes * 60) }
+    
+    // DEBUG: Выводим значения для отладки процентов
+    print("📊 Stats Debug: totalDuration=\(totalDuration)s (\(totalDuration/3600)h)")
+    print("📊 Stats Debug: focusedDuration=\(focusedDuration)s (\(focusedDuration/3600)h)")
+    print("📊 Stats Debug: distractedDuration=\(distractedDuration)s (\(distractedDuration/3600)h)")
+    
+    // Считаем проценты от 24 часов
+    let totalSeconds: TimeInterval = 86400
+    let focusedPercent = Int((focusedDuration / totalSeconds) * 100)
+    let distractedPercent = Int((distractedDuration / totalSeconds) * 100)
+    let offlinePercent = 100 - focusedPercent - distractedPercent
+    
+    print("📊 Stats Debug: Percentages from 24h:")
+    print("📊 Stats Debug: focused=\(focusedPercent)%, distracted=\(distractedPercent)%, offline=\(offlinePercent)%")
+    print("📊 Stats Debug: Total should be 100%: \(focusedPercent + distractedPercent + offlinePercent)%")
     
     let top3AppUsages = topAppUsages(from: sessions, count: 3)
     
@@ -87,12 +108,25 @@ struct StatsActivityReport: DeviceActivityReportScene {
       // Получаем сессии блокировки для конкретной даты
       let blockingSessions = SharedData.getBlockingSessions(for: chartDate)
       
+      // DEBUG: Логируем количество сессий
+      print("📊 Chart Debug: App usage sessions count: \(sessions.count)")
+      print("📊 Chart Debug: Blocking sessions count: \(blockingSessions.count)")
+      
 
       for session in sessions {
+          // session.duration - реальное время использования
+          // session.start и session.end - период сегмента (не реальное время использования)
+          
+          // Вычисляем сколько часов покрывает сегмент
+          let segmentDuration = session.end.timeIntervalSince(session.start)
+          let segmentHours = segmentDuration / 3600.0
+          
+          // Распределяем время использования пропорционально по часам сегмента
           var t1 = session.start
           let t2 = session.end
+          var remainingDuration = session.duration
 
-          while t1 < t2 {
+          while t1 < t2 && remainingDuration > 0 {
               // Получаем локальный час начала текущего фрагмента
               let hour = calendar.dateComponents(in: TimeZone.current, from: t1).hour ?? 0
 
@@ -100,13 +134,24 @@ struct StatsActivityReport: DeviceActivityReportScene {
               guard let hourStart = calendar.dateInterval(of: .hour, for: t1) else { break }
               let hourEnd = hourStart.end
 
-              // Обрезаем usage, если он уходит за этот час
+              // Обрезаем интервал, если он уходит за этот час
               let intervalEnd = min(hourEnd, t2)
-              let secondsInThisHour = intervalEnd.timeIntervalSince(t1)
+              let intervalDuration = intervalEnd.timeIntervalSince(t1)
+              
+              // Вычисляем пропорциональную долю времени использования для этого интервала
+              let proportionalMinutes: Double
+              if segmentDuration > 0 {
+                  // Доля этого интервала от общего сегмента
+                  let proportion = intervalDuration / segmentDuration
+                  // Соответствующая доля от общего времени использования
+                  proportionalMinutes = (session.duration * proportion) / 60.0
+              } else {
+                  proportionalMinutes = 0
+              }
 
               // Кладём в текущий бар
               if hour >= 0 && hour < 24 {
-                  hourly[hour].distracted += secondsInThisHour / 60.0
+                  hourly[hour].distracted += proportionalMinutes
               }
 
               // Двигаемся дальше
@@ -149,29 +194,55 @@ struct StatsActivityReport: DeviceActivityReportScene {
               let minutes = intervalEnd.timeIntervalSince(currentTime) / 60.0
               
               if hour >= 0 && hour < 24 {
-                  // Перемещаем время из distracted в focused
-                  let availableDistracted = hourly[hour].distracted
-                  let transferMinutes = min(minutes, availableDistracted)
-                  
-                  if transferMinutes > 0 {
-                      // Есть distracted время для переноса
-                      hourly[hour].focused += transferMinutes
-                      hourly[hour].distracted -= transferMinutes
-                  } else {
-                      // Нет distracted времени, добавляем focused напрямую
-                      hourly[hour].focused += minutes
-                  }
+                  // Просто добавляем focused время
+                  // НЕ вычитаем из distracted - они независимы друг от друга
+                  hourly[hour].focused += minutes
               }
               
               currentTime = intervalEnd
           }
       }
 
+      // DEBUG: Подсчитаем и выведем общее время
+      let totalDistractedMinutes = hourly.reduce(0) { $0 + $1.distracted }
+      let totalFocusedMinutes = hourly.reduce(0) { $0 + $1.focused }
+      print("📊 Chart Debug: Total distracted minutes: \(totalDistractedMinutes) (\(totalDistractedMinutes/60)h \(Int(totalDistractedMinutes) % 60)m)")
+      print("📊 Chart Debug: Total focused minutes: \(totalFocusedMinutes) (\(totalFocusedMinutes/60)h \(Int(totalFocusedMinutes) % 60)m)")
+      
+      // DEBUG: Покажем распределение по часам
+      for hour in 0..<24 {
+          if hourly[hour].distracted > 0 || hourly[hour].focused > 0 {
+              print("📊 Hour \(hour): distracted=\(hourly[hour].distracted)m, focused=\(hourly[hour].focused)m")
+          }
+      }
+      
       return (0..<24).map { hour in
-          ChartBar(
+          // ВАЖНО: В одном часе не может быть больше 60 минут!
+          // Если focused и distracted пересекаются, их сумма не должна превышать 60
+          let focusedMins = Int(hourly[hour].focused.rounded())
+          let distractedMins = Int(hourly[hour].distracted.rounded())
+          
+          // Ограничиваем каждое значение максимум 60 минутами
+          let finalFocused = min(focusedMins, 60)
+          let finalDistracted = min(distractedMins, 60)
+          
+          // Если сумма больше 60, нужно пропорционально уменьшить
+          // Это может произойти, если focused и distracted пересекаются
+          let total = finalFocused + finalDistracted
+          if total > 60 && total > 0 {
+              // Пропорционально масштабируем
+              let scale = 60.0 / Double(total)
+              return ChartBar(
+                  hour: hour,
+                  focusedMinutes: Int(Double(finalFocused) * scale),
+                  distractedMinutes: Int(Double(finalDistracted) * scale)
+              )
+          }
+          
+          return ChartBar(
               hour: hour,
-              focusedMinutes: Int(hourly[hour].focused.rounded()),
-              distractedMinutes: Int(hourly[hour].distracted.rounded())
+              focusedMinutes: finalFocused,
+              distractedMinutes: finalDistracted
           )
       }
   }
