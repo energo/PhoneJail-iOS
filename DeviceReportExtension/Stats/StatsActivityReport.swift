@@ -6,6 +6,7 @@ struct StatsActivityReport: DeviceActivityReportScene {
   let content: (StatsData) -> StatsSectionView
   
   func makeConfiguration(representing data: DeviceActivityResults<DeviceActivityData>) async -> StatsData {
+    
     var sessions: [AppUsageSession] = []
     var reportDate: Date? = nil
     
@@ -31,23 +32,21 @@ struct StatsActivityReport: DeviceActivityReportScene {
             guard let token = app.application.token else { continue }
             let appName = app.application.localizedDisplayName ?? "App"
             
-            // ВАЖНО: DeviceActivity API не предоставляет точное время использования каждого приложения
-            // Только общую длительность за сегмент. Мы не можем знать точные часы использования.
-            // Поэтому распределяем время равномерно по периоду сегмента для визуализации.
+            // Получаем количество запусков приложения
+            let pickups = app.numberOfPickups
             
-            // Вариант 1: Распределить пропорционально по всему сегменту
-            // Это даст более реалистичное распределение по часам
-            let segmentDuration = segmentInterval.duration
-            let segmentHours = segmentDuration / 3600.0 // часы в сегменте
+            // С hourly сегментами мы знаем ТОЧНЫЙ час использования!
+            // Каждый сегмент = 1 час, так что все время приложения в этом сегменте
+            // было использовано именно в этот час
             
-            // Создаем псевдо-сессию для отображения в чартах
-            // Размазываем использование по всему интервалу сегмента пропорционально
             let session = AppUsageSession(
               token: token,
               appName: appName,
-              start: segmentInterval.start,
-              end: segmentInterval.end, // используем конец сегмента
-              duration: duration
+              start: segmentInterval.start,  // Начало часа
+              end: segmentInterval.end,      // Конец часа
+              duration: duration,
+              numberOfPickups: pickups,
+              firstPickupTime: nil
             )
             
             sessions.append(session)
@@ -65,20 +64,11 @@ struct StatsActivityReport: DeviceActivityReportScene {
     // Distracted time is independent from focused time!
     let distractedDuration = chartData.reduce(0.0) { $0 + Double($1.distractedMinutes * 60) }
     
-    // DEBUG: Выводим значения для отладки процентов
-    print("📊 Stats Debug: totalDuration=\(totalDuration)s (\(totalDuration/3600)h)")
-    print("📊 Stats Debug: focusedDuration=\(focusedDuration)s (\(focusedDuration/3600)h)")
-    print("📊 Stats Debug: distractedDuration=\(distractedDuration)s (\(distractedDuration/3600)h)")
-    
     // Считаем проценты от 24 часов
     let totalSeconds: TimeInterval = 86400
     let focusedPercent = Int((focusedDuration / totalSeconds) * 100)
     let distractedPercent = Int((distractedDuration / totalSeconds) * 100)
-    let offlinePercent = 100 - focusedPercent - distractedPercent
-    
-    print("📊 Stats Debug: Percentages from 24h:")
-    print("📊 Stats Debug: focused=\(focusedPercent)%, distracted=\(distractedPercent)%, offline=\(offlinePercent)%")
-    print("📊 Stats Debug: Total should be 100%: \(focusedPercent + distractedPercent + offlinePercent)%")
+//    let offlinePercent = 100 - focusedPercent - distractedPercent
     
     let top3AppUsages = topAppUsages(from: sessions, count: 3)
     
@@ -88,7 +78,7 @@ struct StatsActivityReport: DeviceActivityReportScene {
       filledChartData[hour].offlineMinutes = max(0, 60 - total)
     }
     
-    return StatsData(
+    let result = StatsData(
       totalDuration: totalDuration,  // Now using correct total from segments
       chartData: filledChartData,
       focusedDuration: focusedDuration,
@@ -96,6 +86,8 @@ struct StatsActivityReport: DeviceActivityReportScene {
       appUsages: top3AppUsages,
       appSessions: sessions
     )
+    
+    return result
   }
   
   func generateChartBars(from sessions: [AppUsageSession], reportDate: Date) -> [ChartBar] {
@@ -108,54 +100,14 @@ struct StatsActivityReport: DeviceActivityReportScene {
       // Получаем сессии блокировки для конкретной даты
       let blockingSessions = SharedData.getBlockingSessions(for: chartDate)
       
-      // DEBUG: Логируем количество сессий
-      print("📊 Chart Debug: App usage sessions count: \(sessions.count)")
-      print("📊 Chart Debug: Blocking sessions count: \(blockingSessions.count)")
-      
-
+      // С hourly сегментами каждая сессия уже привязана к конкретному часу
       for session in sessions {
-          // session.duration - реальное время использования
-          // session.start и session.end - период сегмента (не реальное время использования)
+          let hour = calendar.component(.hour, from: session.start)
+          let totalMinutes = session.duration / 60.0
           
-          // Вычисляем сколько часов покрывает сегмент
-          let segmentDuration = session.end.timeIntervalSince(session.start)
-          let segmentHours = segmentDuration / 3600.0
-          
-          // Распределяем время использования пропорционально по часам сегмента
-          var t1 = session.start
-          let t2 = session.end
-          var remainingDuration = session.duration
-
-          while t1 < t2 && remainingDuration > 0 {
-              // Получаем локальный час начала текущего фрагмента
-              let hour = calendar.dateComponents(in: TimeZone.current, from: t1).hour ?? 0
-
-              // Граница текущего часа
-              guard let hourStart = calendar.dateInterval(of: .hour, for: t1) else { break }
-              let hourEnd = hourStart.end
-
-              // Обрезаем интервал, если он уходит за этот час
-              let intervalEnd = min(hourEnd, t2)
-              let intervalDuration = intervalEnd.timeIntervalSince(t1)
-              
-              // Вычисляем пропорциональную долю времени использования для этого интервала
-              let proportionalMinutes: Double
-              if segmentDuration > 0 {
-                  // Доля этого интервала от общего сегмента
-                  let proportion = intervalDuration / segmentDuration
-                  // Соответствующая доля от общего времени использования
-                  proportionalMinutes = (session.duration * proportion) / 60.0
-              } else {
-                  proportionalMinutes = 0
-              }
-
-              // Кладём в текущий бар
-              if hour >= 0 && hour < 24 {
-                  hourly[hour].distracted += proportionalMinutes
-              }
-
-              // Двигаемся дальше
-              t1 = intervalEnd
+          if hour >= 0 && hour < 24 && totalMinutes > 0 {
+              // Добавляем distracted время в соответствующий час
+              hourly[hour].distracted += totalMinutes
           }
       }
       
@@ -203,18 +155,6 @@ struct StatsActivityReport: DeviceActivityReportScene {
           }
       }
 
-      // DEBUG: Подсчитаем и выведем общее время
-      let totalDistractedMinutes = hourly.reduce(0) { $0 + $1.distracted }
-      let totalFocusedMinutes = hourly.reduce(0) { $0 + $1.focused }
-      print("📊 Chart Debug: Total distracted minutes: \(totalDistractedMinutes) (\(totalDistractedMinutes/60)h \(Int(totalDistractedMinutes) % 60)m)")
-      print("📊 Chart Debug: Total focused minutes: \(totalFocusedMinutes) (\(totalFocusedMinutes/60)h \(Int(totalFocusedMinutes) % 60)m)")
-      
-      // DEBUG: Покажем распределение по часам
-      for hour in 0..<24 {
-          if hourly[hour].distracted > 0 || hourly[hour].focused > 0 {
-              print("📊 Hour \(hour): distracted=\(hourly[hour].distracted)m, focused=\(hourly[hour].focused)m")
-          }
-      }
       
       return (0..<24).map { hour in
           // ВАЖНО: В одном часе не может быть больше 60 минут!
@@ -275,4 +215,3 @@ struct StatsActivityReport: DeviceActivityReportScene {
     }
   }
 }
-

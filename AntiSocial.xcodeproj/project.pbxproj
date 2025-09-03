@@ -141,7 +141,6 @@
 				Models/ActivityReport.swift,
 				ScreenTime/ScreenTimeTodayView.swift,
 				Stats/ActivityReportView.swift,
-				Stats/StatsSectionViewProxy.swift,
 			);
 			target = 478055122D5BD68B003988E7 /* AntiSocialApp */;
 		};

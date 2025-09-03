@@ -16,6 +16,8 @@ struct AppUsageSession: Identifiable {
   let start: Date
   let end: Date
   let duration: TimeInterval
+  let numberOfPickups: Int
+  let firstPickupTime: Date?
   
   var durationString: String {
     let hours = Int(duration) / 3600

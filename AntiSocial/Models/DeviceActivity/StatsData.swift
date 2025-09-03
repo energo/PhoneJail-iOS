@@ -14,6 +14,7 @@ struct StatsData {
   let distractedDuration: TimeInterval
   let appUsages: [AppUsage]              // top-3 по времени
   let appSessions: [AppUsageSession]
+  let pickupsCount: Int = 0              // Количество разблокировок устройства
   
   var secondsSinceStartOfDay: TimeInterval {
     let startOfDay = Calendar.current.startOfDay(for: Date())

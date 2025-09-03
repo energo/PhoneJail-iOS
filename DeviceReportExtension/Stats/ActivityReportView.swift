@@ -13,6 +13,7 @@ struct ActivityReportView: View {
   @State private var selectedDate: Date = Date()
   @State private var refreshTrigger = false
   @State private var lifetimeFocusedTime: TimeInterval = 0
+  @State private var lastRefreshDate: Date? = nil
   @Environment(\.scenePhase) var scenePhase
   
   // Контекст отчёта (может быть .totalActivity или ваш собственный)
@@ -20,8 +21,9 @@ struct ActivityReportView: View {
   
   // Вычисляем фильтр для выбранной даты
   var filter: DeviceActivityFilter {
+    // Используем hourly сегменты для получения данных по каждому часу
     DeviceActivityFilter(
-      segment: .daily(
+      segment: .hourly(
         during: Calendar.current.dateInterval(of: .day, for: selectedDate)!
       ),
       users: .all,
@@ -64,17 +66,25 @@ struct ActivityReportView: View {
     .background(bgBlur)
     .onChange(of: scenePhase) { newPhase in
       if newPhase == .active {
-        // Переключаем триггер для принудительного обновления
-        refreshTrigger.toggle()
-        Task {
-          await loadLifetimeStats()
+        // Обновляем только если прошло больше 5 секунд с последнего обновления
+        let now = Date()
+        if lastRefreshDate == nil || now.timeIntervalSince(lastRefreshDate!) > 5 {
+          lastRefreshDate = now
+          refreshTrigger.toggle()
+          Task {
+            await loadLifetimeStats()
+          }
         }
       }
     }
     .task {
       await loadLifetimeStats()
+      lastRefreshDate = Date()
     }
     .onChange(of: selectedDate) { _ in
+      // При смене даты всегда обновляем
+      lastRefreshDate = Date()
+      refreshTrigger.toggle()
       Task {
         await loadLifetimeStats()
       }
