@@ -1,5 +1,5 @@
 //
-//  ScreenTimeTodayView.swift
+//  StatsSectionViewProxy.swift
 //  AntiSocial
 //
 //  Created by D C on 04.07.2025.

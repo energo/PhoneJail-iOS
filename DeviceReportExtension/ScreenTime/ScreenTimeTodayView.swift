@@ -51,7 +51,7 @@ struct ScreenTimeTodayView: View {
       DeviceActivityReport(context, filter: filter)
         .padding(0)
         .id(refreshID)
-        .opacity(isFirstLoad && cachedData == nil ? 0 : 1) // Hide only on first load without cache
+//        .opacity(isFirstLoad && cachedData == nil ? 0 : 1) // Hide only on first load without cache
       
       // Show loading indicator only on first load without cache
       if isFirstLoad && cachedData == nil {

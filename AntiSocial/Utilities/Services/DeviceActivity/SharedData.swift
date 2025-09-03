@@ -188,34 +188,19 @@ public class SharedData {
     public var actualDuration: TimeInterval?
   }
   
-  /// Структура для хранения данных о сессиях блокировки (legacy)
-  public struct BlockingSessionInfo: Codable {
-    public let startTime: Date
-    public let endTime: Date?
-    public let appName: String
-  }
-  
-  /// Get blocking sessions for a specific date (legacy format)
-  public static func getBlockingSessions(for date: Date) -> [BlockingSessionInfo] {
+  /// Get blocking sessions for a specific date
+  public static func getBlockingSessions(for date: Date) -> [BlockingSession] {
     let formatter = DateFormatter()
     formatter.dateFormat = "yyyy-MM-dd"
     let dateKey = formatter.string(from: date)
     let calendar = Calendar.current
     
-    var allSessions: [BlockingSessionInfo] = []
+    var allSessions: [BlockingSession] = []
     
     // First, get completed sessions from the daily list
-    if let sessionData = userDefaults?.data(forKey: "blocking_sessions_\(dateKey)") {
-      // Convert new BlockingSession format to BlockingSessionInfo
-      if let sessions = try? JSONDecoder().decode([BlockingSession].self, from: sessionData) {
-        allSessions.append(contentsOf: sessions.map { session in
-          BlockingSessionInfo(
-            startTime: session.startTime,
-            endTime: session.endTime,
-            appName: "Focus Time" // Generic name since we don't store app names in new format
-          )
-        })
-      }
+    if let sessionData = userDefaults?.data(forKey: "blocking_sessions_\(dateKey)"),
+       let sessions = try? JSONDecoder().decode([BlockingSession].self, from: sessionData) {
+      allSessions.append(contentsOf: sessions)
     }
     
     // Then, add active app blocking session if it's from today
@@ -223,11 +208,7 @@ public class SharedData {
        let activeSession = try? JSONDecoder().decode(BlockingSession.self, from: activeSessionData) {
       // Check if session is from the requested date
       if calendar.isDate(activeSession.startTime, inSameDayAs: date) {
-        allSessions.append(BlockingSessionInfo(
-          startTime: activeSession.startTime,
-          endTime: nil, // Active session has no end time yet
-          appName: "Focus Time (Active)"
-        ))
+        allSessions.append(activeSession)
       }
     }
     
@@ -235,11 +216,7 @@ public class SharedData {
     if let interruptionData = userDefaults?.data(forKey: "active_interruption_session"),
        let interruptionSession = try? JSONDecoder().decode(BlockingSession.self, from: interruptionData) {
       if calendar.isDate(interruptionSession.startTime, inSameDayAs: date) {
-        allSessions.append(BlockingSessionInfo(
-          startTime: interruptionSession.startTime,
-          endTime: nil,
-          appName: "Interruption (Active)"
-        ))
+        allSessions.append(interruptionSession)
       }
     }
     
@@ -248,20 +225,8 @@ public class SharedData {
        let scheduleSessions = try? JSONDecoder().decode([String: BlockingSession].self, from: scheduleData) {
       for (_, session) in scheduleSessions {
         if calendar.isDate(session.startTime, inSameDayAs: date) {
-          allSessions.append(BlockingSessionInfo(
-            startTime: session.startTime,
-            endTime: nil,
-            appName: "Schedule (Active)"
-          ))
+          allSessions.append(session)
         }
-      }
-    }
-    
-    // Fallback to legacy format if no new format sessions found
-    if allSessions.isEmpty {
-      if let sessionData = userDefaults?.data(forKey: "blockingSessions_\(dateKey)"),
-         let sessions = try? JSONDecoder().decode([BlockingSessionInfo].self, from: sessionData) {
-        return sessions
       }
     }
     
