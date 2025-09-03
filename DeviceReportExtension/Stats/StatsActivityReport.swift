@@ -1,6 +1,9 @@
 import DeviceActivity
 import SwiftUI
 
+// Кеш для хранения результатов
+
+
 struct StatsActivityReport: DeviceActivityReportScene {
   let context: DeviceActivityReport.Context = .statsActivity
   let content: (StatsData) -> StatsSectionView
@@ -15,15 +18,37 @@ struct StatsActivityReport: DeviceActivityReportScene {
       $0 + $1.totalActivityDuration
     }
     
+    var segmentCount = 0
+    var totalApps = 0
+    
+    // Сначала получаем дату из первого сегмента
     for await d in data {
       for await segment in d.activitySegments {
+        if reportDate == nil {
+          reportDate = segment.dateInterval.start
+        }
+        break
+      }
+      break
+    }
+    
+    // Проверяем кеш ПОСЛЕ получения правильной даты
+//    if let reportDate = reportDate {
+//      if let cachedData = await StatsCache.shared.get(for: reportDate) {
+//        // Проверяем что кешированные данные соответствуют ожидаемому totalDuration
+//        // Если данные не совпадают, не используем кеш
+//        if abs(cachedData.totalDuration - totalDuration) < 60 { // допускаем разницу в 1 минуту
+//          return cachedData
+//        }
+//      }
+//    }
+    
+    // Теперь обрабатываем все сегменты
+    for await d in data {
+      for await segment in d.activitySegments {
+        segmentCount += 1
         // Use segment's actual date interval if available
         let segmentInterval = segment.dateInterval
-        
-        // Сохраняем дату из первого сегмента
-        if reportDate == nil {
-          reportDate = segmentInterval.start
-        }
         
         for await category in segment.categories {
           for await app in category.applications {
@@ -50,10 +75,13 @@ struct StatsActivityReport: DeviceActivityReportScene {
             )
             
             sessions.append(session)
+            totalApps += 1
           }
         }
       }
     }
+    
+    // Processed segments and apps
     
     let chartData = generateChartBars(from: sessions, reportDate: reportDate ?? Date())
     
@@ -86,6 +114,11 @@ struct StatsActivityReport: DeviceActivityReportScene {
       appUsages: top3AppUsages,
       appSessions: sessions
     )
+    
+    // Сохраняем в кеш
+//    if let reportDate = reportDate {
+//      await StatsCache.shared.set(result, for: reportDate)
+//    }
     
     return result
   }

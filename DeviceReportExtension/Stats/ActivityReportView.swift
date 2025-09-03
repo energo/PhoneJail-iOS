@@ -7,13 +7,21 @@
 
 import SwiftUI
 import DeviceActivity
+import Combine
+
+extension DeviceActivityReport.Context {
+  static let statsActivity = Self("Stats Activity")
+}
 
 struct ActivityReportView: View {
   // Храним выбранную дату
   @State private var selectedDate: Date = Date()
-  @State private var refreshTrigger = false
+  @State private var reportKey = UUID()
   @State private var lifetimeFocusedTime: TimeInterval = 0
   @State private var lastRefreshDate: Date? = nil
+  @State private var isChangingDate = false
+  @State private var pendingDate: Date? = nil
+  @State private var dateChangeSubject = PassthroughSubject<Date, Never>()
   @Environment(\.scenePhase) var scenePhase
   
   // Контекст отчёта (может быть .totalActivity или ваш собственный)
@@ -55,22 +63,55 @@ struct ActivityReportView: View {
 
       datePicker
       
-      // Сам отчёт
-      if refreshTrigger {
+      // Сам отчёт с защитой от сбоев
+      ZStack {
+        // Всегда показываем placeholder чтобы view не исчезала
+        Color.clear
+          .frame(minHeight: 200)
+        
+        // Отчёт поверх placeholder
         DeviceActivityReport(context, filter: filter)
-      } else {
-        DeviceActivityReport(context, filter: filter)
+          .id(reportKey) // Используем UUID вместо комбинации date+trigger
       }
+      .frame(minHeight: 200)
     }
     .padding()
     .background(bgBlur)
+    .onAppear {
+      // View appeared
+    }
+    .onReceive(
+      dateChangeSubject
+        .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
+    ) { newDate in
+      isChangingDate = true
+      
+      Task {
+        // Очищаем кеш при смене даты чтобы не показывать старые данные
+//        await StatsCache.shared.clearCache()
+        
+        await MainActor.run {
+          // Теперь меняем selectedDate только здесь, через debounce
+          selectedDate = newDate
+          
+          // Обновляем reportKey чтобы форсировать обновление
+          reportKey = UUID()
+        }
+        
+        await loadLifetimeStats()
+        
+        await MainActor.run {
+          isChangingDate = false
+        }
+      }
+    }
     .onChange(of: scenePhase) { newPhase in
       if newPhase == .active {
         // Обновляем только если прошло больше 5 секунд с последнего обновления
         let now = Date()
         if lastRefreshDate == nil || now.timeIntervalSince(lastRefreshDate!) > 5 {
           lastRefreshDate = now
-          refreshTrigger.toggle()
+          reportKey = UUID() // Обновляем ключ вместо refreshTrigger
           Task {
             await loadLifetimeStats()
           }
@@ -81,14 +122,7 @@ struct ActivityReportView: View {
       await loadLifetimeStats()
       lastRefreshDate = Date()
     }
-    .onChange(of: selectedDate) { _ in
-      // При смене даты всегда обновляем
-      lastRefreshDate = Date()
-      refreshTrigger.toggle()
-      Task {
-        await loadLifetimeStats()
-      }
-    }
+    // Убрали onChange для selectedDate - теперь используем debounce через Combine
   }
   
   private func loadLifetimeStats() async {
@@ -112,34 +146,51 @@ struct ActivityReportView: View {
   private var datePicker: some View {
     HStack {
       Button(action: {
-        selectedDate = Calendar.current.date(byAdding: .day, value: -1, to: selectedDate)!
+        changeDate(by: -1)
       }) {
         Image(systemName: "chevron.left.circle.fill")
           .font(.system(size: 32))
           .symbolRenderingMode(.hierarchical)
           .foregroundStyle(.white, .white.opacity(0.07))
       }
+      .disabled(isChangingDate)
       
       Spacer()
       
-      Text(dateText)
-        .font(.caption)
-        .foregroundStyle(.gray)
+      if isChangingDate {
+        ProgressView()
+          .progressViewStyle(CircularProgressViewStyle(tint: .gray))
+          .scaleEffect(0.7)
+      } else {
+        Text(dateText)
+          .font(.caption)
+          .foregroundStyle(.gray)
+      }
       
       Spacer()
       
       Button(action: {
-        selectedDate = Calendar.current.date(byAdding: .day, value: 1, to: selectedDate)!
+        changeDate(by: 1)
       }) {
         Image(systemName: "chevron.right.circle.fill")
           .font(.system(size: 32))
           .symbolRenderingMode(.hierarchical)
           .foregroundStyle(.white, .white.opacity(0.07))
       }
-      .disabled(isToday)
-      .opacity(isToday ? 0.3 : 1.0)
+      .disabled(isToday || isChangingDate)
+      .opacity(isToday || isChangingDate ? 0.3 : 1.0)
     }
     .foregroundStyle(Color.white)
+  }
+  
+  private func changeDate(by days: Int) {
+    guard !isChangingDate else { return }
+    
+    let newDate = Calendar.current.date(byAdding: .day, value: days, to: selectedDate)!
+    
+    // НЕ меняем selectedDate здесь!
+    // Отправляем в Combine subject для debounce
+    dateChangeSubject.send(newDate)
   }
   
   private var isToday: Bool {
