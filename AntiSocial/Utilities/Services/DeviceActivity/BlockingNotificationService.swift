@@ -45,15 +45,13 @@ final class BlockingNotificationService: ObservableObject {
     
     // Сохраняем выбор приложений
     ShieldService.shared.saveFamilyActivitySelectionAsync(selection)
-    ShieldService.shared.setShieldRestrictions(restrictionModel.isStricted)
     
     // Устанавливаем время
     
-    // Сохраняем для виджетов
-//    saveWidgetData(endHour: endHour, endMin: endMin)
     
     Task { @MainActor in
       DeviceActivityScheduleService.setSchedule(endHour: endHour, endMins: endMin)
+      ShieldService.shared.setShieldRestrictions(restrictionModel.isStricted)
     }
     
     // Log blocking session using new AppBlockingLogger
