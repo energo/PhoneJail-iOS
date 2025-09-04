@@ -17,7 +17,7 @@ struct WeekDay {
 struct NewBlockSchedulerView: View {
 //  @Environment(\.dismiss) private var dismiss
   @Environment(\.presentationMode) private var presentationMode
-  @EnvironmentObject var deviceActivityService: DeviceActivityService
+  @EnvironmentObject var deviceActivityService: ShieldService
   @State private var navigationPath = NavigationPath()
 
   private let adaptive = AdaptiveValues.current
@@ -651,5 +651,5 @@ struct NewBlockSchedulerView: View {
     },
     onDelete: nil
   )
-  .environmentObject(DeviceActivityService.shared)
+  .environmentObject(ShieldService.shared)
 }

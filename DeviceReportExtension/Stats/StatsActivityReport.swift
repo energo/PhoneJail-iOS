@@ -2,7 +2,55 @@ import DeviceActivity
 import SwiftUI
 
 // Кеш для хранения результатов
-
+private actor StatsCache {
+  static let shared = StatsCache()
+  
+  private var cache: [String: (data: StatsData, timestamp: Date)] = [:]
+  private let cacheLifetime: TimeInterval = 60 // 1 минута
+  
+  func get(for date: Date) -> StatsData? {
+    let key = cacheKey(for: date)
+    guard let cached = cache[key] else { return nil }
+    
+    // Проверяем не устарел ли кеш
+    if Date().timeIntervalSince(cached.timestamp) > cacheLifetime {
+      cache.removeValue(forKey: key)
+      return nil
+    }
+    
+    return cached.data
+  }
+  
+  func set(_ data: StatsData, for date: Date) {
+    let key = cacheKey(for: date)
+    // Храним кеш только для последних 3 дней
+    if cache.count > 3 {
+      // Удаляем самый старый кеш
+      if let oldestKey = cache.min(by: { $0.value.timestamp < $1.value.timestamp })?.key {
+        cache.removeValue(forKey: oldestKey)
+      }
+    }
+    cache[key] = (data, Date())
+  }
+  
+  private func cacheKey(for date: Date) -> String {
+    let formatter = DateFormatter()
+    formatter.dateFormat = "yyyy-MM-dd"
+    formatter.timeZone = TimeZone.current
+    return formatter.string(from: date)
+  }
+  
+  func clearCache() {
+    cache.removeAll()
+  }
+  
+  func clearOldCache() {
+    let now = Date()
+    cache = cache.filter { _, value in
+      now.timeIntervalSince(value.timestamp) <= cacheLifetime
+    }
+  }
+}
 
 struct StatsActivityReport: DeviceActivityReportScene {
   let context: DeviceActivityReport.Context = .statsActivity
@@ -12,42 +60,29 @@ struct StatsActivityReport: DeviceActivityReportScene {
     
     var sessions: [AppUsageSession] = []
     var reportDate: Date? = nil
-    
-    // Calculate total duration correctly - same as TotalActivityReport
-    let totalDuration = await data.flatMap { $0.activitySegments }.reduce(0) {
-      $0 + $1.totalActivityDuration
-    }
-    
+    var totalDuration: TimeInterval = 0
     var segmentCount = 0
     var totalApps = 0
     
-    // Сначала получаем дату из первого сегмента
-    for await d in data {
-      for await segment in d.activitySegments {
-        if reportDate == nil {
-          reportDate = segment.dateInterval.start
-        }
-        break
-      }
-      break
-    }
-    
-    // Проверяем кеш ПОСЛЕ получения правильной даты
-//    if let reportDate = reportDate {
-//      if let cachedData = await StatsCache.shared.get(for: reportDate) {
-//        // Проверяем что кешированные данные соответствуют ожидаемому totalDuration
-//        // Если данные не совпадают, не используем кеш
-//        if abs(cachedData.totalDuration - totalDuration) < 60 { // допускаем разницу в 1 минуту
-//          return cachedData
-//        }
-//      }
-//    }
-    
-    // Теперь обрабатываем все сегменты
+    // Обрабатываем все сегменты за один проход
     for await d in data {
       for await segment in d.activitySegments {
         segmentCount += 1
-        // Use segment's actual date interval if available
+        
+        // Получаем дату из первого сегмента
+        if reportDate == nil {
+          reportDate = segment.dateInterval.start
+          
+          // Проверяем кеш сразу после получения даты
+          if let cachedData = await StatsCache.shared.get(for: reportDate!) {
+            // Быстрая проверка - если есть кеш меньше минуты, возвращаем сразу
+            return cachedData
+          }
+        }
+        
+        // Добавляем к общей продолжительности
+        totalDuration += segment.totalActivityDuration
+        
         let segmentInterval = segment.dateInterval
         
         for await category in segment.categories {
@@ -57,18 +92,13 @@ struct StatsActivityReport: DeviceActivityReportScene {
             guard let token = app.application.token else { continue }
             let appName = app.application.localizedDisplayName ?? "App"
             
-            // Получаем количество запусков приложения
             let pickups = app.numberOfPickups
-            
-            // С hourly сегментами мы знаем ТОЧНЫЙ час использования!
-            // Каждый сегмент = 1 час, так что все время приложения в этом сегменте
-            // было использовано именно в этот час
             
             let session = AppUsageSession(
               token: token,
               appName: appName,
               start: segmentInterval.start,  // Начало часа
-              end: segmentInterval.end,      // Конец часа
+              end: segmentInterval.end,      // Конец часа  
               duration: duration,
               numberOfPickups: pickups,
               firstPickupTime: nil
@@ -116,9 +146,9 @@ struct StatsActivityReport: DeviceActivityReportScene {
     )
     
     // Сохраняем в кеш
-//    if let reportDate = reportDate {
-//      await StatsCache.shared.set(result, for: reportDate)
-//    }
+    if let reportDate = reportDate {
+      await StatsCache.shared.set(result, for: reportDate)
+    }
     
     return result
   }

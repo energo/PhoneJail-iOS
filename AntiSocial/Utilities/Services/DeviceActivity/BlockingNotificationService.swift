@@ -35,10 +35,10 @@ final class BlockingNotificationService: ObservableObject {
     restrictionModel.endMins = endMin
     
     // Устанавливаем дату разблокировки сразу для UI
-    if DeviceActivityService.shared.unlockDate == nil || (DeviceActivityService.shared.unlockDate ?? Date()) <= Date() {
-      DeviceActivityService.shared.setUnlockDate(hour: endHour, minute: endMin)
+    if ShieldService.shared.unlockDate == nil || (ShieldService.shared.unlockDate ?? Date()) <= Date() {
+      ShieldService.shared.setUnlockDate(hour: endHour, minute: endMin)
       // Also save to SharedData for extensions and app restart
-      if let unlockDate = DeviceActivityService.shared.unlockDate {
+      if let unlockDate = ShieldService.shared.unlockDate {
         SharedData.userDefaults?.set(unlockDate, forKey: SharedData.AppBlocking.unlockDate)
       }
     }
@@ -46,7 +46,7 @@ final class BlockingNotificationService: ObservableObject {
     // Все тяжелые операции в фоне
     Task {
       // Сохраняем выбор приложений
-      await DeviceActivityService.shared.saveFamilyActivitySelectionAsync(selection)
+      await ShieldService.shared.saveFamilyActivitySelectionAsync(selection)
       
       // Устанавливаем время
       let now = Date()
@@ -63,7 +63,7 @@ final class BlockingNotificationService: ObservableObject {
       await DeviceActivityScheduleService.setScheduleAsync(endHour: endHour, endMins: endMin)
       
       // Устанавливаем ограничения - самая тяжелая операция
-      await DeviceActivityService.shared.setShieldRestrictionsAsync(restrictionModel.isStricted)
+      await ShieldService.shared.setShieldRestrictionsAsync(restrictionModel.isStricted)
     }
 
     // Log blocking session using new AppBlockingLogger
@@ -101,7 +101,7 @@ final class BlockingNotificationService: ObservableObject {
     SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
 
     Task { @MainActor in
-      DeviceActivityService.shared.savedSelection.removeAll()
+      ShieldService.shared.stopAppRestrictions()
     }
     SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endHour)
     SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endMinutes)
@@ -123,11 +123,11 @@ final class BlockingNotificationService: ObservableObject {
   }
 
   func resetBlockingState() {
-    let service = DeviceActivityService.shared
+    let service = ShieldService.shared
     
     Task { @MainActor in
       // Don't clear selectionToDiscourage - keep it for next time
-      service.savedSelection.removeAll()
+      service.stopAppRestrictions()
       service.unlockDate = nil
     }
     

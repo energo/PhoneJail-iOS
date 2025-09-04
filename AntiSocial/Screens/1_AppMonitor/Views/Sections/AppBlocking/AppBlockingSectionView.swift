@@ -14,7 +14,7 @@ import RevenueCatUI
 
 
 struct AppBlockingSectionView: View {
-  @EnvironmentObject var deviceActivityService: DeviceActivityService
+  @EnvironmentObject var deviceActivityService: ShieldService
   @EnvironmentObject var subscriptionManager: SubscriptionManager
   @ObservedObject var restrictionModel: MyRestrictionModel
   

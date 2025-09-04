@@ -1,14 +1,9 @@
 import Foundation
+import WidgetKit
 import FamilyControls
 import ManagedSettings
 import DeviceActivity
 import UserNotifications
-
-struct AppEntity: Codable, Identifiable {
-  var id = UUID()
-  var name: String
-}
-
 
 extension ManagedSettingsStore.Name {
 //  static let mySettingStore = Self("mySettingStore")
@@ -16,29 +11,16 @@ extension ManagedSettingsStore.Name {
   static let interruption = Self("interruption")
 }
 
-class DeviceActivityService: ObservableObject {
+class ShieldService: ObservableObject {
   // MARK: - Settings Store
   let store = ManagedSettingsStore(named: .appBlocking)
-  static let shared = DeviceActivityService()
+  static let shared = ShieldService()
 
   // MARK: - Published Properties
   @Published var selectionToDiscourage: FamilyActivitySelection
-  @Published var selectionToEncourage: FamilyActivitySelection
-  @Published var savedSelection: [AppEntity] = [] {
-    didSet { saveApps() }
-  }
   @Published var unlockDate: Date? = nil {
     didSet { saveUnlockDate() }
   }
-  
-  // MARK: - UserDefaults Keys
-  private let userDefaultsKey = "savedSelection"
-  private let selectionKey = "ScreenTimeSelection"
-  private let unlockDateKey = "UnlockDate"
-  
-  // MARK: - Encoder/Decoder
-  private let encoder = PropertyListEncoder()
-  private let decoder = PropertyListDecoder()
   
   var timeBlockedString: String {
     if let startTimestamp = SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp) {
@@ -62,8 +44,7 @@ class DeviceActivityService: ObservableObject {
   // MARK: - Init
  private init() {
     selectionToDiscourage = FamilyActivitySelection()
-    selectionToEncourage = FamilyActivitySelection()
-    loadApps()
+
     loadSelection()
     loadUnlockDate()
   }
@@ -115,31 +96,15 @@ class DeviceActivityService: ObservableObject {
   
   private func saveUnlockDate() {
     if let date = unlockDate {
-//      AppLogger.trace("[MyModel] saveUnlockDate: \(date)")
-      UserDefaults.standard.set(date, forKey: unlockDateKey)
-      // Also save to SharedData for extensions
       SharedData.userDefaults?.set(date, forKey: SharedData.AppBlocking.unlockDate)
     } else {
-//      AppLogger.trace("[MyModel] saveUnlockDate: nil (removing)")
-      UserDefaults.standard.removeObject(forKey: unlockDateKey)
       SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.unlockDate)
     }
   }
   
   func loadUnlockDate() {
-    // First try to load from UserDefaults
-    if let date = UserDefaults.standard.object(forKey: unlockDateKey) as? Date {
-//      AppLogger.trace("[MyModel] loadUnlockDate: \(date)")
-      unlockDate = date
-    } 
-    // Also check SharedData for unlock date
-    else if let sharedDate = SharedData.userDefaults?.object(forKey: SharedData.AppBlocking.unlockDate) as? Date {
-//      AppLogger.trace("[MyModel] loadUnlockDate from SharedData: \(sharedDate)")
+    if let sharedDate = SharedData.userDefaults?.object(forKey: SharedData.AppBlocking.unlockDate) as? Date {
       unlockDate = sharedDate
-      // Sync to UserDefaults
-      UserDefaults.standard.set(sharedDate, forKey: unlockDateKey)
-    } else {
-//      AppLogger.trace("[MyModel] loadUnlockDate: nil")
     }
   }
   
@@ -148,10 +113,7 @@ class DeviceActivityService: ObservableObject {
     Task { @MainActor in
       selectionToDiscourage = selection
     }
-    if let data = try? encoder.encode(selection) {
-      UserDefaults.standard.set(data, forKey: selectionKey)
-    }
-    // Also save to SharedData for persistence
+
     SharedData.selectedBlockingActivity = selection
   }
   
@@ -159,56 +121,19 @@ class DeviceActivityService: ObservableObject {
     await MainActor.run {
       selectionToDiscourage = selection
     }
-    if let data = try? encoder.encode(selection) {
-      UserDefaults.standard.set(data, forKey: selectionKey)
-    }
-    // Also save to SharedData for persistence
+
     SharedData.selectedBlockingActivity = selection
   }
   
   func loadSelection() {
-    if let data = UserDefaults.standard.data(forKey: selectionKey),
-       let loaded = try? decoder.decode(FamilyActivitySelection.self, from: data) {
-      selectionToDiscourage = loaded
-    } else if let sharedSelection = SharedData.selectedBlockingActivity {
+    if let sharedSelection = SharedData.selectedBlockingActivity {
       // Load from SharedData if available
       selectionToDiscourage = sharedSelection
       // Save to UserDefaults for future use
       saveFamilyActivitySelection(selectionToDiscourage)
     }
   }
-  
-  // MARK: - AppEntity Save/Load
-  func loadApps() {
-    if let data = UserDefaults.standard.data(forKey: userDefaultsKey) {
-      do {
-        let decoded = try JSONDecoder().decode([AppEntity].self, from: data)
-        self.savedSelection = decoded
-      } catch {
-//        AppLogger.critical(error, details: "Failed to decode apps")
-        self.savedSelection = []
-      }
-    }
-  }
-  
-  func saveApps() {
-    do {
-      let data = try JSONEncoder().encode(savedSelection)
-      UserDefaults.standard.set(data, forKey: userDefaultsKey)
-    } catch {
-//      AppLogger.critical(error, details: "Failed to encode apps")
-    }
-  }
-  
-  func addApp(name: String) {
-    let newApp = AppEntity(name: name)
-    savedSelection.append(newApp)
-  }
-  
-  func deleteAllApps() {
-    savedSelection.removeAll()
-  }
-  
+
   // MARK: - Shield Restrictions
   func setShieldRestrictions(_ isStricted: Bool = false) {
     let applications = selectionToDiscourage
@@ -255,15 +180,17 @@ class DeviceActivityService: ObservableObject {
   
   func stopAppRestrictions() {
     print("stopAppRestrictions")
-
+    store.application.blockedApplications = nil
     store.clearAllSettings()
+    WidgetCenter.shared.reloadAllTimelines()
   }
   
   func stopAppRestrictions(storeName: ManagedSettingsStore.Name) {
     print("stopAppRestrictions(storeName")
-
     let customStore = ManagedSettingsStore(named: storeName)
+    customStore.application.blockedApplications = nil
     customStore.clearAllSettings()
+    WidgetCenter.shared.reloadAllTimelines()
   }
   
   // MARK: - Helpers

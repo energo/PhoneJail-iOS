@@ -25,14 +25,10 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   override func intervalDidStart(for activity: DeviceActivityName) {
     super.intervalDidStart(for: activity)
     
-//    LocalNotificationManager.scheduleExtensionNotification(
-//      title: "🔄 Interval Did Start",
-//      details: ""
-//    )
-
-    let formatter = DateFormatter()
-    formatter.dateFormat = "HH:mm:ss"
-    let timeString = formatter.string(from: Date())
+    LocalNotificationManager.scheduleExtensionNotification(
+      title: "🔄 Interval Did Start",
+      details: "\(activity.rawValue)"
+    )
     
     // Check if this is a schedule activity starting
     let activityName = "\(activity.rawValue)"
@@ -43,12 +39,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       } else {
         scheduleId = activityName.replacingOccurrences(of: "schedule_", with: "")
       }
-      
-//      LocalNotificationManager.scheduleExtensionNotification(
-//        title: "🔒 Interval START",
-//        details: "Activity: \(activityName)\nSchedule ID: \(scheduleId) at \(timeString)"
-//      )
-      
+            
       // Load schedule and apply restrictions
       handleScheduleStart(scheduleId: scheduleId)
       return
@@ -58,22 +49,12 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   override func intervalDidEnd(for activity: DeviceActivityName) {
     super.intervalDidEnd(for: activity)
     
-//    LocalNotificationManager.scheduleExtensionNotification(
-//      title: "🔄 intervalDidEnd",
-//      details: ""
-//    )
-
-//    let formatter = DateFormatter()
-//    formatter.dateFormat = "HH:mm:ss"
-//    let timeString = formatter.string(from: Date())
-    
-    // Debug: Log when interval ends
-//    LocalNotificationManager.scheduleExtensionNotification(
-//      title: "⏰ Interval END",
-//      details: "\(activity.rawValue) at \(timeString)"
-//    )
-    
     let activityName = "\(activity.rawValue)"
+
+    LocalNotificationManager.scheduleExtensionNotification(
+      title: "🔄 Interval Did End",
+      details: "\(activityName)"
+    )
     
     // Check if this is a schedule activity ending
     if activityName.contains("schedule_") || activityName.contains("scheduledBlock_") {
@@ -83,12 +64,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       } else {
         scheduleId = activityName.replacingOccurrences(of: "schedule_", with: "")
       }
-      
-//      LocalNotificationManager.scheduleExtensionNotification(
-//        title: "🔓 Schedule Ended",
-//        details: "Activity: \(activityName)\nSchedule ID: \(scheduleId) at \(timeString)"
-//      )
-      
+            
       // Load schedule and remove restrictions
       handleScheduleEnd(scheduleId: scheduleId)
       return
@@ -112,7 +88,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
           )
           
           // Clear regular blocking store
-          DeviceActivityService.shared.stopAppRestrictions()
+          ShieldService.shared.stopAppRestrictions()
 
           // Clear regular blocking state only if unlock date has passed
           DeviceActivityScheduleService.stopSchedule()
@@ -138,7 +114,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       // Note: Interruption sessions are short (2 min) and handled locally
       
       // Clear shield restrictions for interruption store
-      DeviceActivityService.shared.stopAppRestrictions(storeName: .interruption)
+      ShieldService.shared.stopAppRestrictions(storeName: .interruption)
       
       // Clear interruption state
       SharedData.userDefaults?.removeObject(forKey: SharedData.ScreenTime.isInterruptionBlock)
@@ -159,10 +135,10 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     super.eventDidReachThreshold(event, activity: activity)
     
     // Debug notification to confirm threshold reached
-//    LocalNotificationManager.scheduleExtensionNotification(
-//      title: "📊 Threshold Reached!",
-//      details: "Event: \(event.rawValue)\nActivity: \(activity.rawValue)"
-//    )
+    LocalNotificationManager.scheduleExtensionNotification(
+      title: "📊 Threshold Reached!",
+      details: "Event: \(event.rawValue)\nActivity: \(activity.rawValue)"
+    )
         
     // Check if this is an interruption event
     if event == DeviceActivityEvent.Name.interruption {

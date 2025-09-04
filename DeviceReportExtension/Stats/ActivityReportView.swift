@@ -21,22 +21,26 @@ struct ActivityReportView: View {
   @State private var lastRefreshDate: Date? = nil
   @State private var isChangingDate = false
   @State private var pendingDate: Date? = nil
-  @State private var dateChangeSubject = PassthroughSubject<Date, Never>()
+  private let dateChangeSubject = PassthroughSubject<Date, Never>()
+  
+  // Храним фильтр как @State чтобы контролировать его обновление
+  @State private var currentFilter: DeviceActivityFilter
+  
   @Environment(\.scenePhase) var scenePhase
   
   // Контекст отчёта (может быть .totalActivity или ваш собственный)
   let context: DeviceActivityReport.Context = .statsActivity
   
-  // Вычисляем фильтр для выбранной даты
-  var filter: DeviceActivityFilter {
-    // Используем hourly сегменты для получения данных по каждому часу
-    DeviceActivityFilter(
+  init() {
+    let initialDate = Date()
+    _selectedDate = State(initialValue: initialDate)
+    _currentFilter = State(initialValue: DeviceActivityFilter(
       segment: .hourly(
-        during: Calendar.current.dateInterval(of: .day, for: selectedDate)!
+        during: Calendar.current.dateInterval(of: .day, for: initialDate)!
       ),
       users: .all,
       devices: .init([.iPhone])
-    )
+    ))
   }
   
   var body: some View {
@@ -70,7 +74,7 @@ struct ActivityReportView: View {
           .frame(minHeight: 200)
         
         // Отчёт поверх placeholder
-        DeviceActivityReport(context, filter: filter)
+        DeviceActivityReport(context, filter: currentFilter)
           .id(reportKey) // Используем UUID вместо комбинации date+trigger
       }
       .frame(minHeight: 200)
@@ -84,34 +88,36 @@ struct ActivityReportView: View {
       dateChangeSubject
         .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
     ) { newDate in
-      isChangingDate = true
-      
-      Task {
-        // Очищаем кеш при смене даты чтобы не показывать старые данные
-//        await StatsCache.shared.clearCache()
+      Task { @MainActor in
+        guard newDate != selectedDate else { return }
         
-        await MainActor.run {
-          // Теперь меняем selectedDate только здесь, через debounce
-          selectedDate = newDate
-          
-          // Обновляем reportKey чтобы форсировать обновление
-          reportKey = UUID()
-        }
+        isChangingDate = true
+        selectedDate = newDate
+        
+        // Создаём новый фильтр для новой даты
+        let newFilter = DeviceActivityFilter(
+          segment: .hourly(
+            during: Calendar.current.dateInterval(of: .day, for: newDate)!
+          ),
+          users: .all,
+          devices: .init([.iPhone])
+        )
+        
+        // Обновляем фильтр и ключ одновременно - только ОДНА перерисовка
+        currentFilter = newFilter
+        reportKey = UUID()
         
         await loadLifetimeStats()
-        
-        await MainActor.run {
-          isChangingDate = false
-        }
+        isChangingDate = false
       }
     }
     .onChange(of: scenePhase) { newPhase in
       if newPhase == .active {
-        // Обновляем только если прошло больше 5 секунд с последнего обновления
+        // Обновляем только если прошло больше 10 секунд с последнего обновления
         let now = Date()
-        if lastRefreshDate == nil || now.timeIntervalSince(lastRefreshDate!) > 5 {
+        if lastRefreshDate == nil || now.timeIntervalSince(lastRefreshDate!) > 10 {
           lastRefreshDate = now
-          reportKey = UUID() // Обновляем ключ вместо refreshTrigger
+          reportKey = UUID()
           Task {
             await loadLifetimeStats()
           }

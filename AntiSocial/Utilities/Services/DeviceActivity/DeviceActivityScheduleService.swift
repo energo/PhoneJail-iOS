@@ -56,8 +56,7 @@ class DeviceActivityScheduleService {
       endDate = calendar.date(byAdding: .day, value: 1, to: endDate)!
     }
     
-    let diffMinutes = Int(endDate.timeIntervalSince(startDate) / 60)
-    
+//    let diffMinutes = Int(endDate.timeIntervalSince(startDate) / 60)
 //    AppLogger.notice("DeviceActivityScheduleService: Start time: \(startDate)")
 //    AppLogger.notice("DeviceActivityScheduleService: End time: \(endDate)")
 //    AppLogger.notice("DeviceActivityScheduleService: Duration in minutes: \(diffMinutes)")
@@ -97,21 +96,21 @@ class DeviceActivityScheduleService {
       SharedData.userDefaults?.set(true, forKey: SharedData.ScreenTime.isInterruptionBlock)
     } else {
       // For regular blocking, use the main selection
-      enabledTokens = DeviceActivityService.shared.selectionToDiscourage.applicationTokens
+      enabledTokens = ShieldService.shared.selectionToDiscourage.applicationTokens
     }
 
     // For regular blocking, we want immediate effect, not a threshold
     let event: [DeviceActivityEvent.Name: DeviceActivityEvent]
-    if isInterruption {
-      // Interruptions don't need immediate blocking, they wait for threshold
-      event = [:]
-    } else {
+//    if isInterruption {
+//      // Interruptions don't need immediate blocking, they wait for threshold
+//      event = [:]
+//    } else {
       // Regular blocking should have immediate effect with threshold 0
       event = [ eventName : DeviceActivityEvent(
         applications: enabledTokens, 
         threshold: DateComponents(second: 0)
       )]
-    }
+//    }
          
     // Убираем DispatchQueue.main.async - это блокирует main thread!
     // setShieldRestrictions уже вызывается в startBlocking

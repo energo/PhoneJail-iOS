@@ -27,7 +27,7 @@ final class BlockingNotificationServiceForInterruptions: ObservableObject {
     SharedData.userDefaults?.set(true, forKey: SharedData.ScreenTime.isInterruptionBlock)
 
     // Apply shield restrictions to interruption store
-    DeviceActivityService.shared.setShieldRestrictions(for: selection, storeName: .interruption)
+    ShieldService.shared.setShieldRestrictions(for: selection, storeName: .interruption)
 
     // Time setup
     let now = Date()
@@ -65,7 +65,7 @@ final class BlockingNotificationServiceForInterruptions: ObservableObject {
   func resetBlockingState() {
     // Clear interruption-specific restrictions
     SharedData.userDefaults?.set(false, forKey: SharedData.ScreenTime.isInterruptionBlock)
-    DeviceActivityService.shared.stopAppRestrictions(storeName: .interruption)
+    ShieldService.shared.stopAppRestrictions(storeName: .interruption)
   }
 
   func getEndTime(hourDuration: Int, minuteDuration: Int) -> (Int, Int) {

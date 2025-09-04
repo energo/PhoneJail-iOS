@@ -147,7 +147,7 @@ class AppInterruptionViewModel: ObservableObject {
     center.stopMonitoring([.appMonitoringInterruption])
     
     // Clear any active restrictions from interruptions
-    DeviceActivityService.shared.stopAppRestrictions(storeName: .interruption)
+    ShieldService.shared.stopAppRestrictions(storeName: .interruption)
     
     // Also stop any active interruption blocking schedule
     DeviceActivityScheduleService.stopInterruptionSchedule()
@@ -170,7 +170,7 @@ class AppInterruptionViewModel: ObservableObject {
     SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.lastInterruptionBlockTime)
     
     // Clear interruption restrictions
-    DeviceActivityService.shared.stopAppRestrictions(storeName: .interruption)
+    ShieldService.shared.stopAppRestrictions(storeName: .interruption)
   }
   
   private func updateMonitoredAppsList() {

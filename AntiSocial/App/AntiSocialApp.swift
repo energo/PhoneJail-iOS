@@ -36,7 +36,7 @@ struct AntiSocialApp: App {
   @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
   @StateObject private var authVM = AuthenticationViewModel(subscriptionManager: SubscriptionManager.shared)
   @StateObject private var subscriptionManager = SubscriptionManager.shared
-  @StateObject private var deviceActivityService = DeviceActivityService.shared
+  @StateObject private var deviceActivityService = ShieldService.shared
   @StateObject private var familyControlsManager = FamilyControlsManager.shared
   @StateObject private var scheduleNotificationHandler = ScheduleNotificationHandler.shared
   @State private var midnightTimer: Timer?

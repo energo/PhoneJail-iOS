@@ -10,7 +10,7 @@ import FamilyControls
 import RevenueCatUI
 
 struct BlockSchedulerSectionView: View {
-  @EnvironmentObject var deviceActivityService: DeviceActivityService
+  @EnvironmentObject var deviceActivityService: ShieldService
   @EnvironmentObject var subscriptionManager: SubscriptionManager
   @EnvironmentObject var scheduleNotificationHandler: ScheduleNotificationHandler
   @StateObject private var schedulerService = BlockSchedulerService.shared
