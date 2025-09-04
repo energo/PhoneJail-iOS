@@ -62,7 +62,7 @@ public struct CustomPickerView: View {
           .safeAreaPadding(.horizontal, geo.size.width / 2.0)
           .scrollTargetBehavior(.viewAligned)
           .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
               withAnimation {
                 proxy.scrollTo(count, anchor: .center)
               }
