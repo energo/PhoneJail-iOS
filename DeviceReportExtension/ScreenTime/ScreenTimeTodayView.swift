@@ -23,22 +23,11 @@ struct ScreenTimeTodayView: View {
   )
   
   // Cache management
-  @AppStorage(SharedData.ScreenTime.cachedScreenTimeData, store: SharedData.userDefaults) private var cachedDataRaw: Data?
-  @AppStorage(SharedData.ScreenTime.screenTimeHasLoadedOnce, store: SharedData.userDefaults) private var hasLoadedOnce = false
   @AppStorage(SharedData.ScreenTime.lastScreenTimeRefresh, store: SharedData.userDefaults) private var lastRefreshTimestamp: Double = 0
   
   @State private var refreshID = UUID()
   @State private var isFirstLoad = true
   
-  var id: UUID // External identifier for refresh
-  
-  private var cachedData: ScreenTimeCache.CachedData? {
-    guard let data = cachedDataRaw,
-          let decoded = try? JSONDecoder().decode(ScreenTimeCache.CachedData.self, from: data) else {
-      return nil
-    }
-    return decoded
-  }
   
   private var shouldRefreshCache: Bool {
     let fiveMinutes: TimeInterval = 300
@@ -47,14 +36,9 @@ struct ScreenTimeTodayView: View {
   
   var body: some View {
     ZStack {
-      // Always render the actual DeviceActivityReport (it handles caching internally)
-      DeviceActivityReport(context, filter: filter)
-        .padding(0)
-        .id(refreshID)
-//        .opacity(isFirstLoad && cachedData == nil ? 0 : 1) // Hide only on first load without cache
       
       // Show loading indicator only on first load without cache
-      if isFirstLoad && cachedData == nil {
+      if isFirstLoad {
         VStack {
           ProgressView()
             .scaleEffect(1.5)
@@ -67,26 +51,30 @@ struct ScreenTimeTodayView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
       }
-    }
-    .onAppear {
-      handleOnAppear()
-    }
-    .onChange(of: id) { _, _ in
-      forceRefresh()
+      
+      DeviceActivityReport(context, filter: filter)
+        .padding(0)
+        .id(refreshID)
+        .onAppear {
+          handleOnAppear()
+        }
+
     }
   }
   
   private func handleOnAppear() {
     // Check if this is the first time loading
-    if !hasLoadedOnce {
-      isFirstLoad = true
-      hasLoadedOnce = true
-    } else {
-      isFirstLoad = false
-    }
+//    if !hasLoadedOnce {
+//      isFirstLoad = true
+//      hasLoadedOnce = true
+//    } else {
+//      isFirstLoad = false
+//    }
     
+    isFirstLoad = false
+
     // Refresh if needed
-    if shouldRefreshCache || cachedData == nil {
+    if shouldRefreshCache {
       refreshReport()
     }
   }
