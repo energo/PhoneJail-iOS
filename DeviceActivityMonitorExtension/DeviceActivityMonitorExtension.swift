@@ -53,10 +53,10 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     let activityName = "\(activity.rawValue)"
 
     // Debug notification
-    LocalNotificationManager.scheduleExtensionNotification(
-      title: "🔄 Interval Did End",
-      details: "\(activityName)"
-    )
+//    LocalNotificationManager.scheduleExtensionNotification(
+//      title: "🔄 Interval Did End",
+//      details: "\(activityName)"
+//    )
     
     // Check if this is a schedule activity ending
     if activityName.contains("schedule_") || activityName.contains("scheduledBlock_") {
