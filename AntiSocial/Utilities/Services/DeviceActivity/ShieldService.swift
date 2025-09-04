@@ -6,7 +6,7 @@ import DeviceActivity
 import UserNotifications
 
 extension ManagedSettingsStore.Name {
-//  static let mySettingStore = Self("mySettingStore")
+  //  static let mySettingStore = Self("mySettingStore")
   static let appBlocking = Self("appBlocking")
   static let interruption = Self("interruption")
 }
@@ -15,7 +15,7 @@ class ShieldService: ObservableObject {
   // MARK: - Settings Store
   let store = ManagedSettingsStore(named: .appBlocking)
   static let shared = ShieldService()
-
+  
   // MARK: - Published Properties
   @Published var selectionToDiscourage: FamilyActivitySelection
   @Published var unlockDate: Date? = nil {
@@ -28,7 +28,7 @@ class ShieldService: ObservableObject {
       
       // Валидация: если elapsed > 24 часов или отрицательное, что-то пошло не так
       guard elapsed >= 0 && elapsed < 86400 else {
-//        AppLogger.alert("DeviceActivityService: Invalid elapsed time: \(elapsed) seconds from timestamp: \(startTimestamp)")
+        //        AppLogger.alert("DeviceActivityService: Invalid elapsed time: \(elapsed) seconds from timestamp: \(startTimestamp)")
         // Очищаем некорректный timestamp
         SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
         return "0h 00m"
@@ -42,9 +42,9 @@ class ShieldService: ObservableObject {
   }
   
   // MARK: - Init
- private init() {
+  private init() {
     selectionToDiscourage = FamilyActivitySelection()
-
+    
     loadSelection()
     loadUnlockDate()
   }
@@ -72,18 +72,18 @@ class ShieldService: ObservableObject {
   
   static var logDateFormat = "HH:mm:ss.SSS"
   static var logDateFormatter: DateFormatter {
-      let formatter = DateFormatter()
-      formatter.dateFormat = logDateFormat
-      formatter.locale = Locale.autoupdatingCurrent
-      formatter.timeZone = TimeZone.autoupdatingCurrent
-      return formatter
+    let formatter = DateFormatter()
+    formatter.dateFormat = logDateFormat
+    formatter.locale = Locale.autoupdatingCurrent
+    formatter.timeZone = TimeZone.autoupdatingCurrent
+    return formatter
   }
   
   var timeRemainingString: String {
     guard let unlockDate = unlockDate else { return "0:00:00" }
     
-//    let dateFormatted = DeviceActivityService.logDateFormatter.string(from: unlockDate)
-//    AppLogger.notice("\n[MyModel] timeRemainingString: \(dateFormatted)")
+    //    let dateFormatted = DeviceActivityService.logDateFormatter.string(from: unlockDate)
+    //    AppLogger.notice("\n[MyModel] timeRemainingString: \(dateFormatted)")
     
     let remaining = Int(unlockDate.timeIntervalSinceNow)
     if remaining <= 0 { return "0:00:00" }
@@ -113,15 +113,20 @@ class ShieldService: ObservableObject {
     Task { @MainActor in
       selectionToDiscourage = selection
     }
-
+    
     SharedData.selectedBlockingActivity = selection
   }
   
   func saveFamilyActivitySelectionAsync(_ selection: FamilyActivitySelection) async {
     await MainActor.run {
       selectionToDiscourage = selection
+      SharedData.selectedBlockingActivity = selection
     }
-
+  }
+  
+  func saveFamilyActivitySelectionAsync(_ selection: FamilyActivitySelection) {
+    selectionToDiscourage = selection
+    
     SharedData.selectedBlockingActivity = selection
   }
   
@@ -133,7 +138,7 @@ class ShieldService: ObservableObject {
       saveFamilyActivitySelection(selectionToDiscourage)
     }
   }
-
+  
   // MARK: - Shield Restrictions
   func setShieldRestrictions(_ isStricted: Bool = false) {
     let applications = selectionToDiscourage
@@ -170,9 +175,9 @@ class ShieldService: ObservableObject {
   func startAppRestrictions(_ isStricted: Bool = false) {
     stopAppRestrictions()
     setShieldRestrictions(isStricted)
-//    store.media.denyExplicitContent = true
-//    store.dateAndTime.requireAutomaticDateAndTime = true
-//    store.application.blockedApplications = selectionToDiscourage.applications
+    //    store.media.denyExplicitContent = true
+    //    store.dateAndTime.requireAutomaticDateAndTime = true
+    //    store.application.blockedApplications = selectionToDiscourage.applications
   }
   
   func stopAppRestrictions() {

@@ -61,11 +61,6 @@ class DeviceActivityScheduleService {
 //    AppLogger.notice("DeviceActivityScheduleService: End time: \(endDate)")
 //    AppLogger.notice("DeviceActivityScheduleService: Duration in minutes: \(diffMinutes)")
     
-    // Schedule notifications
-    LocalNotificationManager.shared.scheduleBlockingStartNotification()
-    LocalNotificationManager.shared.scheduleBlockingEndNotification(
-      at: DateComponents(year: year, month: month, day: day, hour: endHour, minute: endMins)
-    )
           
     // Get current time components for interval start
     let intervalStart = Calendar.current.dateComponents(
@@ -77,32 +72,34 @@ class DeviceActivityScheduleService {
         [.hour, .minute, .second],
         from: endDate
     )
-    
-    let schedule = DeviceActivitySchedule(
-        intervalStart: intervalStart,
-        intervalEnd: intervalEnd,
-        repeats: false
-    )
-     
+         
     let activity = DeviceActivityName.appBlocking
     let eventName = DeviceActivityEvent.Name.block
     
+    let event = DeviceActivityEvent(
+      applications: ShieldService.shared.selectionToDiscourage.applicationTokens,  // ВСЕ выбранные приложения
+      categories: ShieldService.shared.selectionToDiscourage.categoryTokens,
+      threshold: DateComponents(second: 10)
+    )
+    
+    var events: [DeviceActivityEvent.Name: DeviceActivityEvent] = [:]
 
-    // For regular blocking, we want immediate effect, not a threshold
-    let event: [DeviceActivityEvent.Name: DeviceActivityEvent]
-      event = [ eventName : DeviceActivityEvent(
-        applications: ShieldService.shared.selectionToDiscourage.applicationTokens,
-        categories: ShieldService.shared.selectionToDiscourage.categoryTokens,
-        threshold: DateComponents(second: 15)
-      )]
+    events[eventName] = event
+        
+    let schedule = DeviceActivitySchedule(
+      intervalStart: DateComponents(hour: 0, minute: 0, second: 0),
+//      intervalStart: intervalStart,
+      intervalEnd: intervalEnd,
+      repeats: true
+    )
          
     do {
       try center.startMonitoring(activity,
                                  during: schedule,
-                                 events: event)
+                                 events: events)
     } catch {
 //      AppLogger.critical(error, details: "Error monitoring schedule")
-    }
+    }    
   }
   
   static func stopSchedule() {

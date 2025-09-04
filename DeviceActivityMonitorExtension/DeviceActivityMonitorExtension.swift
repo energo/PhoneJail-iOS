@@ -76,11 +76,10 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     // Handle different activities differently
     if activity == .appBlocking {
         
-//        if shouldClearState {
-          LocalNotificationManager.scheduleExtensionNotification(
-            title: "✅ Apps Unblocked",
-            details: "You can use your apps again"
-          )
+//          LocalNotificationManager.scheduleExtensionNotification(
+//            title: "✅ Apps Unblocked",
+//            details: "You can use your apps again"
+//          )
           
           // Clear regular blocking store
           ShieldService.shared.stopAppRestrictions()
