@@ -26,6 +26,9 @@ struct AppMonitorScreen: View {
   @StateObject var vmScreenInteraption = AppInterruptionViewModel()
   @StateObject var vmScreenAlert = ScreenTimeAlertViewModel()
   
+  @State var statsView = ActivityReportView()
+  @State var screenTimeView = ScreenTimeTodayView()
+
   // MARK: - UI State
   @State private var isShowingProfile: Bool = false
   @State private var offsetY: CGFloat = .zero
@@ -249,7 +252,7 @@ private extension AppMonitorScreen {
   }
   
   var statsContent: some View {
-    ActivityReportView()
+    statsView
       .frame(maxWidth: .infinity)
       .frame(minHeight: 500)
       .frame(maxHeight: .infinity)
@@ -324,7 +327,8 @@ private extension AppMonitorScreen {
   }
   
   var screenTimeSection: some View {
-    ScreenTimeTodayView(id: screenTimeID)
+//    ScreenTimeTodayView(id: screenTimeID)
+    screenTimeView
   }
 }
 
