@@ -29,16 +29,16 @@ extension DeviceActivityEvent.Name {
 class DeviceActivityScheduleService {
   static let center = DeviceActivityCenter()
   
-  static func setScheduleAsync(endHour: Int, endMins: Int, isInterruption: Bool = false) async {
+  static func setScheduleAsync(endHour: Int, endMins: Int) async {
     await withCheckedContinuation { continuation in
       Task {
-        setSchedule(endHour: endHour, endMins: endMins, isInterruption: isInterruption)
+        setSchedule(endHour: endHour, endMins: endMins)
         continuation.resume()
       }
     }
   }
   
-  static func setSchedule(endHour: Int, endMins: Int, isInterruption: Bool = false) {
+  static func setSchedule(endHour: Int, endMins: Int) {
     let now = Date()
     let calendar = Calendar.current
     
@@ -87,33 +87,15 @@ class DeviceActivityScheduleService {
     let activity = DeviceActivityName.appBlocking
     let eventName = DeviceActivityEvent.Name.block
     
-    // Use different tokens based on type
-    let enabledTokens: Set<ApplicationToken>
-    if isInterruption {
-      // For interruptions, use the interruption selection
-      enabledTokens = SharedData.selectedInterruptionsActivity?.applicationTokens ?? []
-      // Mark this as interruption block
-      SharedData.userDefaults?.set(true, forKey: SharedData.ScreenTime.isInterruptionBlock)
-    } else {
-      // For regular blocking, use the main selection
-      enabledTokens = ShieldService.shared.selectionToDiscourage.applicationTokens
-    }
 
     // For regular blocking, we want immediate effect, not a threshold
     let event: [DeviceActivityEvent.Name: DeviceActivityEvent]
-//    if isInterruption {
-//      // Interruptions don't need immediate blocking, they wait for threshold
-//      event = [:]
-//    } else {
-      // Regular blocking should have immediate effect with threshold 0
       event = [ eventName : DeviceActivityEvent(
-        applications: enabledTokens, 
-        threshold: DateComponents(second: 0)
+        applications: ShieldService.shared.selectionToDiscourage.applicationTokens,
+        categories: ShieldService.shared.selectionToDiscourage.categoryTokens,
+        threshold: DateComponents(second: 15)
       )]
-//    }
          
-    // Убираем DispatchQueue.main.async - это блокирует main thread!
-    // setShieldRestrictions уже вызывается в startBlocking
     do {
       try center.startMonitoring(activity,
                                  during: schedule,
@@ -138,15 +120,32 @@ class DeviceActivityScheduleService {
     let endDate = calendar.date(byAdding: .minute, value: 2, to: now) ?? now
     let intervalEnd = calendar.dateComponents([.hour, .minute, .second], from: endDate)
     
+    let activity = DeviceActivityName.appBlockingInterruption
+    let eventName = DeviceActivityEvent.Name.interruption
+
     let schedule = DeviceActivitySchedule(
       intervalStart: DateComponents(hour: 0, minute: 0),
       intervalEnd: intervalEnd,
       repeats: false
     )
     
+    // Mark this as interruption block
+    SharedData.userDefaults?.set(true, forKey: SharedData.ScreenTime.isInterruptionBlock)
+    let event: [DeviceActivityEvent.Name: DeviceActivityEvent]
+      event = [ eventName : DeviceActivityEvent(
+        applications: SharedData.selectedInterruptionsActivity?.applicationTokens ?? [],
+        categories: SharedData.selectedInterruptionsActivity?.categoryTokens ?? [],
+        threshold: DateComponents(second: 0)
+      )]
+
+    
     // Use separate activity for interruption blocking
     do {
-      try center.startMonitoring(.appBlockingInterruption, during: schedule)
+//      try center.startMonitoring(.appBlockingInterruption, during: schedule)
+      try center.startMonitoring(activity,
+                                 during: schedule,
+                                 events: event)
+
     } catch {
       print("Failed to start interruption schedule: \(error)")
     }

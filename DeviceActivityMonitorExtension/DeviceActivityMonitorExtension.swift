@@ -25,10 +25,11 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   override func intervalDidStart(for activity: DeviceActivityName) {
     super.intervalDidStart(for: activity)
     
-    LocalNotificationManager.scheduleExtensionNotification(
-      title: "🔄 Interval Did Start",
-      details: "\(activity.rawValue)"
-    )
+    // Debug notification
+//    LocalNotificationManager.scheduleExtensionNotification(
+//      title: "🔄 Interval Did Start",
+//      details: "\(activity.rawValue)"
+//    )
     
     // Check if this is a schedule activity starting
     let activityName = "\(activity.rawValue)"
@@ -51,6 +52,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     
     let activityName = "\(activity.rawValue)"
 
+    // Debug notification
     LocalNotificationManager.scheduleExtensionNotification(
       title: "🔄 Interval Did End",
       details: "\(activityName)"
@@ -73,15 +75,8 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     // Interval ended silently
     // Handle different activities differently
     if activity == .appBlocking {
-        // Check if blocking should really end (unlock date might be in the future still)
-        let shouldClearState: Bool
-        if let unlockDate = SharedData.userDefaults?.object(forKey: SharedData.AppBlocking.unlockDate) as? Date {
-          shouldClearState = unlockDate <= Date()
-        } else {
-          shouldClearState = true
-        }
         
-        if shouldClearState {
+//        if shouldClearState {
           LocalNotificationManager.scheduleExtensionNotification(
             title: "✅ Apps Unblocked",
             details: "You can use your apps again"
@@ -97,11 +92,6 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
           SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endHour)
           SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endMinutes)
           SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.unlockDate)
-        } else {
-          // Blocking should continue - don't clear timestamp
-          print("intervalDidEnd called but unlock date is in future, keeping blocking state")
-        }
-//      }
       
     } else if activity == .appBlockingInterruption {
       // Interruption block ending
@@ -126,8 +116,6 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         restartMonitoring(for: .appMonitoringInterruption)
       }
     }
-    
-    // Monitoring finished silently
   }
   
   //MARK: - Inrterval Threshold
@@ -135,10 +123,10 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     super.eventDidReachThreshold(event, activity: activity)
     
     // Debug notification to confirm threshold reached
-    LocalNotificationManager.scheduleExtensionNotification(
-      title: "📊 Threshold Reached!",
-      details: "Event: \(event.rawValue)\nActivity: \(activity.rawValue)"
-    )
+//    LocalNotificationManager.scheduleExtensionNotification(
+//      title: "📊 Threshold Reached!",
+//      details: "Event: \(event.rawValue)\nActivity: \(activity.rawValue)"
+//    )
         
     // Check if this is an interruption event
     if event == DeviceActivityEvent.Name.interruption {
@@ -221,67 +209,6 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     }
   }
     
-  //MARK: - Start Interruption Monitoring
-//  private func startInterruptionMonitoring() {
-//    // Starting interruption monitoring
-//    
-//    let center = DeviceActivityCenter()
-//    
-//    // Get the threshold time from UserDefaults
-//    let timeLimitMinutes: Int
-//    
-//    // Read frequency from UserDefaults
-//    
-//    // Read from shared group UserDefaults
-//    // @AppStorage saves RawRepresentable types as their rawValue (Int in this case)
-//    if let rawMinutes = SharedData.userDefaults?.integer(forKey: SharedData.ScreenTime.selectedInterruptionTime),
-//       rawMinutes > 0 {
-//      timeLimitMinutes = rawMinutes
-//      // Using saved interruption time
-//    } else {
-//      timeLimitMinutes = TimeIntervalOption.timeOptions[1].minutes // Default to 5 mins
-//      // Using default interruption time
-//    }
-//    
-//    // Get the saved selection
-//    guard let selection = SharedData.selectedInterruptionsActivity else {
-//      // No apps selected
-//      return
-//    }
-//    
-//    if selection.applicationTokens.isEmpty {
-//      // No apps to monitor
-//      return
-//    }
-//    
-//    let event = DeviceActivityEvent(
-//      applications: selection.applicationTokens,
-//      categories: selection.categoryTokens,
-//      webDomains: selection.webDomainTokens,
-//      threshold: DateComponents(minute: timeLimitMinutes)
-//    )
-//    
-//    let events = [DeviceActivityEvent.Name.interruption: event]
-//    
-//    // Create 24h schedule
-//    let schedule = DeviceActivitySchedule(
-//      intervalStart: DateComponents(hour: 0, minute: 0, second: 0),
-//      intervalEnd: DateComponents(hour: 23, minute: 59, second: 59),
-//      repeats: true
-//    )
-//    
-//    // Start monitoring
-//    do {
-//      // Starting monitoring
-//      
-//      try center.startMonitoring(.appMonitoringInterruption, during: schedule, events: events)
-//      
-//      // Monitoring started successfully
-//    } catch {
-//      print("Failed to start monitoring: \(error.localizedDescription)")
-//    }
-//  }
-  
   //MARK: - Restart Monitoring
   private func restartMonitoring(for activity: DeviceActivityName) {
     // Restarting monitoring after threshold

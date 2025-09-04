@@ -170,27 +170,30 @@ class ShieldService: ObservableObject {
   func startAppRestrictions(_ isStricted: Bool = false) {
     stopAppRestrictions()
     setShieldRestrictions(isStricted)
-    store.media.denyExplicitContent = true
-    if isStricted {
-      store.application.denyAppRemoval = true
-    }
-    store.dateAndTime.requireAutomaticDateAndTime = true
-    store.application.blockedApplications = selectionToDiscourage.applications
+//    store.media.denyExplicitContent = true
+//    store.dateAndTime.requireAutomaticDateAndTime = true
+//    store.application.blockedApplications = selectionToDiscourage.applications
   }
   
   func stopAppRestrictions() {
     print("stopAppRestrictions")
     store.application.blockedApplications = nil
+    store.shield.applications = nil
+    store.shield.applicationCategories = nil
     store.clearAllSettings()
     WidgetCenter.shared.reloadAllTimelines()
+    unlockDate = nil
   }
   
   func stopAppRestrictions(storeName: ManagedSettingsStore.Name) {
     print("stopAppRestrictions(storeName")
     let customStore = ManagedSettingsStore(named: storeName)
     customStore.application.blockedApplications = nil
+    customStore.shield.applications = nil
+    customStore.shield.applicationCategories = nil
     customStore.clearAllSettings()
     WidgetCenter.shared.reloadAllTimelines()
+    unlockDate = nil
   }
   
   // MARK: - Helpers

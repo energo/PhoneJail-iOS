@@ -68,6 +68,41 @@ final class BlockingNotificationService: ObservableObject {
 
     // Log blocking session using new AppBlockingLogger
     let plannedDuration = TimeInterval(hours * 3600 + minutes * 60)
+    logPlannedDuration(plannedDuration, selection: selection)
+  }
+
+
+  func stopBlocking(selection: FamilyActivitySelection) {
+    
+    // Cancel related notifications
+    LocalNotificationManager.shared.cancelNotifications(identifiers: ["blocking-end"])
+
+    SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
+    SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
+
+    Task { @MainActor in
+      ShieldService.shared.stopAppRestrictions()
+    }
+    SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endHour)
+    SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endMinutes)
+    
+    logCompleteSession()
+  }
+  
+  
+  private func logCompleteSession() {
+    // Complete blocking session using new AppBlockingLogger
+    Task { @MainActor in
+      if let currentSession = AppBlockingLogger.shared.getCurrentSession(type: .appBlocking) {
+        print("BlockingNotificationService: Ending blocking session \(currentSession.id)")
+        AppBlockingLogger.shared.endSession(sessionId: currentSession.id, completed: true)
+      } else {
+        print("BlockingNotificationService: No current app blocking session to end")
+      }
+    }
+  }
+  
+  private func logPlannedDuration(_ plannedDuration: TimeInterval, selection: FamilyActivitySelection) {
     Task { @MainActor in
       // Всегда логируем сессию, независимо от того, есть ли приложения или категории
       // Если есть отдельные приложения - используем их
@@ -88,58 +123,6 @@ final class BlockingNotificationService: ObservableObject {
         )
       } else {
         print("BlockingNotificationService: Warning - No apps or categories selected for blocking")
-      }
-    }
-  }
-
-  func stopBlocking(selection: FamilyActivitySelection) {
-    
-    // Cancel related notifications
-    LocalNotificationManager.shared.cancelNotifications(identifiers: ["blocking-end"])
-
-    SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
-    SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
-
-    Task { @MainActor in
-      ShieldService.shared.stopAppRestrictions()
-    }
-    SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endHour)
-    SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endMinutes)
-
-//    WidgetCenter.shared.reloadAllTimelines()
-
-
-    // Complete blocking session using new AppBlockingLogger
-    Task { @MainActor in
-      if let currentSession = AppBlockingLogger.shared.getCurrentSession(type: .appBlocking) {
-        print("BlockingNotificationService: Ending blocking session \(currentSession.id)")
-        AppBlockingLogger.shared.endSession(sessionId: currentSession.id, completed: true)
-      } else {
-        print("BlockingNotificationService: No current app blocking session to end")
-      }
-    }
-    
-    resetBlockingState()
-  }
-
-  func resetBlockingState() {
-    let service = ShieldService.shared
-    
-    Task { @MainActor in
-      // Don't clear selectionToDiscourage - keep it for next time
-      service.stopAppRestrictions()
-      service.unlockDate = nil
-    }
-    
-    // Don't save empty selection - keep the saved apps for next use
-    
-    SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
-    service.stopAppRestrictions()
-    
-    // Interrupt current blocking session using new AppBlockingLogger
-    Task { @MainActor in
-      if let currentSession = AppBlockingLogger.shared.getCurrentSession(type: .appBlocking) {
-        AppBlockingLogger.shared.endSession(sessionId: currentSession.id, completed: false)
       }
     }
   }
