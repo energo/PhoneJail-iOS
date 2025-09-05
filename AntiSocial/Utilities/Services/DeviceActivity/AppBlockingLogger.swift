@@ -521,7 +521,7 @@ final class AppBlockingLogger: ObservableObject {
                 // Сессия в пределах одного часа
                 let minutes = Int(endTime.timeIntervalSince(session.startTime) / 60)
                 hourlyStats[startHour] += minutes
-            } else {
+            } else if startHour <= endHour {
                 // Сессия охватывает несколько часов
                 for hour in startHour...endHour {
                     if hour < 24 {
@@ -553,7 +553,7 @@ final class AppBlockingLogger: ObservableObject {
                 // Сессия в пределах текущего часа
                 let minutes = Int(Date().timeIntervalSince(currentSession.startTime) / 60)
                 hourlyStats[currentHour] += minutes
-            } else {
+            } else if startHour <= currentHour {
                 // Сессия охватывает несколько часов
                 for hour in startHour...currentHour {
                     if hour < 24 {
