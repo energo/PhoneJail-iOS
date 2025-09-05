@@ -44,7 +44,7 @@ struct AppTokensView: View {
                 Label(token)
                     .labelStyle(.iconOnly)
                     .frame(width: iconSize, height: iconSize)
-                    .background(Color.white)
+//                    .background(Color.white)
                     .clipShape(RoundedRectangle(cornerRadius: 6))
 //                    .zIndex(Double(tokensArray.count - index)) // Left icon on top
                     .zIndex(Double(index)) // Right icon on top

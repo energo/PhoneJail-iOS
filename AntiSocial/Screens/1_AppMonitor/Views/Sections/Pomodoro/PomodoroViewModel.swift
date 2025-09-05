@@ -28,6 +28,7 @@ class PomodoroViewModel: ObservableObject {
     @Published var currentSessionType: SessionType = .focus
     @Published var currentSession: Int = 1
     @Published var totalSessions: Int = 4
+    @Published var allSessionsCompleted: Bool = false
     
     // Settings
     @Published var focusDuration: Int = 25 // minutes
@@ -129,7 +130,7 @@ class PomodoroViewModel: ObservableObject {
             
             if currentSession > totalSessions {
                 // All sessions completed
-                currentSession = 1
+                allSessionsCompleted = true
                 showCompletionCelebration()
             } else if autoStartNextSession {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
@@ -151,6 +152,7 @@ class PomodoroViewModel: ObservableObject {
     
     func startPomodoro() {
         currentSessionType = .focus
+        allSessionsCompleted = false
         let duration = focusDuration
         
         // Log the blocking session

@@ -92,6 +92,20 @@ extension Color {
 }
 
 extension Color {
+  static let as_gradient_pomodoro_focus_progress = LinearGradient(
+    colors: [Color(hex: "FF6061"),
+             Color(hex: "8156CA")],
+    startPoint: .top,
+    endPoint: .bottom
+  )
+  
+  static let as_gradient_pomodoro_break_progress = LinearGradient(
+    colors: [Color(hex: "23F48F"),
+             Color(hex: "1D4CD9")],
+    startPoint: .topLeading,
+    endPoint: .bottomTrailing
+  )
+
   static let as_gradietn_time_text = LinearGradient(
     stops: [
       .init(color: Color(hex: "#CF4633"), location: 0.0),

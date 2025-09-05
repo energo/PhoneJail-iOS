@@ -1,17 +1,17 @@
 {
   "images" : [
     {
-      "filename" : "icon-park-solid_tomato.png",
+      "filename" : "2.png",
       "idiom" : "universal",
       "scale" : "1x"
     },
     {
-      "filename" : "icon-park-solid_tomato@2x.png",
+      "filename" : "2@2x.png",
       "idiom" : "universal",
       "scale" : "2x"
     },
     {
-      "filename" : "icon-park-solid_tomato@3x.png",
+      "filename" : "2@3x.png",
       "idiom" : "universal",
       "scale" : "3x"
     }

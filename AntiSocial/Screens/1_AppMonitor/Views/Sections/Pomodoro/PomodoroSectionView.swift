@@ -13,11 +13,10 @@ struct PomodoroSectionView: View {
   @State private var showingSettings = false
   @State private var showCompletionAnimation = false
   
-  
   private let adaptive = AdaptiveValues.current
   
-  private let circleSize = UIScreen.main.bounds.width * 0.7
-  private let circleProgressSize = UIScreen.main.bounds.width * 0.07
+  private let circleSize = UIScreen.main.bounds.width * 0.8
+  private let circleProgressSize = UIScreen.main.bounds.width * 0.08
   
   var body: some View {
     contentView
@@ -35,7 +34,10 @@ struct PomodoroSectionView: View {
 
       Spacer()
       
-      if !viewModel.isRunning {
+      if viewModel.allSessionsCompleted {
+        // Completed state - all sessions done
+        completedStateView
+      } else if !viewModel.isRunning {
         // Inactive state - show setup
         inactiveStateView
       } else if viewModel.currentSessionType == .focus {
@@ -207,6 +209,62 @@ struct PomodoroSectionView: View {
     }
   }
   
+  private var completedStateView: some View {
+    VStack(spacing: 0) {
+      Spacer()
+      
+      // Large Circular Timer showing completion
+      CircularTimerView(
+        totalTime: 100,
+        remainingTime: 100, // Full circle for completed state
+        isActive: false,
+        timerType: .focus,
+        size: circleSize,
+        strokeWidth: circleProgressSize
+      ) {
+        VStack(spacing: adaptive.spacing.large) {
+          // Checkmark icon
+          Image(systemName: "checkmark.circle.fill")
+            .font(.system(size: 60))
+            .foregroundColor(.green)
+          
+          // Completion message
+          VStack(spacing: adaptive.spacing.small) {
+            Text("All Sessions Complete!")
+              .font(.system(size: 20, weight: .semibold))
+              .foregroundColor(.white)
+            
+            Text("\(viewModel.totalSessions) focus sessions finished")
+              .font(.system(size: 14))
+              .foregroundColor(.white.opacity(0.7))
+          }
+          
+          // Start new cycle button
+          Button(action: {
+            viewModel.allSessionsCompleted = false
+            viewModel.currentSession = 1
+            HapticManager.shared.notification(type: .success)
+          }) {
+            Text("Start New Cycle")
+              .font(.system(size: 16, weight: .medium))
+              .foregroundColor(.white)
+              .frame(width: 160, height: 44)
+              .background(
+                Capsule()
+                  .stroke(Color.white.opacity(0.3), lineWidth: 1.5)
+              )
+          }
+        }
+      }
+      
+      Spacer()
+      
+      // Statistics at bottom
+      statisticsView
+        .padding(.bottom, adaptive.spacing.xLarge)
+    }
+  }
+  
   private var headerView: some View {
     VStack(spacing: adaptive.spacing.medium) {
       HStack {
@@ -229,16 +287,16 @@ struct PomodoroSectionView: View {
       Button(action: { showingSettings = true }) {
         HStack(spacing: 8) {
           Text("Customize")
-            .font(.system(size: 16, weight: .medium))
+            .font(.system(size: 12, weight: .regular))
           Image(systemName: "gearshape.fill")
             .font(.system(size: 14))
         }
         .foregroundColor(.white)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 13)
         .background(
           Capsule()
-            .fill(Color.white.opacity(0.15))
+            .fill(Color.white.opacity(0.07))
         )
       }
     }
@@ -254,12 +312,12 @@ struct PomodoroSectionView: View {
       HapticManager.shared.notification(type: .success)
     }) {
       Image(systemName: "play.fill")
-        .font(.system(size: 28))
+        .font(.system(size: 24))
         .foregroundColor(.white)
-        .frame(width: 120, height: 60)
+        .frame(width: 88, height: 50)
         .background(
           Capsule()
-            .stroke(Color.white.opacity(0.3), lineWidth: 2)
+            .stroke(Color.as_gradietn_stroke, lineWidth: 2)
         )
     }
   }
@@ -272,7 +330,6 @@ struct PomodoroSectionView: View {
           tokens: viewModel.selectionActivity.applicationTokens,
           maxIcons: 3,
           iconSize: 28,
-          overlap: -10,
           showCount: false
         )
       }
@@ -282,7 +339,6 @@ struct PomodoroSectionView: View {
           tokens: viewModel.selectionActivity.categoryTokens,
           maxIcons: 3,
           iconSize: 28,
-          overlap: -10,
           showCount: false
         )
       }
@@ -294,9 +350,15 @@ struct PomodoroSectionView: View {
       } else {
         Text("All Apps")
           .font(.system(size: 16, weight: .medium))
-          .foregroundColor(.white.opacity(0.9))
+//          .foregroundColor(.white.opacity(0.9))
       }
     }
+    .padding(.horizontal, 12)
+    .padding(.vertical, 13)
+    .background(
+      Capsule()
+        .fill(Color.white.opacity(0.07))
+    )
   }
   
   private var statisticsView: some View {
