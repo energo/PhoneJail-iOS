@@ -133,12 +133,12 @@ struct CircularTimerView<Content: View>: View {
         timerType == .focus ? Color.as_gradient_pomodoro_focus_progress : Color.as_gradient_pomodoro_break_progress,
         style: StrokeStyle(
           lineWidth: strokeWidth,
-          lineCap: .round  // Changed from .round to not interfere with end circle
+          lineCap: .round
         )
       )
       .frame(width: size, height: size)
       .rotationEffect(.degrees(-90))
-      .animation(.easeInOut(duration: 0.5), value: progress)
+      .animation(.linear(duration: 1.0), value: progress)  // Linear animation for smooth continuous movement
       .shadow(color: timerType.color.opacity(0.5), radius: 8)
       .overlay(
         // End circle indicator as overlay to ensure proper positioning
@@ -176,7 +176,7 @@ struct CircularTimerView<Content: View>: View {
       }
       .position(x: x, y: y)
       .opacity(progress > 0 ? 1 : 0)
-      .animation(.easeInOut(duration: 0.5), value: progress)
+      .animation(.linear(duration: 1.0), value: progress)  // Match the progress animation
     }
   }
   
