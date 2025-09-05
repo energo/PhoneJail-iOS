@@ -118,4 +118,68 @@ final class LocalNotificationManager {
   func cancelNotifications(identifiers: [String]) {
     notificationCenter.removePendingNotificationRequests(withIdentifiers: identifiers)
   }
+  
+  // MARK: - Pomodoro Notifications
+  
+  func schedulePomodoroNotification(
+    title: String,
+    body: String,
+    timeInterval: TimeInterval = 0.1,
+    sound: UNNotificationSound? = .default
+  ) {
+    let content = UNMutableNotificationContent()
+    content.title = title
+    content.body = body
+    content.categoryIdentifier = "pomodoro"
+    content.sound = sound ?? .default
+    
+    let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(timeInterval, 0.1), repeats: false)
+    let identifier = "pomodoro-\(Date().timeIntervalSince1970)"
+    let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+    
+    notificationCenter.add(request) { error in
+      if let error = error {
+        print("Failed to schedule Pomodoro notification: \(error)")
+      }
+    }
+  }
+  
+  func schedulePomodoroSessionComplete(sessionType: String, nextSession: String) {
+    let title: String
+    let body: String
+    
+    if sessionType == "focus" {
+      title = "🎯 Focus Session Complete!"
+      body = "Great work! Time for a \(nextSession == "longBreak" ? "long break" : "short break")."
+    } else {
+      title = "☕ Break Time Over"
+      body = "Ready to get back to focused work?"
+    }
+    
+    schedulePomodoroNotification(title: title, body: body, timeInterval: 0.1)
+  }
+  
+  func schedulePomodoroAllSessionsComplete(totalSessions: Int) {
+    let title = "🎉 Pomodoro Complete!"
+    let body = "Congratulations! You've completed all \(totalSessions) focus sessions."
+    
+    schedulePomodoroNotification(
+      title: title,
+      body: body,
+      timeInterval: 0.1,
+      sound: .defaultCritical
+    )
+  }
+  
+  func cancelAllPomodoroNotifications() {
+    notificationCenter.getPendingNotificationRequests { requests in
+      let pomodoroIds = requests
+        .filter { $0.identifier.hasPrefix("pomodoro-") }
+        .map { $0.identifier }
+      
+      if !pomodoroIds.isEmpty {
+        self.notificationCenter.removePendingNotificationRequests(withIdentifiers: pomodoroIds)
+      }
+    }
+  }
 }

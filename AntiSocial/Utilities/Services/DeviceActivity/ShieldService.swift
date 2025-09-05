@@ -9,6 +9,7 @@ extension ManagedSettingsStore.Name {
   //  static let mySettingStore = Self("mySettingStore")
   static let appBlocking = Self("appBlocking")
   static let interruption = Self("interruption")
+  static let pomodoro = Self("pomodoro")
 }
 
 class ShieldService: ObservableObject {

@@ -14,11 +14,6 @@ import BackgroundTasks
 import UserNotifications
 import UIKit
 
-// Register once in AppDelegate/SceneDelegate:
-// BGTaskScheduler.shared.register(forTaskWithIdentifier: "com.yourapp.pomodoro.unlock", using: nil) { task in
-//     PomodoroBlockService.shared.handleUnlockBGTask(task: task as! BGAppRefreshTask)
-// }
-
 final class PomodoroBlockService: ObservableObject {
   static let shared = PomodoroBlockService()
   private init() { restoreIfNeeded() }
@@ -28,32 +23,47 @@ final class PomodoroBlockService: ObservableObject {
   @Published private(set) var remainingSeconds: Int = 0
   
   // MARK: - Internals
-  private let store = ManagedSettingsStore()
+  private let store = ManagedSettingsStore(named: .pomodoro)
   private var ticker: AnyCancellable?
   private let defaultsKey = "pomodoro.unlockDate"
-  private let bgTaskId = "com.yourapp.pomodoro.unlock"
+  private let bgTaskId = "com.app.antisocial.pomodoro.unlock"
   
+  // Register once in AppDelegate/SceneDelegate:
+  // BGTaskScheduler.shared.register(forTaskWithIdentifier: "com.app.antisocial.pomodoro.unlock", using: nil) { task in
+  //     PomodoroBlockService.shared.handleUnlockBGTask(task: task as! BGAppRefreshTask)
+  // }
+
   // MARK: - API
   /// Запускает помодоро-блок на N минут (минимум 5)
-  func start(minutes: Int, allowWebBlock: Bool = true, allowedApps: Set<ApplicationToken> = []) {
-//    let m = max(5, minutes)
-//    let unlockDate = Date().addingTimeInterval(TimeInterval(m * 60))
-//    SharedData.userDefaults?.set(unlockDate.timeIntervalSince1970, forKey: defaultsKey)
-//    
-//    // 1) Вешаем щит на всё
-//    store.shield.applicationCategories = .all()
-//    if allowWebBlock { store.shield.webDomainCategories = .all() }
-//    
-//    // 3) Локалка «начали» и «закончим»
-//    scheduleLocalNotifications(unlockDate: unlockDate, durationMinutes: m)
-//    
-//    // 4) Тикер для UI + авто-снятие
-//    startTicker(unlockDate: unlockDate)
-//    
-//    // 5) Резервный фоновый «разблокировщик»
-//    scheduleBGUnlock(at: unlockDate)
-//    
-//    isActive = true
+  func start(minutes: Int, isStrictBlock: Bool = false, selectionActivity: FamilyActivitySelection? = nil) {
+    let m = max(5, minutes)
+    let unlockDate = Date().addingTimeInterval(TimeInterval(m * 60))
+    SharedData.userDefaults?.set(unlockDate.timeIntervalSince1970, forKey: defaultsKey)
+    
+    // 1) Вешаем щит на всё
+    if selectionActivity == nil {
+      store.shield.applicationCategories = .all()
+      store.shield.webDomainCategories = .all()
+    } else {
+      store.shield.applications = selectionActivity?.applicationTokens
+      store.shield.applicationCategories = (selectionActivity?.categoryTokens.isEmpty ?? true)
+      ? nil
+      : ShieldSettings.ActivityCategoryPolicy.specific(selectionActivity?.categoryTokens ?? [])
+      store.shield.webDomains = selectionActivity?.webDomainTokens
+
+      store.application.denyAppRemoval = isStrictBlock
+    }
+    
+    // 3) Локалка «начали» и «закончим»
+    scheduleLocalNotifications(unlockDate: unlockDate, durationMinutes: m)
+    
+    // 4) Тикер для UI + авто-снятие
+    startTicker(unlockDate: unlockDate)
+    
+    // 5) Резервный фоновый «разблокировщик»
+    scheduleBGUnlock(at: unlockDate)
+    
+    isActive = true
   }
   
   /// Принудительно снимает блок
@@ -101,16 +111,16 @@ final class PomodoroBlockService: ObservableObject {
   }
   
   private func restoreIfNeeded() {
-//    guard let unlock = savedUnlockDate() else { return }
-//    if Date() < unlock {
-//      // Приложение перезапустили — вернуть «щит» и тикер
-//      store.shield.applicationCategories = .all()
-//      store.shield.webDomainCategories = .all()
-//      startTicker(unlockDate: unlock)
-//      isActive = true
-//    } else {
-//      stop()
-//    }
+    guard let unlock = savedUnlockDate() else { return }
+    if Date() < unlock {
+      // Приложение перезапустили — вернуть «щит» и тикер
+      store.shield.applicationCategories = .all()
+      store.shield.webDomainCategories = .all()
+      startTicker(unlockDate: unlock)
+      isActive = true
+    } else {
+      stop()
+    }
   }
   
   private func savedUnlockDate() -> Date? {

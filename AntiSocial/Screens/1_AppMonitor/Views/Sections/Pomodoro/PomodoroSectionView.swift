@@ -6,12 +6,14 @@
 //
 
 import SwiftUI
+import FamilyControls
 
 struct PomodoroSectionView: View {
     @StateObject private var viewModel = PomodoroViewModel()
-    @State private var showingPresetPicker = false
+    @State private var showingSettings = false
+    @State private var showingTimer = false
     
-  private let adaptive = AdaptiveValues.current
+    private let adaptive = AdaptiveValues.current
 
     var body: some View {
         contentView
@@ -20,39 +22,51 @@ struct PomodoroSectionView: View {
     }
     
     private var contentView: some View {
-        VStack(alignment: .leading, spacing: adaptive.spacing.medium) {
+        VStack(spacing: 0) {
             // Header
             headerView
                 .padding(.horizontal)
-                .padding(.top)
+                .padding(.vertical, adaptive.spacing.medium)
             
-            separatorView
-                .padding(.horizontal)
-            
-            // Timer display or duration selection
-            if viewModel.isRunning {
-                timerView
-                    .padding(.horizontal)
-                    .padding(.vertical)
+            if !viewModel.isRunning {
+                // When not running, show duration selector and start button
+                VStack(spacing: adaptive.spacing.large) {
+                    // Duration Selector
+                    durationSelectorView
+                        .padding(.horizontal)
+                    
+                    // Description
+                    descriptionView
+                        .padding(.horizontal)
+                    
+                    // Start Button
+                    startButton
+                        .padding(.horizontal)
+                        .padding(.bottom, adaptive.spacing.large)
+                }
             } else {
-                durationSelectionView
-                    .padding(.horizontal)
+                // When running, show circular timer
+                VStack(spacing: adaptive.spacing.medium) {
+                    // Circular Timer
+                    CircularTimerView(
+                        totalTime: TimeInterval(viewModel.selectedMinutes * 60),
+                        remainingTime: TimeInterval(viewModel.remainingSeconds),
+                        isActive: viewModel.isRunning && !viewModel.isPaused,
+                        timerType: viewModel.currentSessionType == .focus ? .focus : .breakTime,
+                        size: 220
+                    )
+                    .padding(.vertical, adaptive.spacing.large)
+                    
+                    // Session Info
+                    sessionStatusView
+                        .padding(.horizontal)
+                    
+                    // Control Buttons
+                    controlButtons
+                        .padding(.horizontal)
+                        .padding(.bottom, adaptive.spacing.large)
+                }
             }
-            
-            separatorView
-                .padding(.horizontal)
-            
-            // Description
-            descriptionView
-                .padding(.horizontal)
-            
-            separatorView
-                .padding(.horizontal)
-            
-            // Start/Stop button
-            actionButton
-                .padding(.horizontal)
-                .padding(.bottom)
         }
     }
     
@@ -69,164 +83,328 @@ struct PomodoroSectionView: View {
                 .fontWeight(.semibold)
             
             Spacer()
-        }
-    }
-    
-    private var timerView: some View {
-        VStack(spacing: adaptive.spacing.small) {
-            Text("Focus Time Remaining")
-                .adaptiveFont(\.headline)
-                .foregroundColor(Color.as_gray_light)
             
-            Text(viewModel.timeRemaining)
-                .font(.system(size: AdaptiveDeviceCategory.current.isCompact ? 48 : 60, weight: .bold, design: .monospaced))
-                .foregroundColor(.white)
-            
-            Text("All apps are blocked")
-                .adaptiveFont(\.subheadline)
-                .foregroundColor(Color.as_gray_light)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, adaptive.spacing.large)
-    }
-    
-    private var durationSelectionView: some View {
-        VStack(alignment: .leading, spacing: adaptive.spacing.medium) {
-            Text("Select Focus Duration")
-                .foregroundColor(.white)
-                .adaptiveFont(\.body)
-            
-            // Quick presets
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: adaptive.spacing.small) {
-                    ForEach(viewModel.presetOptions, id: \.self) { minutes in
-                        presetButton(minutes: minutes)
-                    }
-                }
-            }
-            
-            // Custom duration selector
-            HStack {
-                Text("Duration:")
-                    .foregroundColor(.white)
-                    .adaptiveFont(\.body)
-                
-                Spacer()
-                
-                HStack(spacing: adaptive.spacing.xSmall) {
-                    Text("\(viewModel.selectedMinutes)")
-                        .font(.system(size: 24, weight: .semibold, design: .monospaced))
+            // Stats Badge
+            if viewModel.currentSession > 1 || viewModel.isRunning {
+                HStack(spacing: 4) {
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(.orange)
+                    Text("\(viewModel.currentSession)/\(viewModel.totalSessions)")
+                        .font(.system(size: 14, weight: .medium))
                         .foregroundColor(.white)
-                        .frame(width: 50)
-                    
-                    Text("min")
-                        .foregroundColor(Color.as_gray_light)
-                        .adaptiveFont(\.body)
                 }
-                
-                Stepper("", value: $viewModel.selectedMinutes, in: 5...120, step: 5)
-                    .labelsHidden()
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(Color.white.opacity(0.15))
+                .clipShape(Capsule())
             }
-            .padding(.horizontal, adaptive.spacing.medium)
-            .padding(.vertical, adaptive.spacing.small)
-            .background(Color.white.opacity(0.07))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
         }
     }
     
-    private func presetButton(minutes: Int) -> some View {
+    private var durationSelectorView: some View {
+        VStack(spacing: adaptive.spacing.medium) {
+            // Quick presets
+            HStack(spacing: adaptive.spacing.small) {
+                presetButton(minutes: 15, label: "Quick")
+                presetButton(minutes: 25, label: "Pomodoro")
+                presetButton(minutes: 45, label: "Deep")
+                presetButton(minutes: 60, label: "Long")
+            }
+            
+            // Custom duration slider
+            VStack(alignment: .leading, spacing: adaptive.spacing.small) {
+                HStack {
+                    Text("Custom Duration")
+                        .foregroundColor(.white.opacity(0.7))
+                        .font(.system(size: 14))
+                    
+                    Spacer()
+                    
+                    Text("\(viewModel.selectedMinutes) min")
+                        .foregroundColor(.white)
+                        .font(.system(size: 16, weight: .semibold))
+                }
+                
+                Slider(
+                    value: Binding(
+                        get: { Double(viewModel.selectedMinutes) },
+                        set: { viewModel.selectedMinutes = Int($0) }
+                    ),
+                    in: 5...120,
+                    step: 5
+                )
+                .accentColor(.white)
+            }
+            .padding()
+            .background(Color.white.opacity(0.07))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+        }
+    }
+    
+    private func presetButton(minutes: Int, label: String) -> some View {
         Button(action: {
             viewModel.selectedMinutes = minutes
+            HapticManager.shared.selection()
         }) {
-            VStack(spacing: 2) {
+            VStack(spacing: 6) {
                 Text("\(minutes)")
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(.system(size: 22, weight: .bold))
                     .foregroundColor(viewModel.selectedMinutes == minutes ? .black : .white)
                 
-                Text("min")
-                    .adaptiveFont(\.caption2)
-                    .foregroundColor(viewModel.selectedMinutes == minutes ? .black.opacity(0.7) : Color.as_gray_light)
+                Text(label)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(viewModel.selectedMinutes == minutes ? .black.opacity(0.7) : .white.opacity(0.6))
             }
-            .frame(width: 60, height: 60)
+            .frame(maxWidth: .infinity)
+            .frame(height: 70)
             .background(
-                viewModel.selectedMinutes == minutes ?
-                Color.white : Color.white.opacity(0.1)
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(viewModel.selectedMinutes == minutes ? Color.white : Color.white.opacity(0.1))
             )
-            .clipShape(RoundedRectangle(cornerRadius: 12))
         }
     }
     
     private var descriptionView: some View {
-        VStack(alignment: .leading, spacing: adaptive.spacing.small) {
-            Label {
-                Text("Blocks all apps immediately")
-                    .foregroundColor(Color.as_gray_light)
-                    .adaptiveFont(\.subheadline)
-            } icon: {
+        VStack(spacing: adaptive.spacing.medium) {
+            // What gets blocked
+            HStack {
                 Image(systemName: "lock.shield.fill")
                     .foregroundColor(.orange)
-                    .adaptiveFrame(width: \.iconSmall, height: \.iconSmall)
+                    .font(.system(size: 20))
+                
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Apps to Block")
+                        .foregroundColor(.white)
+                        .font(.system(size: 14, weight: .medium))
+                    
+                    // Show selected apps or "All Apps" text
+                    if viewModel.selectionActivity.applicationTokens.isEmpty && 
+                       viewModel.selectionActivity.categoryTokens.isEmpty {
+                        Text("All Apps")
+                            .foregroundColor(.white.opacity(0.9))
+                            .font(.system(size: 13, weight: .medium))
+                    } else {
+                        HStack(spacing: 8) {
+                            if !viewModel.selectionActivity.applicationTokens.isEmpty {
+                                AppTokensView(
+                                    tokens: viewModel.selectionActivity.applicationTokens,
+                                    iconSize: 18,
+                                    showCount: false,
+                                    spacing: 2
+                                )
+                            }
+                            
+                            if !viewModel.selectionActivity.categoryTokens.isEmpty {
+                                CategoryTokensView(
+                                    tokens: viewModel.selectionActivity.categoryTokens,
+                                    iconSize: 18, showCount: false,
+                                    spacing: 2
+                                )
+                            }
+                            
+                            // Show count if more than 4 apps
+                            let totalCount = viewModel.selectionActivity.applicationTokens.count + 
+                                           viewModel.selectionActivity.categoryTokens.count
+                            if totalCount > 4 {
+                                Text("+\(totalCount - 4)")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.white.opacity(0.6))
+                            }
+                        }
+                    }
+                }
+                
+                Spacer()
+                
+                Button(action: {
+                    showingSettings = true
+                }) {
+                    Text("Change")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.white.opacity(0.8))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(Color.white.opacity(0.15))
+                        .clipShape(Capsule())
+                }
             }
+            .padding()
+            .background(Color.white.opacity(0.05))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
             
-            Label {
-                Text("Auto-unblocks when timer ends")
-                    .foregroundColor(Color.as_gray_light)
-                    .adaptiveFont(\.subheadline)
-            } icon: {
-                Image(systemName: "clock.arrow.circlepath")
-                    .foregroundColor(.green)
-                    .adaptiveFrame(width: \.iconSmall, height: \.iconSmall)
-            }
-            
-            Label {
-                Text("Perfect for focused work sessions")
-                    .foregroundColor(Color.as_gray_light)
-                    .adaptiveFont(\.subheadline)
-            } icon: {
-                Image(systemName: "brain.head.profile")
-                    .foregroundColor(.purple)
-                    .adaptiveFrame(width: \.iconSmall, height: \.iconSmall)
+            // Features
+            HStack(spacing: adaptive.spacing.large) {
+                featureTag(icon: "bell", text: "Notifications", enabled: viewModel.notificationsEnabled)
+                featureTag(icon: "speaker.wave.2", text: "Sound", enabled: viewModel.soundEnabled)
+                featureTag(icon: "arrow.triangle.2.circlepath", text: "Auto-cycle", enabled: viewModel.autoStartNextSession)
             }
         }
-        .padding(.vertical, adaptive.spacing.small)
+        .sheet(isPresented: $showingSettings) {
+            PomodoroSettingsView(isPresented: $showingSettings, viewModel: viewModel)
+        }
     }
     
-    private var actionButton: some View {
+    private func featureTag(icon: String, text: String, enabled: Bool) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 12))
+                .foregroundColor(enabled ? .green : .gray)
+            
+            Text(text)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(enabled ? .white.opacity(0.8) : .gray)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(Color.white.opacity(enabled ? 0.1 : 0.05))
+        .clipShape(Capsule())
+    }
+    
+    private var sessionStatusView: some View {
+        VStack(spacing: adaptive.spacing.small) {
+            // Session type indicator
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(viewModel.currentSessionType == .focus ? Color.red : Color.green)
+                    .frame(width: 8, height: 8)
+                
+                Text(viewModel.currentSessionType == .focus ? "Focus Time" : "Break Time")
+                    .foregroundColor(.white)
+                    .font(.system(size: 16, weight: .medium))
+                
+                if viewModel.isPaused {
+                    Text("(Paused)")
+                        .foregroundColor(.yellow)
+                        .font(.system(size: 14))
+                }
+            }
+            
+            // Apps blocked status
+            if viewModel.currentSessionType == .focus || viewModel.blockDuringBreak {
+                HStack(spacing: 6) {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 10))
+                        .foregroundColor(.orange)
+                    
+                    Text("Apps blocked")
+                        .font(.system(size: 12))
+                        .foregroundColor(.white.opacity(0.7))
+                }
+            }
+        }
+    }
+    
+    private var startButton: some View {
         Button(action: {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                viewModel.togglePomodoro()
+            withAnimation(.spring()) {
+                viewModel.startPomodoro()
             }
         }) {
             HStack {
-                Image(systemName: viewModel.isRunning ? "stop.fill" : "play.fill")
-                    .font(.system(size: 20, weight: .semibold))
+                Image(systemName: "play.fill")
+                    .font(.system(size: 18))
                 
-                Text(viewModel.isRunning ? "Stop Focus" : "Start Focus")
-                    .font(.system(size: 18, weight: .semibold))
+                Text("Start Focus Session")
+                    .font(.system(size: 17, weight: .semibold))
             }
-            .foregroundColor(viewModel.isRunning ? .white : .black)
+            .foregroundColor(.black)
             .frame(maxWidth: .infinity)
             .frame(height: 56)
             .background(
-                viewModel.isRunning ?
                 LinearGradient(
-                    colors: [Color.red.opacity(0.8), Color.red],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                ) :
-                LinearGradient(
-                    colors: [Color.white.opacity(0.9), Color.white],
-                    startPoint: .leading,
-                    endPoint: .trailing
+                    colors: [Color.white, Color.white.opacity(0.9)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
                 )
             )
             .clipShape(RoundedRectangle(cornerRadius: 28))
-            .shadow(color: viewModel.isRunning ? Color.red.opacity(0.3) : Color.white.opacity(0.2), radius: 10, x: 0, y: 5)
+            .shadow(color: Color.white.opacity(0.25), radius: 10, x: 0, y: 5)
         }
-        .scaleEffect(viewModel.isRunning ? 1.02 : 1.0)
+    }
+    
+    private var controlButtons: some View {
+        HStack(spacing: adaptive.spacing.medium) {
+            // Pause/Resume button
+            Button(action: {
+                withAnimation {
+                    viewModel.togglePause()
+                }
+            }) {
+                Image(systemName: viewModel.isPaused ? "play.fill" : "pause.fill")
+                    .font(.system(size: 20))
+                    .foregroundColor(.white)
+                    .frame(width: 50, height: 50)
+                    .background(
+                        Circle()
+                            .fill(Color.white.opacity(0.15))
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                            )
+                    )
+            }
+            
+            // Stop button
+            Button(action: {
+                withAnimation {
+                    viewModel.stopPomodoro()
+                }
+            }) {
+                HStack {
+                    Image(systemName: "stop.fill")
+                        .font(.system(size: 16))
+                    
+                    Text("End Session")
+                        .font(.system(size: 16, weight: .semibold))
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 50)
+                .background(
+                    RoundedRectangle(cornerRadius: 25)
+                        .fill(Color.red.opacity(0.2))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 25)
+                                .stroke(Color.red.opacity(0.5), lineWidth: 1)
+                        )
+                )
+            }
+            
+            // Skip button (for break to next focus)
+            if viewModel.currentSessionType == .breakTime {
+                Button(action: {
+                    withAnimation {
+                        viewModel.skipToNextFocus()
+                    }
+                }) {
+                    Image(systemName: "forward.end.fill")
+                        .font(.system(size: 20))
+                        .foregroundColor(.white)
+                        .frame(width: 50, height: 50)
+                        .background(
+                            Circle()
+                                .fill(Color.green.opacity(0.2))
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.green.opacity(0.5), lineWidth: 1)
+                                )
+                        )
+                }
+            }
+        }
     }
     
     private var separatorView: some View {
         SeparatorView()
     }
+}
+
+// MARK: - Preview
+#Preview {
+    ScrollView {
+        PomodoroSectionView()
+            .padding()
+    }
+    .background(Color.black)
 }

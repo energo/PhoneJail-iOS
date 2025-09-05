@@ -83,6 +83,39 @@ public class SharedData {
     public static let endMinutes = "widgetEndMins"
   }
   
+  /// Pomodoro settings keys
+  public enum Pomodoro {
+    /// Focus duration in minutes (Int)
+    public static let focusDuration = "pomodoroFocusDuration"
+    
+    /// Break duration in minutes (Int)
+    public static let breakDuration = "pomodoroBreakDuration"
+    
+    /// Long break duration in minutes (Int)
+    public static let longBreakDuration = "pomodoroLongBreakDuration"
+    
+    /// Total sessions count (Int)
+    public static let totalSessions = "pomodoroTotalSessions"
+    
+    /// Auto start break after focus (Bool)
+    public static let autoStartBreak = "pomodoroAutoStartBreak"
+    
+    /// Auto start next session after break (Bool)
+    public static let autoStartNextSession = "pomodoroAutoStartNextSession"
+    
+    /// Notifications enabled (Bool)
+    public static let notificationsEnabled = "pomodoroNotificationsEnabled"
+    
+    /// Sound enabled (Bool)
+    public static let soundEnabled = "pomodoroSoundEnabled"
+    
+    /// Current session number (Int)
+    public static let currentSession = "pomodoroCurrentSession"
+    
+    /// Current session type (String)
+    public static let currentSessionType = "pomodoroCurrentSessionType"
+  }
+  
   /// Screen Time settings keys
   public enum ScreenTime {
     /// Selected interruption time (Int - minutes)
@@ -241,6 +274,48 @@ public class SharedData {
   /// Get lifetime total blocking time from SharedData (for extensions)
   public static func getLifetimeTotalBlockingTime() -> TimeInterval {
     return userDefaults?.double(forKey: AppBlocking.lifetimeTotalBlockingTime) ?? 0
+  }
+  
+  // MARK: - Pomodoro Helpers
+  
+  /// Get Pomodoro focus duration in minutes
+  public static func getPomodoroFocusDuration() -> Int {
+    return userDefaults?.integer(forKey: Pomodoro.focusDuration) ?? 25
+  }
+  
+  /// Set Pomodoro focus duration in minutes
+  public static func setPomodoroFocusDuration(_ minutes: Int) {
+    userDefaults?.set(minutes, forKey: Pomodoro.focusDuration)
+  }
+  
+  /// Get Pomodoro break duration in minutes
+  public static func getPomodoroBreakDuration() -> Int {
+    return userDefaults?.integer(forKey: Pomodoro.breakDuration) ?? 5
+  }
+  
+  /// Set Pomodoro break duration in minutes
+  public static func setPomodoroBreakDuration(_ minutes: Int) {
+    userDefaults?.set(minutes, forKey: Pomodoro.breakDuration)
+  }
+  
+  /// Get current Pomodoro session type
+  public static func getPomodoroSessionType() -> String {
+    return userDefaults?.string(forKey: Pomodoro.currentSessionType) ?? "focus"
+  }
+  
+  /// Set current Pomodoro session type
+  public static func setPomodoroSessionType(_ type: String) {
+    userDefaults?.set(type, forKey: Pomodoro.currentSessionType)
+  }
+  
+  /// Get current Pomodoro session number
+  public static func getPomodoroCurrentSession() -> Int {
+    return userDefaults?.integer(forKey: Pomodoro.currentSession) ?? 1
+  }
+  
+  /// Set current Pomodoro session number
+  public static func setPomodoroCurrentSession(_ session: Int) {
+    userDefaults?.set(session, forKey: Pomodoro.currentSession)
   }
   
   /// Get today's blocking statistics from SharedData (for extensions)
