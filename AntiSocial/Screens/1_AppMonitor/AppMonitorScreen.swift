@@ -223,10 +223,10 @@ private extension AppMonitorScreen {
   var sideNavigationPanel: some View {
     HStack(spacing: 0) {
       Spacer()
-      VStack(spacing: 20) {
+      VStack(spacing: 2) {
         Spacer()
         navigationButtons
-          .padding(.top,120)
+          .padding(.top, 120)
         Spacer()
       }
       Spacer()
@@ -335,12 +335,11 @@ private extension AppMonitorScreen {
 // MARK: - Navigation
 private extension AppMonitorScreen {
     var navigationButtons: some View {
-    VStack(spacing: 20) {
+    VStack(spacing: 0) {
       ForEach(sections, id: \.id) { section in
         navigationButton(for: section)
       }
     }
-    .padding(.vertical, 16)
     .padding(.horizontal, 2)
   }
   
@@ -355,8 +354,12 @@ private extension AppMonitorScreen {
         .renderingMode(.template)
         .foregroundColor(currentSection == section.id ? .white : .white.opacity(0.5))
         .frame(width: currentSection == section.id ? 20 : 16, height: currentSection == section.id ? 20 : 16)
-        .animation(.easeInOut(duration: 0.2), value: currentSection == section.id)
+        .padding(10)
+        .padding(.vertical, 2)
         .contentShape(Rectangle())
+        .animation(.easeInOut(duration: 0.2),
+                   value: currentSection == section.id)
+        .offset(x: 10)
     }
     .disabled(isScrolling)
   }
