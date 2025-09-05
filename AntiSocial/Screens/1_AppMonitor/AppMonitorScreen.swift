@@ -223,7 +223,7 @@ private extension AppMonitorScreen {
   var sideNavigationPanel: some View {
     HStack(spacing: 0) {
       Spacer()
-      VStack(spacing: 20) {
+      VStack(spacing: 16) {
         Spacer()
         navigationButtons
           .padding(.top,120)
@@ -354,6 +354,7 @@ private extension AppMonitorScreen {
         .foregroundColor(currentSection == section.id ? .white : .white.opacity(0.5))
         .frame(width: currentSection == section.id ? 20 : 16, height: currentSection == section.id ? 20 : 16)
         .animation(.easeInOut(duration: 0.2), value: currentSection == section.id)
+        .contentShape(Rectangle())
     }
     .disabled(isScrolling)
   }
