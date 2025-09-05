@@ -223,7 +223,7 @@ private extension AppMonitorScreen {
   var sideNavigationPanel: some View {
     HStack(spacing: 0) {
       Spacer()
-      VStack(spacing: 16) {
+      VStack(spacing: 20) {
         Spacer()
         navigationButtons
           .padding(.top,120)

@@ -176,9 +176,11 @@ class PomodoroViewModel: ObservableObject {
             pomodoroService.stop()
             // Small delay to ensure clean stop
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-                self?.pomodoroService.start(
+              guard let self else { return }
+              
+                self.pomodoroService.start(
                     minutes: duration,
-                    selectionActivity: nil
+                    selectionActivity: self.selectionActivity
                 )
             }
         }

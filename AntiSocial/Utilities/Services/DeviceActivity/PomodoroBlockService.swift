@@ -35,21 +35,21 @@ final class PomodoroBlockService: ObservableObject {
 
   // MARK: - API
   /// Запускает помодоро-блок на N минут (минимум 5)
-  func start(minutes: Int, isStrictBlock: Bool = false, selectionActivity: FamilyActivitySelection? = nil) {
+  func start(minutes: Int, isStrictBlock: Bool = false, selectionActivity: FamilyActivitySelection) {
     let m = max(5, minutes)
     let unlockDate = Date().addingTimeInterval(TimeInterval(m * 60))
     SharedData.userDefaults?.set(unlockDate.timeIntervalSince1970, forKey: defaultsKey)
     
     // 1) Вешаем щит на всё
-    if selectionActivity == nil {
+    if selectionActivity.applicationTokens.isEmpty && selectionActivity.categoryTokens.isEmpty {
       store.shield.applicationCategories = .all()
-      store.shield.webDomainCategories = .all()
+//      store.shield.webDomainCategories = .all()
     } else {
-      store.shield.applications = selectionActivity?.applicationTokens
-      store.shield.applicationCategories = (selectionActivity?.categoryTokens.isEmpty ?? true)
+      store.shield.applications = selectionActivity.applicationTokens
+      store.shield.applicationCategories = (selectionActivity.categoryTokens.isEmpty)
       ? nil
-      : ShieldSettings.ActivityCategoryPolicy.specific(selectionActivity?.categoryTokens ?? [])
-      store.shield.webDomains = selectionActivity?.webDomainTokens
+      : ShieldSettings.ActivityCategoryPolicy.specific(selectionActivity.categoryTokens)
+      store.shield.webDomains = selectionActivity.webDomainTokens
 
       store.application.denyAppRemoval = isStrictBlock
     }
