@@ -32,7 +32,7 @@ struct PomodoroSettingsView: View {
                             timeDurationPicker(
                                 value: $viewModel.focusDuration,
                                 label: "Focus Duration",
-                                range: 15...60,
+                                range: 5...60,
                                 step: 5
                             )
                         }
