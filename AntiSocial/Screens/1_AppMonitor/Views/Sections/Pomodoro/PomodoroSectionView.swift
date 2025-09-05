@@ -349,12 +349,17 @@ struct PomodoroSectionView: View {
       if totalCount > 0 {
       } else {
         Text("All Apps")
-          .font(.system(size: 16, weight: .medium))
-//          .foregroundColor(.white.opacity(0.9))
+          .font(.system(size: 15, weight: .regular))
       }
+      
+      Spacer()
+        .frame(maxWidth: 16)
+      
+      Image(systemName: "chevron.right")
+        .foregroundColor(Color.as_white_light)
     }
-    .padding(.horizontal, 12)
-    .padding(.vertical, 13)
+    .padding(.horizontal, 16)
+    .padding(.vertical, 12)
     .background(
       Capsule()
         .fill(Color.white.opacity(0.07))
