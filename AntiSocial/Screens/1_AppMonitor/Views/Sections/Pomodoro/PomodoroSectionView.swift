@@ -95,42 +95,7 @@ struct PomodoroSectionView: View {
         size: circleSize,
         strokeWidth: circleProgressSize
       ) {
-        VStack(spacing: adaptive.spacing.medium) {
-          // Session info
-          Text("Session \(viewModel.currentSession) of \(viewModel.totalSessions)")
-            .font(.system(size: 14, weight: .medium))
-            .foregroundColor(.white.opacity(0.7))
-          
-          // Control buttons
-          HStack(spacing: adaptive.spacing.medium) {
-            // Pause/Resume
-            Button(action: { viewModel.togglePause() }) {
-              Image(systemName: viewModel.isPaused ? "play.fill" : "pause.fill")
-                .font(.system(size: 22))
-                .foregroundColor(.white)
-                .frame(width: 50, height: 50)
-                .background(
-                  Circle()
-                    .stroke(Color.white.opacity(0.3), lineWidth: 1.5)
-                )
-            }
-            
-            // Stop
-            Button(action: {
-              viewModel.stopPomodoro()
-              HapticManager.shared.impact(style: .medium)
-            }) {
-              Image(systemName: "stop.fill")
-                .font(.system(size: 22))
-                .foregroundColor(.white.opacity(0.8))
-                .frame(width: 50, height: 50)
-                .background(
-                  Circle()
-                    .stroke(Color.white.opacity(0.3), lineWidth: 1.5)
-                )
-            }
-          }
-        }
+        activeInnerContentView
       }
       
       Spacer()
@@ -138,6 +103,44 @@ struct PomodoroSectionView: View {
       // Statistics at bottom
       statisticsView
         .padding(.bottom, adaptive.spacing.xLarge)
+    }
+  }
+  
+  private var activeInnerContentView: some View {
+    VStack(spacing: adaptive.spacing.medium) {
+      blockedAppsDisplay
+      controlButtonsView
+    }
+  }
+  
+  private var controlButtonsView: some View {
+    HStack(spacing: adaptive.spacing.medium) {
+      // Pause/Resume
+      Button(action: { viewModel.togglePause() }) {
+        Image(systemName: viewModel.isPaused ? "play.fill" : "pause.fill")
+          .font(.system(size: 22))
+          .foregroundColor(.white)
+          .frame(width: 50, height: 50)
+          .background(
+            Capsule()
+              .stroke(Color.as_gradietn_stroke, lineWidth: 2)
+          )
+      }
+      
+      // Stop
+      Button(action: {
+        viewModel.stopPomodoro()
+        HapticManager.shared.impact(style: .medium)
+      }) {
+        Image(systemName: "stop.fill")
+          .font(.system(size: 22))
+          .foregroundColor(.white.opacity(0.8))
+          .frame(width: 50, height: 50)
+          .background(
+            Capsule()
+              .stroke(Color.as_gradietn_stroke, lineWidth: 2)
+          )
+      }
     }
   }
   

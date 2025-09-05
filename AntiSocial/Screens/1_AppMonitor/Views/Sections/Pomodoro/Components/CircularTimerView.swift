@@ -93,7 +93,9 @@ struct CircularTimerView<Content: View>: View {
       trackCircle(size: trackSize)
       
       // Layer 3: Progress circle (centered inside track)
-      progressCircle(size: progressSize, strokeWidth: progressStrokeWidth, fullSize: size)
+      progressCircle(size: progressSize,
+                     strokeWidth: progressStrokeWidth,
+                     fullSize: size)
       
       // Inner content
       innerContentView
@@ -128,7 +130,7 @@ struct CircularTimerView<Content: View>: View {
     Circle()
       .trim(from: 0, to: animateProgress ? progress : 0)
       .stroke(
-        Color.as_gradient_pomodoro_focus_progress,
+        timerType == .focus ? Color.as_gradient_pomodoro_focus_progress : Color.as_gradient_pomodoro_break_progress,
         style: StrokeStyle(
           lineWidth: strokeWidth,
           lineCap: .round  // Changed from .round to not interfere with end circle
@@ -180,14 +182,8 @@ struct CircularTimerView<Content: View>: View {
   
   private var innerContentView: some View {
     VStack(spacing: 0) {
-      // Timer text at top
-      Text(timeText)
-        .font(.system(size: min(size * 0.22, 50),
-                      weight: .bold, design: .rounded))
-        .foregroundColor(.white)
-        .shadow(color: .black.opacity(0.2), radius: 2, y: 2)
-        .padding(.top, size * 0.15)
-      
+      timerTextView
+
       // Custom content below timer if provided
       if let content = content {
         Spacer()
@@ -197,6 +193,99 @@ struct CircularTimerView<Content: View>: View {
     }
     .frame(width: size - strokeWidth * 4,
            height: size - strokeWidth * 4)
+  }
+  
+  private var timerTextView: some View {
+    // Timer text at top
+    let minutes = Int(remainingTime) / 60
+    let seconds = Int(remainingTime) % 60
+    let minuteTens = minutes / 10
+    let minuteOnes = minutes % 10
+    let secondTens = seconds / 10
+    let secondOnes = seconds % 10
+    
+    // Helper function to check if digit is narrow (odd numbers are typically narrower)
+    func isNarrowDigit(_ digit: Int) -> Bool {
+      return digit == 1
+    }
+    
+    func isMediumNarrowDigit(_ digit: Int) -> Bool {
+      return digit == 7
+    }
+    
+    return HStack(alignment: .center, spacing: 2) {
+      // First minute digit with fixed width container
+      HStack(spacing: 0) {
+        Text(String(format: "%d", minuteTens))
+          .font(Font.primary(weight: .regular, size: .extraBig))
+          .foregroundColor(.white)
+        
+        // Add spacer after narrow digits to maintain constant width
+        if isNarrowDigit(minuteTens) {
+          Spacer()
+            .frame(width: 6)
+        } else if isMediumNarrowDigit(minuteTens) {
+          Spacer()
+            .frame(width: 2)
+        }
+      }
+      .frame(width: 30, alignment: .leading)
+      
+      // Second minute digit with fixed width container
+      HStack(spacing: 0) {
+        Text(String(format: "%d", minuteOnes))
+          .font(Font.primary(weight: .regular, size: .extraBig))
+          .foregroundColor(.white)
+        
+        if isNarrowDigit(minuteOnes) {
+          Spacer()
+            .frame(width: 6)
+        } else if isMediumNarrowDigit(minuteOnes) {
+          Spacer()
+            .frame(width: 2)
+        }
+      }
+      .frame(width: 30, alignment: .leading)
+      
+      // Colon separator
+      Text(":")
+        .font(Font.primary(weight: .regular, size: .extraBig))
+        .foregroundColor(.white)
+        .frame(width: 15, alignment: .center)
+      
+      // First second digit with fixed width container
+      HStack(spacing: 0) {
+        Text(String(format: "%d", secondTens))
+          .font(Font.primary(weight: .regular, size: .extraBig))
+          .foregroundColor(.white)
+        
+        if isNarrowDigit(secondTens) {
+          Spacer()
+            .frame(width: 6)
+        } else if isMediumNarrowDigit(secondTens) {
+          Spacer()
+            .frame(width: 2)
+        }
+      }
+      .frame(width: 30, alignment: .leading)
+      
+      // Second second digit with fixed width container
+      HStack(spacing: 0) {
+        Text(String(format: "%d", secondOnes))
+          .font(Font.primary(weight: .regular, size: .extraBig))
+          .foregroundColor(.white)
+        
+        if isNarrowDigit(secondOnes) {
+          Spacer()
+            .frame(width: 6)
+        } else if isMediumNarrowDigit(secondOnes) {
+          Spacer()
+            .frame(width: 2)
+        }
+      }
+      .frame(width: 30, alignment: .leading)
+    }
+    .padding(.top, size * 0.15)
   }
 }
 

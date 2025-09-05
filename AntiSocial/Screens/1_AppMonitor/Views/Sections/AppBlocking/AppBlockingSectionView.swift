@@ -359,7 +359,9 @@ struct AppBlockingSectionView: View {
           .fontWeight(.semibold)
         
         Text(timeRemainingString)
-          .font(.system(size: AdaptiveValues.isCompactDevice ? 44 : 56, weight: .bold, design: .monospaced))
+          .font(.system(size: AdaptiveValues.isCompactDevice ? 44 : 56,
+                        weight: .bold,
+                        design: .monospaced))
           .foregroundColor(.white)
       }
       Spacer()

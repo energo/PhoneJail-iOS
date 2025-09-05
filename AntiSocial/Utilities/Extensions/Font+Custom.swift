@@ -8,15 +8,35 @@
 import Foundation
 import SwiftUI
 
+extension UIFont {
+
+    var monospacedDigitFont: UIFont {
+        let oldFontDescriptor = fontDescriptor
+        let newFontDescriptor = oldFontDescriptor.monospacedDigitFontDescriptor
+        return UIFont(descriptor: newFontDescriptor, size: 0)
+    }
+
+}
+
+private extension UIFontDescriptor {
+
+    var monospacedDigitFontDescriptor: UIFontDescriptor {
+        let fontDescriptorFeatureSettings = [[UIFontDescriptor.FeatureKey.featureIdentifier: kNumberSpacingType, UIFontDescriptor.FeatureKey.typeIdentifier: kMonospacedNumbersSelector]]
+        let fontDescriptorAttributes = [UIFontDescriptor.AttributeName.featureSettings: fontDescriptorFeatureSettings]
+        let fontDescriptor = self.addingAttributes(fontDescriptorAttributes)
+        return fontDescriptor
+    }
+}
+
 extension Font {
   enum FontWeight {
-    case bold, light, semibold
+    case bold, regular, semibold
     
     var fontName: String {
       switch self {
-        case .bold: return "Montserrat-Bold"
-        case .semibold: return "Montserrat-SemiBold"
-        case .light: return "Montserrat-Regular"
+        case .bold: return "ZCOOLQingKeHuangYou-Regular"
+        case .semibold: return "ZCOOLQingKeHuangYou-Regular"
+        case .regular: return "ZCOOLQingKeHuangYou-Regular"
       }
     }
   }
@@ -65,7 +85,7 @@ extension Font {
   static let textM = Font(UIFont.systemFont(ofSize: 16, weight: .regular)) // Аналог "Ag Text M"
   static let textL = Font(UIFont.systemFont(ofSize: 20, weight: .bold)) // Аналог "Ag Text L"
 
-  static func primary(weight: FontWeight = .light,
+  static func primary(weight: FontWeight = .regular,
                       size: FontSize = .small) -> Font {
     let fontSize = size.getFontSize(for: getScreenSizeCategory())
     return customFont(name: weight.fontName, size: fontSize)
@@ -76,7 +96,7 @@ extension Font {
     guard let uiFont = UIFont(name: name, size: size) else {
       return Font.system(size: size)
     }
-    return Font(uiFont)
+    return Font(uiFont).monospacedDigit()
   }
   
   static func getScreenSizeCategory() -> ScreenSizeCategory {

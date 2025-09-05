@@ -69,6 +69,7 @@ struct AntiSocialApp: App {
             }
             .onAppear(perform: UIApplication.shared.addTapGestureRecognizer)
             .task {
+              listFonts()
               setupATTracking()
     //          await requestSceenTimeAuthorization()
               
@@ -87,6 +88,15 @@ struct AntiSocialApp: App {
 
         }
     }
+  
+  func listFonts() {
+          for family in UIFont.familyNames {
+              print("\(family)")
+              for name in UIFont.fontNames(forFamilyName: family) {
+                  print("== \(name)")
+              }
+          }
+      }
   
   private func setupATTracking() {
       if #available(iOS 14, *) {
