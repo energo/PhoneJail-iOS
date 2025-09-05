@@ -7,15 +7,33 @@
 
 import SwiftUI
 
-struct CircularTimerView: View {
+struct CircularTimerView<Content: View>: View {
     // MARK: - Properties
     let totalTime: TimeInterval
     let remainingTime: TimeInterval
     let isActive: Bool
     let timerType: TimerType
     let size: CGFloat
+    let strokeWidth: CGFloat
+    let content: Content?
     
     @State private var animateProgress = false
+    
+    init(totalTime: TimeInterval, 
+         remainingTime: TimeInterval,
+         isActive: Bool,
+         timerType: TimerType,
+         size: CGFloat,
+         strokeWidth: CGFloat = 10,
+         @ViewBuilder content: () -> Content? = { nil }) {
+        self.totalTime = totalTime
+        self.remainingTime = remainingTime
+        self.isActive = isActive
+        self.timerType = timerType
+        self.size = size
+        self.strokeWidth = strokeWidth
+        self.content = content()
+    }
     
     enum TimerType {
         case focus
@@ -84,7 +102,8 @@ struct CircularTimerView: View {
             Circle()
                 .stroke(
                     Color.white.opacity(0.1),
-                    lineWidth: 10
+//                    Color.green,
+                    lineWidth: strokeWidth
                 )
                 .frame(width: size, height: size)
             
@@ -98,7 +117,7 @@ struct CircularTimerView: View {
                         endPoint: .bottomTrailing
                     ),
                     style: StrokeStyle(
-                        lineWidth: 10,
+                        lineWidth: strokeWidth,
                         lineCap: .round
                     )
                 )
@@ -108,13 +127,7 @@ struct CircularTimerView: View {
                 .shadow(color: timerType.color.opacity(0.5), radius: 8)
             
             // Inner content
-            VStack(spacing: 4) {
-                // Timer text only - big and bold
-                Text(timeText)
-                    .font(.system(size: size * 0.25, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
-                    .shadow(color: .black.opacity(0.2), radius: 2, y: 2)
-            }
+          innerContentView
         }
         .onAppear {
             withAnimation {
@@ -122,6 +135,26 @@ struct CircularTimerView: View {
             }
         }
     }
+  
+  private var innerContentView: some View {
+    VStack(spacing: 0) {
+        // Timer text at top
+        Text(timeText)
+            .font(.system(size: min(size * 0.22, 80), weight: .bold, design: .rounded))
+            .foregroundColor(.white)
+            .shadow(color: .black.opacity(0.2), radius: 2, y: 2)
+            .padding(.top, size * 0.15)
+        
+        // Custom content below timer if provided
+        if let content = content {
+            Spacer()
+            content
+            Spacer()
+        }
+    }
+    .frame(width: size - strokeWidth * 4, height: size - strokeWidth * 4)
+
+  }
 }
 
 // MARK: - Preview
@@ -135,16 +168,26 @@ struct CircularTimerView: View {
                 remainingTime: 900,
                 isActive: true,
                 timerType: .focus,
-                size: 250
-            )
+                size: 300,
+                strokeWidth: 28
+            ) {
+                VStack {
+                    Text("Focus Session")
+                        .foregroundColor(.white.opacity(0.7))
+                    Button("Pause") {}
+                        .foregroundColor(.white)
+                }
+            }
             
             CircularTimerView(
                 totalTime: 300,
                 remainingTime: 150,
                 isActive: true,
                 timerType: .breakTime,
-                size: 200
-            )
+                size: 200,
+                strokeWidth: 10
+            ) {
+            }
         }
     }
 }
