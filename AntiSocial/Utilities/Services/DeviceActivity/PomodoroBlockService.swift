@@ -75,6 +75,48 @@ final class PomodoroBlockService: ObservableObject {
     remainingSeconds = 0
   }
   
+  /// Экстренная очистка ВСЕХ блокировок (для отладки)
+  func emergencyClearAllBlocks() {
+    // Очищаем Pomodoro store
+    clearShield()
+    
+    // Очищаем другие возможные stores
+    let appBlockingStore = ManagedSettingsStore(named: .appBlocking)
+    appBlockingStore.shield.applications = []
+    appBlockingStore.shield.applicationCategories = nil
+    appBlockingStore.shield.webDomains = []
+    appBlockingStore.shield.webDomainCategories = nil
+    
+    let interruptionStore = ManagedSettingsStore(named: .interruption)
+    interruptionStore.shield.applications = []
+    interruptionStore.shield.applicationCategories = nil
+    interruptionStore.shield.webDomains = []
+    interruptionStore.shield.webDomainCategories = nil
+    
+    // Очищаем дефолтный store
+    let defaultStore = ManagedSettingsStore()
+    defaultStore.shield.applications = []
+    defaultStore.shield.applicationCategories = nil
+    defaultStore.shield.webDomains = []
+    defaultStore.shield.webDomainCategories = nil
+    
+    // Очищаем все ключи в SharedData
+    SharedData.userDefaults?.removeObject(forKey: defaultsKey)
+    SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.isBlocked)
+    SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.unlockDate)
+    SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
+    
+    // Останавливаем все таймеры
+    ticker?.cancel()
+    isActive = false
+    remainingSeconds = 0
+    
+    ShieldService.shared.stopAppRestrictions()
+    DeviceActivityScheduleService.stopSchedule()
+
+    print("🚨 Emergency clear: All blocks removed")
+  }
+  
   // MARK: - Background task handler
   func handleUnlockBGTask(task: BGAppRefreshTask) {
     // Если уже пора — снять блок; если нет — перезапланировать
@@ -114,8 +156,8 @@ final class PomodoroBlockService: ObservableObject {
     guard let unlock = savedUnlockDate() else { return }
     if Date() < unlock {
       // Приложение перезапустили — вернуть «щит» и тикер
-      store.shield.applicationCategories = .all()
-      store.shield.webDomainCategories = .all()
+//      store.shield.applicationCategories = .all()
+//      store.shield.webDomainCategories = .all()
       startTicker(unlockDate: unlock)
       isActive = true
     } else {
