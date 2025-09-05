@@ -45,7 +45,7 @@ struct AppBlockingSectionView: View {
   private enum Constants {
     enum Timer {
       static let updateInterval: TimeInterval = 1.0
-      static let animationDelay: TimeInterval = 0.6
+      static let animationDelay: TimeInterval = 0.3
     }
     
     enum TimeFormat {
@@ -492,6 +492,8 @@ struct AppBlockingSectionView: View {
                       isLimitReached: !subscriptionManager.canStartNewBlock(),
                       onBlockingStateChanged: { newState in
       if newState {
+        DispatchQueue.main.asyncAfter(deadline: .now() + Constants.Timer.animationDelay) {
+
         // Check subscription limits first
         if !subscriptionManager.canStartNewBlock() {
           // This shouldn't happen as button is disabled, but just in case
@@ -512,15 +514,14 @@ struct AppBlockingSectionView: View {
           restrictionModel: restrictionModel
         )
         // Start timer after blocking animation completes
-        DispatchQueue.main.asyncAfter(deadline: .now() + Constants.Timer.animationDelay) {
-          // Проверяем что таймер еще не подключен
-          if timerConnection == nil {
-            // Сразу обновляем отображение
-            timeBlockedString = Constants.TimeFormat.initialBlocked
-            timeRemainingString = deviceActivityService.timeRemainingString
-            startTimer()
-          }
+        // Проверяем что таймер еще не подключен
+        if timerConnection == nil {
+          // Сразу обновляем отображение
+          timeBlockedString = Constants.TimeFormat.initialBlocked
+          timeRemainingString = deviceActivityService.timeRemainingString
+          startTimer()
         }
+                }
       } else {
         // Сначала отключаем таймер
         stopTimer()

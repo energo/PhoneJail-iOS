@@ -4,6 +4,7 @@ import SwiftUI
 struct SlideToTurnOnView: View {
   @Binding var isBlocked: Bool
   @Binding var isStrictBlock: Bool
+
   var isLimitReached: Bool = false
   var onBlockingStateChanged: ((Bool) -> Void)?
   var onPurchaseTap: (() -> Void)?
@@ -192,32 +193,33 @@ private extension SlideToTurnOnView {
     // Reset haptic offset for next drag
     lastHapticOffset = 0
     
+    // Update UI immediately with animation
     withAnimation {
       userDragging = false
       offset = shouldBlock ? (widthOfSlide - 10) : .zero
       slideProgress = shouldBlock ? 1 : 0
       isBlockedPreview = shouldBlock
+      isBlocked = shouldBlock
     }
     
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-      withAnimation {
-        isBlocked = shouldBlock
-        // Rapid haptic vibrations on lock/unlock
-        if shouldBlock {
-          // Locking - success haptic pattern
-          HapticManager.shared.notification(type: .success)
-          DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            HapticManager.shared.impact(style: .rigid)
-          }
-          DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-            HapticManager.shared.impact(style: .heavy)
-          }
-        } else {
-          // Unlocking - warning haptic pattern  
-          HapticManager.shared.notification(type: .warning)
-        }
-        onBlockingStateChanged?(shouldBlock)
+    // Haptic feedback immediately
+    if shouldBlock {
+      // Locking - success haptic pattern
+      HapticManager.shared.notification(type: .success)
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+        HapticManager.shared.impact(style: .rigid)
       }
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+        HapticManager.shared.impact(style: .heavy)
+      }
+    } else {
+      // Unlocking - warning haptic pattern  
+      HapticManager.shared.notification(type: .warning)
+    }
+    
+    // Call the blocking state handler asynchronously without blocking animation
+    DispatchQueue.main.async {
+      onBlockingStateChanged?(shouldBlock)
     }
   }
   
@@ -236,24 +238,25 @@ private extension SlideToTurnOnView {
       return
     }
     
-    withAnimation {
+    // Animate the tap feedback
+    withAnimation(.easeOut(duration: 0.2)) {
       userDragging = true
       offset = 20
     }
     
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-      withAnimation {
+    // Return to initial position and update state
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+      withAnimation(.easeInOut(duration: 0.3)) {
         userDragging = false
         offset = .zero
         slideProgress = 0
         isBlockedPreview = false
+        isBlocked = false
       }
       
-      DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-        withAnimation {
-          isBlocked = false
-          onBlockingStateChanged?(false)
-        }
+      // Call the blocking state handler asynchronously without blocking animation
+      DispatchQueue.main.async {
+        onBlockingStateChanged?(false)
       }
     }
   }
