@@ -38,6 +38,11 @@ class PomodoroViewModel: ObservableObject {
     @Published var notificationsEnabled: Bool = true
     @Published var soundEnabled: Bool = true
     
+    // Statistics
+    @Published var lifetimeFocusTime: Int = 0 // seconds
+    @Published var weeklyFocusTime: Int = 0 // seconds
+    @Published var todayFocusTime: Int = 0 // seconds
+    
     // App Blocking Settings
     @Published var blockAllCategories: Bool = true
     @Published var selectionActivity = FamilyActivitySelection()
@@ -51,6 +56,7 @@ class PomodoroViewModel: ObservableObject {
     
     init() {
         loadSettings()
+        loadStatistics()
         setupBindings()
     }
     
@@ -83,6 +89,10 @@ class PomodoroViewModel: ObservableObject {
         
         // Log session completion
         if currentSessionType == .focus {
+            // Update statistics
+            let sessionDuration = focusDuration * 60
+            updateStatistics(focusTimeAdded: sessionDuration)
+            
             Task { @MainActor in
                 AppBlockingLogger.shared.endSession(type: .appBlocking, completed: true)
                 print("Pomodoro: Focus session completed")
@@ -312,5 +322,47 @@ class PomodoroViewModel: ObservableObject {
         if SharedData.userDefaults?.object(forKey: SharedData.Pomodoro.focusDuration) == nil {
             saveSettings()
         }
+    }
+    
+    func loadStatistics() {
+        // Load lifetime stats
+        lifetimeFocusTime = SharedData.userDefaults?.integer(forKey: "pomodoroLifetimeFocusTime") ?? 0
+        
+        // Calculate weekly stats
+        let weeklyKey = "pomodoroWeeklyFocusTime_\(getCurrentWeekIdentifier())"
+        weeklyFocusTime = SharedData.userDefaults?.integer(forKey: weeklyKey) ?? 0
+        
+        // Calculate today stats  
+        let todayKey = "pomodoroTodayFocusTime_\(getCurrentDayIdentifier())"
+        todayFocusTime = SharedData.userDefaults?.integer(forKey: todayKey) ?? 0
+    }
+    
+    private func updateStatistics(focusTimeAdded: Int) {
+        // Update lifetime
+        lifetimeFocusTime += focusTimeAdded
+        SharedData.userDefaults?.set(lifetimeFocusTime, forKey: "pomodoroLifetimeFocusTime")
+        
+        // Update weekly
+        let weeklyKey = "pomodoroWeeklyFocusTime_\(getCurrentWeekIdentifier())"
+        weeklyFocusTime += focusTimeAdded
+        SharedData.userDefaults?.set(weeklyFocusTime, forKey: weeklyKey)
+        
+        // Update today
+        let todayKey = "pomodoroTodayFocusTime_\(getCurrentDayIdentifier())"
+        todayFocusTime += focusTimeAdded
+        SharedData.userDefaults?.set(todayFocusTime, forKey: todayKey)
+    }
+    
+    private func getCurrentDayIdentifier() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: Date())
+    }
+    
+    private func getCurrentWeekIdentifier() -> String {
+        let calendar = Calendar.current
+        let weekOfYear = calendar.component(.weekOfYear, from: Date())
+        let year = calendar.component(.year, from: Date())
+        return "\(year)-W\(weekOfYear)"
     }
 }

@@ -190,15 +190,15 @@ private extension AppMonitorScreen {
       case .blockScheduler:
         content = AnyView(blockSchedulerContent)
         needsTopSpacer = true
-      case .pomodoro:
-        content = AnyView(pomodoroContent)
-        needsTopSpacer = true
       case .stats:
         content = AnyView(statsContent)
         needsTopSpacer = true
       case .focusBreakers:
         content = AnyView(focusBreakersContent)
         needsTopSpacer = true
+      case .pomodoro:
+        content = AnyView(pomodoroContent)
+        needsTopSpacer = false
     }
     
     return AnyView(
@@ -327,6 +327,8 @@ private extension AppMonitorScreen {
   var screenTimeSection: some View {
 //    ScreenTimeTodayView(id: screenTimeID)
     screenTimeView
+      .opacity(currentSection == SectionType.pomodoro.rawValue ? 0 : 1)
+      .animation(.easeInOut(duration: 0.3), value: currentSection)
   }
 }
 

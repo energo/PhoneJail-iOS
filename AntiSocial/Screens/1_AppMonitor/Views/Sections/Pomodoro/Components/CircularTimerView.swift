@@ -24,20 +24,21 @@ struct CircularTimerView: View {
         var color: Color {
             switch self {
             case .focus:
-                return Color.as_red
+                return Color(red: 1.0, green: 0.2, blue: 0.2) // Bright red
             case .breakTime:
-                return Color(hex: "4CAF50") // Green color for break
+                return Color(red: 0.2, green: 0.9, blue: 0.4) // Bright green
             }
         }
         
         var gradientColors: [Color] {
             switch self {
             case .focus:
-                return [Color.as_red, Color.as_red.opacity(0.8)]
+                return [Color(red: 1.0, green: 0.2, blue: 0.2), Color(red: 0.9, green: 0.1, blue: 0.1)]
             case .breakTime:
-                return [Color(hex: "4CAF50"), Color(hex: "81C784")]
+                return [Color(red: 0.2, green: 0.9, blue: 0.4), Color(red: 0.1, green: 0.8, blue: 0.3)]
             }
         }
+        
     }
     
     private var progress: Double {
@@ -63,11 +64,27 @@ struct CircularTimerView: View {
     // MARK: - Body
     var body: some View {
         ZStack {
-            // Background circle
+            // Background circle with blur effect similar to blurBackground
+            Circle()
+                .fill(Color.clear)
+                .frame(width: size, height: size)
+                .overlay(
+                    ZStack {
+                        // Use BackdropBlurView for blur effect
+                        BackdropBlurView(isBlack: false, radius: 10)
+                            .clipShape(Circle())
+                        
+                        // White overlay for consistency with blurBackground
+                        Circle()
+                            .fill(Color.white.opacity(0.07))
+                    }
+                )
+            
+            // Background circle stroke
             Circle()
                 .stroke(
                     Color.white.opacity(0.1),
-                    lineWidth: size * 0.08
+                    lineWidth: 10
                 )
                 .frame(width: size, height: size)
             
@@ -81,55 +98,22 @@ struct CircularTimerView: View {
                         endPoint: .bottomTrailing
                     ),
                     style: StrokeStyle(
-                        lineWidth: size * 0.08,
+                        lineWidth: 10,
                         lineCap: .round
                     )
                 )
                 .frame(width: size, height: size)
                 .rotationEffect(.degrees(-90))
                 .animation(.easeInOut(duration: 0.5), value: progress)
-                .shadow(color: timerType.color.opacity(0.3), radius: 10)
+                .shadow(color: timerType.color.opacity(0.5), radius: 8)
             
             // Inner content
-            VStack(spacing: size * 0.02) {
-                // Session type
-                Text(sessionText)
-                    .font(.system(size: size * 0.06, weight: .light))
-                    .foregroundColor(.white.opacity(0.7))
-                
-                // Timer text
+            VStack(spacing: 4) {
+                // Timer text only - big and bold
                 Text(timeText)
-                    .font(.system(size: size * 0.15, weight: .bold, design: .monospaced))
+                    .font(.system(size: size * 0.25, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
-                    .monospacedDigit()
-                
-                // Status indicator
-                if isActive {
-                    HStack(spacing: 4) {
-                        Circle()
-                            .fill(timerType.color)
-                            .frame(width: 8, height: 8)
-                            .scaleEffect(animateProgress ? 1.2 : 0.8)
-                            .animation(
-                                Animation.easeInOut(duration: 1.5)
-                                    .repeatForever(autoreverses: true),
-                                value: animateProgress
-                            )
-                        
-                        Text("Active")
-                            .font(.system(size: size * 0.05, weight: .medium))
-                            .foregroundColor(.white.opacity(0.9))
-                    }
-                }
-            }
-            
-            // Decorative elements
-            ForEach(0..<12, id: \.self) { index in
-                Rectangle()
-                    .fill(Color.white.opacity(index % 3 == 0 ? 0.3 : 0.1))
-                    .frame(width: 2, height: index % 3 == 0 ? size * 0.04 : size * 0.02)
-                    .offset(y: -size * 0.45)
-                    .rotationEffect(.degrees(Double(index) * 30))
+                    .shadow(color: .black.opacity(0.2), radius: 2, y: 2)
             }
         }
         .onAppear {
