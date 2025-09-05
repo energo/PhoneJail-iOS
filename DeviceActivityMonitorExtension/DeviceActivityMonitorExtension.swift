@@ -550,13 +550,11 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         }
       }
       
-      // Update total blocking time for today
-      let currentTotal = SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.todayTotalBlockingTime) ?? 0
-      SharedData.userDefaults?.set(currentTotal + duration, forKey: SharedData.AppBlocking.todayTotalBlockingTime)
+      // Statistics are already updated by AppBlockingLogger.endSession()
+      // We don't need to update them here to avoid double counting
       
-      // Update completed sessions count
-      let currentCount = SharedData.userDefaults?.integer(forKey: SharedData.AppBlocking.todayCompletedSessions) ?? 0
-      SharedData.userDefaults?.set(currentCount + 1, forKey: SharedData.AppBlocking.todayCompletedSessions)
+      // Just log for debugging
+      print("DeviceActivityMonitor: Session ended with duration: \(duration) seconds")
       
       // Store detailed session info for statistics
       let calendar = Calendar.current
