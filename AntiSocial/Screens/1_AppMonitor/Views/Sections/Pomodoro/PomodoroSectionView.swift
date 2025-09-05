@@ -353,7 +353,7 @@ struct PomodoroSectionView: View {
       }
       
       Spacer()
-        .frame(maxWidth: 16)
+        .frame(maxWidth: 32)
       
       Image(systemName: "chevron.right")
         .foregroundColor(Color.as_white_light)

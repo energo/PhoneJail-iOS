@@ -93,7 +93,7 @@ struct CircularTimerView<Content: View>: View {
       trackCircle(size: trackSize)
       
       // Layer 3: Progress circle (centered inside track)
-      progressCircle(size: progressSize, strokeWidth: progressStrokeWidth)
+      progressCircle(size: progressSize, strokeWidth: progressStrokeWidth, fullSize: size)
       
       // Inner content
       innerContentView
@@ -123,20 +123,59 @@ struct CircularTimerView<Content: View>: View {
       .frame(width: size, height: size)
   }
   
-  private func progressCircle(size: CGFloat, strokeWidth: CGFloat) -> some View {
+  private func progressCircle(size: CGFloat, strokeWidth: CGFloat, fullSize: CGFloat) -> some View {
+    // Progress stroke
     Circle()
       .trim(from: 0, to: animateProgress ? progress : 0)
       .stroke(
         Color.as_gradient_pomodoro_focus_progress,
         style: StrokeStyle(
           lineWidth: strokeWidth,
-          lineCap: .round
+          lineCap: .round  // Changed from .round to not interfere with end circle
         )
       )
       .frame(width: size, height: size)
       .rotationEffect(.degrees(-90))
       .animation(.easeInOut(duration: 0.5), value: progress)
       .shadow(color: timerType.color.opacity(0.5), radius: 8)
+      .overlay(
+        // End circle indicator as overlay to ensure proper positioning
+        progressEndCircle(progressSize: size)
+      )
+  }
+  
+  private func progressEndCircle(progressSize: CGFloat) -> some View {
+    GeometryReader { geometry in
+      let angle = 2 * .pi * progress - .pi / 2
+      // Calculate position on the progress circle's radius
+      let radius = progressSize / 2
+      let centerX = geometry.size.width / 2
+      let centerY = geometry.size.height / 2
+      let x = centerX + cos(angle) * radius
+      let y = centerY + sin(angle) * radius
+      
+      ZStack {
+        // Outer circle (22pt)
+        Circle()
+          .fill(Color.white)
+          .frame(width: 22, height: 22)
+          .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
+        
+        // Inner circle (16pt) 
+        Circle()
+          .fill(
+            LinearGradient(
+              colors: timerType.gradientColors,
+              startPoint: .topLeading,
+              endPoint: .bottomTrailing
+            )
+          )
+          .frame(width: 16, height: 16)
+      }
+      .position(x: x, y: y)
+      .opacity(progress > 0 ? 1 : 0)
+      .animation(.easeInOut(duration: 0.5), value: progress)
+    }
   }
   
   private var innerContentView: some View {
