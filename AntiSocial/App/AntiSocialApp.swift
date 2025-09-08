@@ -22,16 +22,16 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     
     // Register Pomodoro background task
     BGTaskScheduler.shared.register(forTaskWithIdentifier: "com.app.antisocial.pomodoro.unlock", using: nil) { task in
-        PomodoroBlockService.shared.handleUnlockBGTask(task: task as! BGAppRefreshTask)
+      PomodoroBlockService.shared.handleUnlockBGTask(task: task as! BGAppRefreshTask)
     }
     
-//    Settings.shared.isAdvertiserIDCollectionEnabled = true
-//    Settings.shared.isAutoLogAppEventsEnabled = true
-//
-//    ApplicationDelegate.shared.application(
-//        application,
-//        didFinishLaunchingWithOptions: launchOptions
-//    )
+    //    Settings.shared.isAdvertiserIDCollectionEnabled = true
+    //    Settings.shared.isAutoLogAppEventsEnabled = true
+    //
+    //    ApplicationDelegate.shared.application(
+    //        application,
+    //        didFinishLaunchingWithOptions: launchOptions
+    //    )
     
     return true
   }
@@ -47,77 +47,66 @@ struct AntiSocialApp: App {
   @StateObject private var scheduleNotificationHandler = ScheduleNotificationHandler.shared
   @State private var midnightTimer: Timer?
   @AppStorage("isFirstRun") private var isFirstRun: Bool = true
-
-    var body: some Scene {
-        WindowGroup {
-//          ContentView(model: SelectAppsModel())
-          MainView()
-            .environmentObject(authVM)
-            .environmentObject(subscriptionManager)
-            .environmentObject(deviceActivityService)
-            .environmentObject(familyControlsManager)
-            .environmentObject(scheduleNotificationHandler)
-            .task {
-              if !isFirstRun {
-                LocalNotificationManager.shared.requestAuthorization { isNotificationAuthed in
-                  AppLogger.trace("isNotificationAuthed \(isNotificationAuthed)")
-                  
-                  // Set ScheduleNotificationHandler as the delegate to handle schedule notifications
-                  UNUserNotificationCenter.current().delegate = scheduleNotificationHandler
-                }
-              }
-            }
-            .onAppear(perform: UIApplication.shared.addTapGestureRecognizer)
-            .task {
-              listFonts()
-              setupATTracking()
-    //          await requestSceenTimeAuthorization()
-              
-              // Обновляем статистику блокировок при запуске приложения
-              await AppBlockingLogger.shared.refreshAllData()
-              
-              // Setup midnight timer for resetting usage counters
-              setupMidnightTimer()
-            }
-            .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
-              Task {
-                // Обновляем статистику при возврате в приложение
-                await AppBlockingLogger.shared.refreshAllData()
-              }
-            }
-
-        }
-    }
   
-  func listFonts() {
-          for family in UIFont.familyNames {
-              print("\(family)")
-              for name in UIFont.fontNames(forFamilyName: family) {
-                  print("== \(name)")
-              }
+  var body: some Scene {
+    WindowGroup {
+      //          ContentView(model: SelectAppsModel())
+      MainView()
+        .environmentObject(authVM)
+        .environmentObject(subscriptionManager)
+        .environmentObject(deviceActivityService)
+        .environmentObject(familyControlsManager)
+        .environmentObject(scheduleNotificationHandler)
+        .task {
+          if !isFirstRun {
+            LocalNotificationManager.shared.requestAuthorization { isNotificationAuthed in
+              AppLogger.trace("isNotificationAuthed \(isNotificationAuthed)")
+              
+              // Set ScheduleNotificationHandler as the delegate to handle schedule notifications
+              UNUserNotificationCenter.current().delegate = scheduleNotificationHandler
+            }
           }
-      }
+        }
+        .onAppear(perform: UIApplication.shared.addTapGestureRecognizer)
+        .task {
+          setupATTracking()
+          
+          // Обновляем статистику блокировок при запуске приложения
+          await AppBlockingLogger.shared.refreshAllData()
+          
+          // Setup midnight timer for resetting usage counters
+          setupMidnightTimer()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+          Task {
+            // Обновляем статистику при возврате в приложение
+            await AppBlockingLogger.shared.refreshAllData()
+          }
+        }
+      
+    }
+  }
   
   private func setupATTracking() {
-      if #available(iOS 14, *) {
-          DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-              ATTrackingManager.requestTrackingAuthorization { status in
-                  switch status {
-                  case .authorized:
-                      break
-//                      Settings.shared.isAutoLogAppEventsEnabled = true
-//                      Settings.shared.isAdvertiserIDCollectionEnabled = true
-                      
-//                      ApplicationDelegate.shared.initializeSDK() // инициализация после установки флагов
-
-//                        FirebaseReportService.sendCustomEvent(.at_tracking, parameters: ["status": "authorized"])
-                  default:
-                      break
-//                        FirebaseReportService.sendCustomEvent(.at_tracking, parameters: ["status": "denied"])
-                  }
-              }
+    if #available(iOS 14, *) {
+      DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+        ATTrackingManager.requestTrackingAuthorization { status in
+          switch status {
+            case .authorized:
+              break
+              //                      Settings.shared.isAutoLogAppEventsEnabled = true
+              //                      Settings.shared.isAdvertiserIDCollectionEnabled = true
+              
+              //                      ApplicationDelegate.shared.initializeSDK() // инициализация после установки флагов
+              
+              //                        FirebaseReportService.sendCustomEvent(.at_tracking, parameters: ["status": "authorized"])
+            default:
+              break
+              //                        FirebaseReportService.sendCustomEvent(.at_tracking, parameters: ["status": "denied"])
           }
+        }
       }
+    }
   }
   
   private func setupMidnightTimer() {
@@ -147,24 +136,24 @@ struct AntiSocialApp: App {
 
 //MARK: - Extensions
 extension UIApplication {
-    func addTapGestureRecognizer() {
-        // Find the first foreground active UIWindowScene
-        guard let windowScene = self.connectedScenes
-                .compactMap({ $0 as? UIWindowScene })
-                .first(where: { $0.activationState == .foregroundActive }),
-              let window = windowScene.windows.first else { return }
-        
-        let tapGesture = UITapGestureRecognizer(target: window, action: #selector(UIView.endEditing))
-        tapGesture.requiresExclusiveTouchType = false
-        tapGesture.cancelsTouchesInView = false
-        tapGesture.delegate = self
-        window.addGestureRecognizer(tapGesture)
-    }
+  func addTapGestureRecognizer() {
+    // Find the first foreground active UIWindowScene
+    guard let windowScene = self.connectedScenes
+      .compactMap({ $0 as? UIWindowScene })
+      .first(where: { $0.activationState == .foregroundActive }),
+          let window = windowScene.windows.first else { return }
+    
+    let tapGesture = UITapGestureRecognizer(target: window, action: #selector(UIView.endEditing))
+    tapGesture.requiresExclusiveTouchType = false
+    tapGesture.cancelsTouchesInView = false
+    tapGesture.delegate = self
+    window.addGestureRecognizer(tapGesture)
+  }
 }
 
 extension UIApplication: @retroactive UIGestureRecognizerDelegate {
-    public func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
-        return true // set to `false` if you don't want to detect tap during other gestures
-    }
+  public func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+    return true // set to `false` if you don't want to detect tap during other gestures
+  }
 }
 

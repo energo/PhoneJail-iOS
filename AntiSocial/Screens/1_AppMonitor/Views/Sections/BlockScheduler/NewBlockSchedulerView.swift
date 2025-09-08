@@ -73,8 +73,6 @@ struct NewBlockSchedulerView: View {
             isPresented: $showingActivityPicker,
             selection: $selection
         )
-        .background(BackgroundKillView())
-        .interactiveDismissDisabled()
     }
     .onChange(of: name) { _, _ in
       autoSaveIfNeeded()
