@@ -37,17 +37,18 @@ struct TimePickerView: View {
           }
 
         VStack {
-          CustomPickerView(count: $value1,
-                           from: start1,
-                           to: end1,
+          CustomPickerView(actualValue: $value1,
+                           fromValue: start1,
+                           toValue: end1,
                            steps: 1,
                            style: .styleTwo,
                            selectedExtraText: "h")
           
-          CustomPickerView(count: $value2,
-                           from: start2,
-                           to: end2,
+          CustomPickerView(actualValue: $value2,
+                           fromValue: start2,
+                           toValue: end2,
                            steps: 1,
+                           valueStep: 5,
                            style: .styleTwo,
                            selectedExtraText: "m")
         }

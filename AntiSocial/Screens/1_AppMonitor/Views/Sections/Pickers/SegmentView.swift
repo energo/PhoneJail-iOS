@@ -5,6 +5,7 @@ import SwiftUI
 struct SegmentView: View {
   let values: ClosedRange<Int>
   let steps: Int
+  let valueStep: Int
   let segmentWidth: CGFloat
   let style: SegmentStyle
   let selectedIndex: Int  // <-- Новый параметр
@@ -43,6 +44,7 @@ struct SegmentView: View {
   
   private func text(_ index: Int) -> String {
     let isSelected = index == selectedIndex // <-- Сравниваем
-    return "\(style == .styleOne ? index : (index / steps)) \(isSelected ? selectedExtraText : "")"
+    let displayValue = style == .styleOne ? (index * valueStep) : ((index / steps) * valueStep)
+    return "\(displayValue) \(isSelected ? selectedExtraText : "")"
   }
 }
