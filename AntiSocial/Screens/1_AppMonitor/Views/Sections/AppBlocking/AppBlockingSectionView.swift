@@ -24,6 +24,7 @@ struct AppBlockingSectionView: View {
   @State private var isStrictBlock: Bool = SharedData.userDefaults?.bool(forKey: SharedData.Widget.isStricted) ?? false
   @State private var isBlocked: Bool = SharedData.userDefaults?.bool(forKey: SharedData.Widget.isBlocked) ?? false
   @State private var showStrictBlockDialog: Bool = false
+  @AppStorage("strictBlockDialogShowCount") private var strictBlockDialogShowCount: Int = 0
   
   private let adaptive = AdaptiveValues.current
   
@@ -265,6 +266,8 @@ struct AppBlockingSectionView: View {
                 HapticManager.shared.notification(type: .warning)
                 isStrictBlock = true
                 SharedData.userDefaults?.set(true, forKey: SharedData.Widget.isStricted)
+                // Increment dialog show count
+                strictBlockDialogShowCount += 1
                 showStrictBlockDialog = false
               }
             )
@@ -483,8 +486,14 @@ struct AppBlockingSectionView: View {
         set: { newValue in
           HapticManager.shared.impact(style: .medium)
           if newValue && !isStrictBlock {
-            // Show confirmation dialog when enabling
-            showStrictBlockDialog = true
+            // Show confirmation dialog only for first 2 times
+            if strictBlockDialogShowCount < 2 {
+              showStrictBlockDialog = true
+            } else {
+              // After 2 times, enable directly without dialog
+              isStrictBlock = true
+              SharedData.userDefaults?.set(true, forKey: SharedData.Widget.isStricted)
+            }
           } else if !newValue {
             // Allow disabling without confirmation
             isStrictBlock = false
