@@ -2,7 +2,7 @@
 //  ExpandedScheduleListView.swift
 //  AntiSocial
 //
-//  Created by Claude on 26.01.2025.
+//  Created by Dev on 26.01.2025.
 //
 
 import SwiftUI

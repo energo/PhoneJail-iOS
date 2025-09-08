@@ -2,7 +2,7 @@
 //  BlockSchedulerSectionView.swift
 //  AntiSocial
 //
-//  Created by Claude on 19.01.2025.
+//  Created by Dev on 19.01.2025.
 //
 
 import SwiftUI

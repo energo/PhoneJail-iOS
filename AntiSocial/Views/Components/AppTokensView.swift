@@ -2,7 +2,7 @@
 //  AppTokensView.swift
 //  AntiSocial
 //
-//  Created by Claude on 20.01.2025.
+//  Created by Dev on 20.01.2025.
 //
 
 import SwiftUI

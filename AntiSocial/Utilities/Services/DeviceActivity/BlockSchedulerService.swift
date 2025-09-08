@@ -2,7 +2,7 @@
 //  BlockSchedulerService.swift
 //  AntiSocial
 //
-//  Created by Claude on 19.01.2025.
+//  Created by Dev on 19.01.2025.
 //
 
 import Foundation
@@ -427,7 +427,7 @@ class BlockSchedulerService: ObservableObject {
       
       LocalNotificationManager.shared.scheduleNotification(
         title: "📅 \(schedule.name)",
-        body: "Apps blocked until \(String(format: "%02d:%02d", endHour, endMinute))",
+        body: "Apps blocked until \(DateFormatter.localizedTimeStringForNotification(hour: endHour, minute: endMinute))",
         identifier: "schedule_\(schedule.id)_day_\(weekday)_start",
         dateComponents: startComponents,
         repeats: true

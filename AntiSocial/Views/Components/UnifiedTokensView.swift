@@ -2,7 +2,7 @@
 //  UnifiedTokensView.swift
 //  AntiSocial
 //
-//  Created by Claude on 08.09.2025.
+//  Created by Dev on 08.09.2025.
 //
 
 import SwiftUI
