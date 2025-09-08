@@ -313,33 +313,60 @@ struct AppBlockingSectionView: View {
   private var appsBlockedView: some View {
     VStack(spacing: adaptive.spacing.small) {
       HStack {
-        AppTokensView(
-          tokens: deviceActivityService.selectionToDiscourage.applicationTokens,
-          showCount: false
-        )
-        CategoryTokensView(
-          tokens: deviceActivityService.selectionToDiscourage.categoryTokens,
+        UnifiedTokensView(
+          familyActivitySelection: deviceActivityService.selectionToDiscourage,
           showCount: false
         )
         Spacer()
       }
       
       HStack {
-        Text("\(deviceActivityService.selectionToDiscourage.applicationTokens.count)")
-          .foregroundColor(Color.as_white_light)
-          .adaptiveFont(\.callout)
+        let appCount = deviceActivityService.selectionToDiscourage.applicationTokens.count
+        let categoryCount = deviceActivityService.selectionToDiscourage.categoryTokens.count
+        let webCount = deviceActivityService.selectionToDiscourage.webDomainTokens.count
         
-        Text("apps and")
-          .foregroundStyle(Color.as_gray_light)
-          .adaptiveFont(\.callout)
+        if appCount > 0 {
+          Text("\(appCount)")
+            .foregroundColor(Color.as_white_light)
+            .adaptiveFont(\.callout)
+          
+          Text("apps")
+            .foregroundStyle(Color.as_gray_light)
+            .adaptiveFont(\.callout)
+        }
         
-        Text("\(deviceActivityService.selectionToDiscourage.categoryTokens.count)")
-          .foregroundColor(Color.as_white_light)
-          .adaptiveFont(\.callout)
+        if categoryCount > 0 {
+          if appCount > 0 {
+            Text("and")
+              .foregroundStyle(Color.as_gray_light)
+              .adaptiveFont(\.callout)
+          }
+          
+          Text("\(categoryCount)")
+            .foregroundColor(Color.as_white_light)
+            .adaptiveFont(\.callout)
+          
+          Text("categories")
+            .foregroundStyle(Color.as_gray_light)
+            .adaptiveFont(\.callout)
+        }
         
-        Text("categories")
-          .foregroundStyle(Color.as_gray_light)
-          .adaptiveFont(\.callout)
+        if webCount > 0 {
+          if appCount > 0 || categoryCount > 0 {
+            Text("and")
+              .foregroundStyle(Color.as_gray_light)
+              .adaptiveFont(\.callout)
+          }
+          
+          Text("\(webCount)")
+            .foregroundColor(Color.as_white_light)
+            .adaptiveFont(\.callout)
+          
+          Text("websites")
+            .foregroundStyle(Color.as_gray_light)
+            .adaptiveFont(\.callout)
+        }
+        
         Spacer()
       }
     }
@@ -423,32 +450,14 @@ struct AppBlockingSectionView: View {
             
             Spacer()
             
-            AppTokensView(
-              tokens: deviceActivityService.selectionToDiscourage.applicationTokens,
-              spacing: adaptive.spacing.xxSmall
+            UnifiedTokensView(
+              familyActivitySelection: deviceActivityService.selectionToDiscourage,
+              spacing: adaptive.spacing.xxSmall,
+              tokenTypes: [.applications, .categories]
             )
             
             Image(systemName: "chevron.right")
               .foregroundColor(Color.as_white_light)
-          }
-          
-          // Показываем категории, только если они выбраны
-          if !deviceActivityService.selectionToDiscourage.categoryTokens.isEmpty {
-            HStack(spacing: adaptive.spacing.small) {
-              Text("Categories")
-                .foregroundColor(.white)
-                .adaptiveFont(\.subheadline)
-              
-              Spacer()
-              
-              CategoryTokensView(
-                tokens: deviceActivityService.selectionToDiscourage.categoryTokens,
-                spacing: adaptive.spacing.xxSmall
-              )
-              
-              Image(systemName: "chevron.right")
-                .foregroundColor(Color.as_white_light)
-            }
           }
         }
         .padding(.horizontal, adaptive.spacing.medium)
@@ -495,35 +504,35 @@ struct AppBlockingSectionView: View {
                       onBlockingStateChanged: { newState in
       if newState {
         DispatchQueue.main.asyncAfter(deadline: .now() + Constants.Timer.animationDelay) {
-
-        // Check subscription limits first
-        if !subscriptionManager.canStartNewBlock() {
-          // This shouldn't happen as button is disabled, but just in case
-          return
+          
+          // Check subscription limits first
+          if !subscriptionManager.canStartNewBlock() {
+            // This shouldn't happen as button is disabled, but just in case
+            return
+          }
+          
+          // Increment block usage
+          subscriptionManager.incrementBlockUsage()
+          
+          restrictionModel.isStricted = isStrictBlock
+          
+          // Timestamp теперь устанавливается в BlockingNotificationService.startBlocking
+          
+          BlockingNotificationService.shared.startBlocking(
+            hours: hours,
+            minutes: minutes,
+            selection: deviceActivityService.selectionToDiscourage,
+            restrictionModel: restrictionModel
+          )
+          // Start timer after blocking animation completes
+          // Проверяем что таймер еще не подключен
+          if timerConnection == nil {
+            // Сразу обновляем отображение
+            timeBlockedString = Constants.TimeFormat.initialBlocked
+            timeRemainingString = deviceActivityService.timeRemainingString
+            startTimer()
+          }
         }
-        
-        // Increment block usage
-        subscriptionManager.incrementBlockUsage()
-        
-        restrictionModel.isStricted = isStrictBlock
-        
-        // Timestamp теперь устанавливается в BlockingNotificationService.startBlocking
-        
-        BlockingNotificationService.shared.startBlocking(
-          hours: hours,
-          minutes: minutes,
-          selection: deviceActivityService.selectionToDiscourage,
-          restrictionModel: restrictionModel
-        )
-        // Start timer after blocking animation completes
-        // Проверяем что таймер еще не подключен
-        if timerConnection == nil {
-          // Сразу обновляем отображение
-          timeBlockedString = Constants.TimeFormat.initialBlocked
-          timeRemainingString = deviceActivityService.timeRemainingString
-          startTimer()
-        }
-                }
       } else {
         // Сначала отключаем таймер
         stopTimer()
@@ -587,14 +596,14 @@ struct AppBlockingSectionView: View {
     
     // Валидация: если elapsed > 24 часов, что-то пошло не так
     guard elapsed >= 0 && elapsed < TimeInterval(Constants.TimeCalculation.secondsInDay) else {
-//      AppLogger.alert("Invalid elapsed time: \(elapsed) seconds from timestamp: \(timestamp)")
+      //      AppLogger.alert("Invalid elapsed time: \(elapsed) seconds from timestamp: \(timestamp)")
       return Constants.TimeFormat.initialBlocked
     }
     
     let hours = Int(elapsed) / Constants.TimeCalculation.secondsInHour
     let minutes = (Int(elapsed) % Constants.TimeCalculation.secondsInHour) / Constants.TimeCalculation.secondsInMinute
     
-//    AppLogger.trace("Blocked time: \(hours)h \(minutes)m (elapsed: \(elapsed)s)")
+    //    AppLogger.trace("Blocked time: \(hours)h \(minutes)m (elapsed: \(elapsed)s)")
     return String(format: Constants.TimeFormat.blockedFormat, hours, minutes)
   }
   
