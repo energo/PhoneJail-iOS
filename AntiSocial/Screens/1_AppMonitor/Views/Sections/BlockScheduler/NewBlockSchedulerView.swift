@@ -270,9 +270,10 @@ struct NewBlockSchedulerView: View {
             
             Spacer()
             
-            AppTokensView(
-              tokens: selection.applicationTokens,
-              spacing: 4
+            UnifiedTokensView(
+              familyActivitySelection: selection,
+              spacing: 4,
+              tokenTypes: [.applications, .categories]
             )
             
             Image(systemName: "chevron.right")
@@ -284,24 +285,6 @@ struct NewBlockSchedulerView: View {
           .clipShape(RoundedRectangle(cornerRadius: 30))
         }
         
-        // Categories
-        if !selection.categoryTokens.isEmpty {
-          HStack(spacing: adaptive.spacing.small) {
-            Text("Categories")
-              .foregroundColor(.white)
-              .adaptiveFont(\.subheadline)
-            
-            Spacer()
-            
-            CategoryTokensView(
-              tokens: selection.categoryTokens,
-              spacing: adaptive.spacing.xxSmall
-            )
-            
-            Image(systemName: "chevron.right")
-              .foregroundColor(Color.as_white_light)
-          }
-        }
       }
     }
   }

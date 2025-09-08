@@ -147,9 +147,10 @@ struct ExpandedScheduleListView: View {
         Spacer()
         
         // App count and icons
-        AppTokensView(
-          tokens: schedule.selection.applicationTokens,
-          spacing: adaptive.spacing.xxSmall
+        UnifiedTokensView(
+          familyActivitySelection: schedule.selection,
+          spacing: adaptive.spacing.xxSmall,
+          tokenTypes: [.applications, .categories]
         )
       }
     }

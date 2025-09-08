@@ -249,17 +249,11 @@ struct BlockSchedulerSectionView: View {
         Spacer()
         
         // App count and icons using reusable component
-        if !schedule.selection.applicationTokens.isEmpty {
-          AppTokensView(
-            tokens: schedule.selection.applicationTokens,
-            spacing: adaptive.spacing.xxSmall
-          )
-        }
-        
-        if !schedule.selection.categoryTokens.isEmpty {
-          CategoryTokensView(
-            tokens: schedule.selection.categoryTokens,
-            spacing: adaptive.spacing.xxSmall
+        if !schedule.selection.applicationTokens.isEmpty || !schedule.selection.categoryTokens.isEmpty {
+          UnifiedTokensView(
+            familyActivitySelection: schedule.selection,
+            spacing: adaptive.spacing.xxSmall,
+            tokenTypes: [.applications, .categories]
           )
         }
       }

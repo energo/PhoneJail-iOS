@@ -328,21 +328,13 @@ struct PomodoroSectionView: View {
   private var blockedAppsDisplay: some View {
     HStack(spacing: -8) {
       // Show up to 3 app icons
-      if !viewModel.selectionActivity.applicationTokens.isEmpty {
-        AppTokensView(
-          tokens: viewModel.selectionActivity.applicationTokens,
+      if !viewModel.selectionActivity.applicationTokens.isEmpty || !viewModel.selectionActivity.categoryTokens.isEmpty {
+        UnifiedTokensView(
+          familyActivitySelection: viewModel.selectionActivity,
           maxIcons: 3,
           iconSize: 28,
-          showCount: false
-        )
-      }
-      
-      if !viewModel.selectionActivity.categoryTokens.isEmpty {
-        CategoryTokensView(
-          tokens: viewModel.selectionActivity.categoryTokens,
-          maxIcons: 3,
-          iconSize: 28,
-          showCount: false
+          showCount: false,
+          tokenTypes: [.applications, .categories]
         )
       }
       

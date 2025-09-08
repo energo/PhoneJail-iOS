@@ -95,33 +95,16 @@ struct ScreenTimeAlertsSectionView: View {
           
           Spacer()
           
-          AppTokensView(
-            tokens: viewModel.model.activitySelection.applicationTokens,
-            spacing: 8
+          UnifiedTokensView(
+            familyActivitySelection: viewModel.model.activitySelection,
+            spacing: 8,
+            tokenTypes: [.applications, .categories]
           )
           
           Image(systemName: "chevron.right")
             .foregroundColor(Color.as_white_light)
         }
         
-        // Показываем категории, только если они выбраны
-        if !viewModel.model.activitySelection.categoryTokens.isEmpty {
-          HStack(spacing: 8) {
-            Text("Categories")
-              .foregroundColor(.white)
-              .font(.system(size: 15, weight: .regular))
-            
-            Spacer()
-            
-            CategoryTokensView(
-              tokens: viewModel.model.activitySelection.categoryTokens,
-              spacing: 8
-            )
-            
-            Image(systemName: "chevron.right")
-              .foregroundColor(Color.as_white_light)
-          }
-        }
       }
       .padding(.horizontal, 16)
       .padding(.vertical, 12)
