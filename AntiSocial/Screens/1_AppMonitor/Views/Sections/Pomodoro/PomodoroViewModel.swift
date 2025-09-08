@@ -53,12 +53,17 @@ class PomodoroViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var timer: Timer?
     
+    // Flag to prevent multiple handleSessionEnd calls
+    private var isHandlingSessionEnd = false
+    
     let presetOptions = [5, 10, 15, 25, 30, 45, 60, 90]
     
     init() {
+        print("🍅 Pomodoro: init() called")
         loadSettings()
         loadStatistics()
         setupBindings()
+        print("🍅 Pomodoro: init() completed, autoStartBreak = \(autoStartBreak)")
     }
     
     private func setupBindings() {
@@ -66,8 +71,10 @@ class PomodoroViewModel: ObservableObject {
         pomodoroService.$isActive
             .receive(on: DispatchQueue.main)
             .sink { [weak self] isActive in
+                print("🍅 Pomodoro: Binding triggered - isActive = \(isActive)")
                 self?.isRunning = isActive
                 if !isActive {
+                    print("🍅 Pomodoro: Calling handleSessionEnd() from binding")
                     self?.handleSessionEnd()
                 }
             }
@@ -86,7 +93,16 @@ class PomodoroViewModel: ObservableObject {
     }
     
     private func handleSessionEnd() {
-        guard isRunning else { return }
+        print("🍅 Pomodoro: handleSessionEnd() called, currentSessionType = \(currentSessionType), isHandlingSessionEnd = \(isHandlingSessionEnd)")
+        // Note: isRunning is already false at this point due to binding
+        // We need to check if we're actually ending a session, not just stopping
+        
+        // Prevent multiple calls to this function
+        guard !isHandlingSessionEnd else { 
+            print("🍅 Pomodoro: handleSessionEnd() already being handled, skipping")
+            return 
+        }
+        isHandlingSessionEnd = true
         
         // Log session completion
         if currentSessionType == .focus {
@@ -118,10 +134,15 @@ class PomodoroViewModel: ObservableObject {
         if currentSessionType == .focus {
             // Switch to break
             currentSessionType = .breakTime
+            print("🍅 Pomodoro: Switching to break. autoStartBreak = \(autoStartBreak)")
             if autoStartBreak {
+                print("🍅 Pomodoro: Scheduling break start in 2 seconds")
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+                    print("🍅 Pomodoro: Starting break now")
                     self?.startBreak()
                 }
+            } else {
+                print("🍅 Pomodoro: autoStartBreak is disabled, break not started")
             }
         } else {
             // Switch back to focus
@@ -138,6 +159,11 @@ class PomodoroViewModel: ObservableObject {
                 }
             }
         }
+        
+        // Reset flag after handling
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.isHandlingSessionEnd = false
+        }
     }
     
     private func showCompletionCelebration() {
@@ -153,6 +179,7 @@ class PomodoroViewModel: ObservableObject {
     func startPomodoro() {
         currentSessionType = .focus
         allSessionsCompleted = false
+        isHandlingSessionEnd = false // Reset flag when starting new session
         let duration = focusDuration
         
         // Log the blocking session
@@ -174,8 +201,11 @@ class PomodoroViewModel: ObservableObject {
     }
     
     func startBreak() {
+        print("🍅 Pomodoro: startBreak() called")
         currentSessionType = .breakTime
+        isHandlingSessionEnd = false // Reset flag when starting break
         let duration = (currentSession % 4 == 0) ? longBreakDuration : breakDuration
+        print("🍅 Pomodoro: Break duration = \(duration) minutes, blockDuringBreak = \(blockDuringBreak)")
         
         if blockDuringBreak {
             // Continue blocking during break
@@ -185,6 +215,8 @@ class PomodoroViewModel: ObservableObject {
             )
         } else {
             // Don't block during break - stop the service first then restart just for timer
+            // Set flag to prevent handleSessionEnd from being called again
+            isHandlingSessionEnd = true
             pomodoroService.stop()
             // Small delay to ensure clean stop
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
@@ -194,6 +226,8 @@ class PomodoroViewModel: ObservableObject {
                     minutes: duration,
                     selectionActivity: self.selectionActivity
                 )
+                // Reset flag after starting break
+                self.isHandlingSessionEnd = false
             }
         }
         isPaused = false
@@ -206,6 +240,7 @@ class PomodoroViewModel: ObservableObject {
         timer = nil
         isPaused = false
         isRunning = false
+        isHandlingSessionEnd = false // Reset flag when manually stopping
         
         // End the blocking session logging
         Task { @MainActor in
@@ -276,6 +311,7 @@ class PomodoroViewModel: ObservableObject {
         SharedData.userDefaults?.set(longBreakDuration, forKey: SharedData.Pomodoro.longBreakDuration)
         SharedData.userDefaults?.set(totalSessions, forKey: SharedData.Pomodoro.totalSessions)
         SharedData.userDefaults?.set(autoStartBreak, forKey: SharedData.Pomodoro.autoStartBreak)
+        print("🍅 Pomodoro: saveSettings() - autoStartBreak = \(autoStartBreak)")
         SharedData.userDefaults?.set(autoStartNextSession, forKey: SharedData.Pomodoro.autoStartNextSession)
         SharedData.userDefaults?.set(notificationsEnabled, forKey: SharedData.Pomodoro.notificationsEnabled)
         SharedData.userDefaults?.set(soundEnabled, forKey: SharedData.Pomodoro.soundEnabled)
@@ -301,6 +337,7 @@ class PomodoroViewModel: ObservableObject {
         longBreakDuration = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.longBreakDuration) ?? 15
         totalSessions = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.totalSessions) ?? 4
         autoStartBreak = SharedData.userDefaults?.bool(forKey: SharedData.Pomodoro.autoStartBreak) ?? true
+        print("🍅 Pomodoro: loadSettings() - autoStartBreak = \(autoStartBreak)")
         autoStartNextSession = SharedData.userDefaults?.bool(forKey: SharedData.Pomodoro.autoStartNextSession) ?? false
         notificationsEnabled = SharedData.userDefaults?.bool(forKey: SharedData.Pomodoro.notificationsEnabled) ?? true
         soundEnabled = SharedData.userDefaults?.bool(forKey: SharedData.Pomodoro.soundEnabled) ?? true

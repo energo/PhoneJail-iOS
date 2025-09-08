@@ -34,9 +34,9 @@ final class PomodoroBlockService: ObservableObject {
   // }
 
   // MARK: - API
-  /// Запускает помодоро-блок на N минут (минимум 5)
+  /// Запускает помодоро-блок на N минут (минимум 1)
   func start(minutes: Int, isStrictBlock: Bool = false, selectionActivity: FamilyActivitySelection) {
-    let m = max(5, minutes)
+    let m = max(1, minutes)
     let unlockDate = Date().addingTimeInterval(TimeInterval(m * 60))
     SharedData.userDefaults?.set(unlockDate.timeIntervalSince1970, forKey: defaultsKey)
     
@@ -68,11 +68,13 @@ final class PomodoroBlockService: ObservableObject {
   
   /// Принудительно снимает блок
   func stop() {
+    print("🍅 PomodoroBlockService: stop() called, isActive was \(isActive)")
     clearShield()
     SharedData.userDefaults?.removeObject(forKey: defaultsKey)
     ticker?.cancel()
     isActive = false
     remainingSeconds = 0
+    print("🍅 PomodoroBlockService: stop() completed, isActive now \(isActive)")
   }
   
   /// Экстренная очистка ВСЕХ блокировок (для отладки)
@@ -147,6 +149,7 @@ final class PomodoroBlockService: ObservableObject {
         let left = Int(unlockDate.timeIntervalSince(now))
         self.remainingSeconds = max(0, left)
         if left <= 0 {
+          print("🍅 PomodoroBlockService: Timer reached 0, calling stop()")
           self.stop() // снимет щит и почистит стейт
         }
       }

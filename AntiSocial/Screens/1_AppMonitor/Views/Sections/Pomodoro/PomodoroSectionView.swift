@@ -228,20 +228,9 @@ struct PomodoroSectionView: View {
         VStack(spacing: adaptive.spacing.large) {
           // Checkmark icon
           Image(systemName: "checkmark.circle.fill")
-            .font(.system(size: 60))
+            .font(.system(size: 30))
             .foregroundColor(.green)
-          
-          // Completion message
-          VStack(spacing: adaptive.spacing.small) {
-            Text("All Sessions Complete!")
-              .font(.system(size: 20, weight: .semibold))
-              .foregroundColor(.white)
-            
-            Text("\(viewModel.totalSessions) focus sessions finished")
-              .font(.system(size: 14))
-              .foregroundColor(.white.opacity(0.7))
-          }
-          
+                    
           // Start new cycle button
           Button(action: {
             viewModel.allSessionsCompleted = false

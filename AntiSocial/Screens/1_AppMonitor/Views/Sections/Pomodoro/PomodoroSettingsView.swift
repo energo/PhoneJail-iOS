@@ -32,8 +32,8 @@ struct PomodoroSettingsView: View {
                             timeDurationPicker(
                                 value: $viewModel.focusDuration,
                                 label: "Focus Duration",
-                                range: 5...60,
-                                step: 5
+                                range: 2...60,
+                                step: 1 
                             )
                         }
                         
@@ -46,7 +46,7 @@ struct PomodoroSettingsView: View {
                             timeDurationPicker(
                                 value: $viewModel.breakDuration,
                                 label: "Break Duration",
-                                range: 5...15,
+                                range: 2...15,
                                 step: 1
                             )
                         }
@@ -236,6 +236,10 @@ struct PomodoroSettingsView: View {
                 }
             }
             .tint(.blue)
+            .onChange(of: viewModel.autoStartBreak) { newValue in
+                print("🍅 Pomodoro: autoStartBreak changed to \(newValue)")
+                viewModel.saveSettings()
+            }
             
             Toggle(isOn: $viewModel.autoStartNextSession) {
                 HStack {
@@ -246,6 +250,10 @@ struct PomodoroSettingsView: View {
                 }
             }
             .tint(.blue)
+            .onChange(of: viewModel.autoStartNextSession) { newValue in
+                print("🍅 Pomodoro: autoStartNextSession changed to \(newValue)")
+                viewModel.saveSettings()
+            }
         }
     }
     
