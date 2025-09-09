@@ -375,11 +375,11 @@ struct PomodoroSectionView: View {
       // Lifetime
       VStack(spacing: 8) {
         Text("Lifetime")
-          .font(.system(size: 14))
-          .foregroundColor(.white.opacity(0.6))
+          .font(.system(size: 20, weight: .medium))
+          .foregroundColor(Color.as_white_light)
         
         Text(formatTime(viewModel.lifetimeFocusTime))
-          .font(.system(size: 18, weight: .semibold))
+          .font(.system(size: 16, weight: .regular))
           .foregroundColor(.white)
       }
       .frame(maxWidth: .infinity)
@@ -387,11 +387,11 @@ struct PomodoroSectionView: View {
       // Weekly
       VStack(spacing: 8) {
         Text("Weekly")
-          .font(.system(size: 14))
-          .foregroundColor(.white.opacity(0.6))
-        
+          .font(.system(size: 20, weight: .medium))
+          .foregroundColor(Color.as_white_light)
+
         Text(formatTime(viewModel.weeklyFocusTime))
-          .font(.system(size: 18, weight: .semibold))
+          .font(.system(size: 16, weight: .regular))
           .foregroundColor(.white)
       }
       .frame(maxWidth: .infinity)
@@ -399,11 +399,11 @@ struct PomodoroSectionView: View {
       // Today
       VStack(spacing: 8) {
         Text("Today")
-          .font(.system(size: 14))
-          .foregroundColor(.white.opacity(0.6))
-        
+          .font(.system(size: 20, weight: .medium))
+          .foregroundColor(Color.as_white_light)
+
         Text(formatTime(viewModel.todayFocusTime))
-          .font(.system(size: 18, weight: .semibold))
+          .font(.system(size: 16, weight: .regular))
           .foregroundColor(.white)
       }
       .frame(maxWidth: .infinity)
