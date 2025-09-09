@@ -95,15 +95,15 @@ extension Color {
   static let as_gradient_pomodoro_focus_progress = LinearGradient(
     colors: [Color(hex: "FF6061"),
              Color(hex: "8156CA")],
-    startPoint: .leading,
-    endPoint: .trailing
+    startPoint: .trailing,
+    endPoint: .leading
   )
   
   static let as_gradient_pomodoro_break_progress = LinearGradient(
     colors: [Color(hex: "23F48F"),
              Color(hex: "1D4CD9")],
-    startPoint: .leading,
-    endPoint: .trailing
+    startPoint: .trailing,
+    endPoint: .leading
   )
 
   static let as_gradietn_time_text = LinearGradient(

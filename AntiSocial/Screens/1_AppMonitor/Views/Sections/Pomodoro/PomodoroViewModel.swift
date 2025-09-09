@@ -56,6 +56,9 @@ class PomodoroViewModel: ObservableObject {
     // Flag to prevent multiple handleSessionEnd calls
     private var isHandlingSessionEnd = false
     
+    // Flag to track if session was started by user (not restored from background)
+    private var wasSessionStartedByUser = false
+    
     let presetOptions = [5, 10, 15, 25, 30, 45, 60, 90]
     
     init() {
@@ -93,7 +96,7 @@ class PomodoroViewModel: ObservableObject {
     }
     
     private func handleSessionEnd() {
-        print("🍅 Pomodoro: handleSessionEnd() called, currentSessionType = \(currentSessionType), isHandlingSessionEnd = \(isHandlingSessionEnd)")
+        print("🍅 Pomodoro: handleSessionEnd() called, currentSessionType = \(currentSessionType), isHandlingSessionEnd = \(isHandlingSessionEnd), wasSessionStartedByUser = \(wasSessionStartedByUser)")
         // Note: isRunning is already false at this point due to binding
         // We need to check if we're actually ending a session, not just stopping
         
@@ -102,6 +105,13 @@ class PomodoroViewModel: ObservableObject {
             print("🍅 Pomodoro: handleSessionEnd() already being handled, skipping")
             return 
         }
+        
+        // Only handle session end if it was started by user
+        guard wasSessionStartedByUser else {
+            print("🍅 Pomodoro: Session was not started by user, skipping handleSessionEnd")
+            return
+        }
+        
         isHandlingSessionEnd = true
         
         // Log session completion
@@ -160,9 +170,10 @@ class PomodoroViewModel: ObservableObject {
             }
         }
         
-        // Reset flag after handling
+        // Reset flags after handling
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
             self?.isHandlingSessionEnd = false
+            self?.wasSessionStartedByUser = false
         }
     }
     
@@ -180,6 +191,7 @@ class PomodoroViewModel: ObservableObject {
         currentSessionType = .focus
         allSessionsCompleted = false
         isHandlingSessionEnd = false // Reset flag when starting new session
+        wasSessionStartedByUser = true // Mark that session was started by user
         let duration = focusDuration
         
         // Log the blocking session
@@ -204,6 +216,7 @@ class PomodoroViewModel: ObservableObject {
         print("🍅 Pomodoro: startBreak() called")
         currentSessionType = .breakTime
         isHandlingSessionEnd = false // Reset flag when starting break
+        wasSessionStartedByUser = true // Mark that break was started by user
         let duration = (currentSession % 4 == 0) ? longBreakDuration : breakDuration
         print("🍅 Pomodoro: Break duration = \(duration) minutes, blockDuringBreak = \(blockDuringBreak)")
         
@@ -241,6 +254,7 @@ class PomodoroViewModel: ObservableObject {
         isPaused = false
         isRunning = false
         isHandlingSessionEnd = false // Reset flag when manually stopping
+        wasSessionStartedByUser = false // Reset flag when manually stopping
         
         // End the blocking session logging
         Task { @MainActor in
