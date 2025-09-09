@@ -98,6 +98,36 @@ final class AppBlockingLogger: ObservableObject {
         self.todayStats = DailyStats(date: Date())
         loadActiveSessions()
         loadTodayStats()
+        
+        // Простая проверка: если сегодня еще не было focus time, обнуляем
+        checkAndResetIfNoFocusTimeToday()
+    }
+    
+    /// Простая проверка: если сегодня еще не было focus time, обнуляем данные
+    private func checkAndResetIfNoFocusTimeToday() {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let lastFocusDate = SharedData.userDefaults?.object(forKey: "last_focus_date") as? Date
+        
+        // Если сегодня еще не было focus time, обнуляем данные
+        if lastFocusDate == nil || !calendar.isDate(lastFocusDate!, inSameDayAs: today) {
+            resetTodayData()
+            SharedData.userDefaults?.set(today, forKey: "last_focus_date")
+            print("📊 AppBlockingLogger: Reset data - no focus time today yet")
+        }
+    }
+    
+    /// Обнуляет данные за сегодня
+    private func resetTodayData() {
+        // Обнуляем статистику за сегодня
+        todayStats = DailyStats(date: Date())
+        
+        // Обнуляем legacy ключи
+        SharedData.userDefaults?.set(0, forKey: SharedData.AppBlocking.todayTotalBlockingTime)
+        SharedData.userDefaults?.set(0, forKey: SharedData.AppBlocking.todayCompletedSessions)
+        SharedData.userDefaults?.set(0, forKey: SharedData.AppBlocking.todayTotalSessions)
+        
+        print("📊 AppBlockingLogger: Today's data reset completed")
     }
     
     // MARK: - Session Management
@@ -128,6 +158,9 @@ final class AppBlockingLogger: ObservableObject {
         
         // Обновляем статистику
         updateHourlyData()
+        
+        // Обновляем дату последнего focus time
+        SharedData.userDefaults?.set(Date(), forKey: "last_focus_date")
         
         print("AppBlockingLogger: Started \(type.rawValue) session with ID: \(session.id), apps: \(appTokenStrings.count)")
         if !appTokenStrings.isEmpty {
@@ -160,6 +193,9 @@ final class AppBlockingLogger: ObservableObject {
         
         // Обновляем статистику
         updateHourlyData()
+        
+        // Обновляем дату последнего focus time
+        SharedData.userDefaults?.set(Date(), forKey: "last_focus_date")
         
         // Сохраняем запланированное время окончания
         let unlockDate = Date().addingTimeInterval(duration)
