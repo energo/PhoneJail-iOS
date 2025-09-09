@@ -59,6 +59,9 @@ class PomodoroViewModel: ObservableObject {
     // Flag to track if session was started by user (not restored from background)
     private var wasSessionStartedByUser = false
     
+    // Flag to track if current session is part of an auto-started sequence
+    private var isAutoStartedSequence = false
+    
     let presetOptions = [5, 10, 15, 25, 30, 45, 60, 90]
     
     init() {
@@ -106,9 +109,9 @@ class PomodoroViewModel: ObservableObject {
             return 
         }
         
-        // Only handle session end if it was started by user
-        guard wasSessionStartedByUser else {
-            print("🍅 Pomodoro: Session was not started by user, skipping handleSessionEnd")
+        // Only handle session end if it was started by user OR if it's part of an auto-started sequence
+        guard wasSessionStartedByUser || isAutoStartedSequence else {
+            print("🍅 Pomodoro: Session was not started by user and not part of auto sequence, skipping handleSessionEnd")
             return
         }
         
@@ -149,7 +152,7 @@ class PomodoroViewModel: ObservableObject {
                 print("🍅 Pomodoro: Scheduling break start in 2 seconds")
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
                     print("🍅 Pomodoro: Starting break now")
-                    self?.startBreak()
+                    self?.startBreak(byUser: false) // Auto-started break
                 }
             } else {
                 print("🍅 Pomodoro: autoStartBreak is disabled, break not started")
@@ -165,7 +168,7 @@ class PomodoroViewModel: ObservableObject {
                 showCompletionCelebration()
             } else if autoStartNextSession {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
-                    self?.startPomodoro()
+                    self?.startPomodoro(byUser: false) // Auto-started focus
                 }
             }
         }
@@ -173,7 +176,8 @@ class PomodoroViewModel: ObservableObject {
         // Reset flags after handling
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
             self?.isHandlingSessionEnd = false
-            self?.wasSessionStartedByUser = false
+            // Don't reset wasSessionStartedByUser and isAutoStartedSequence here
+            // as they might be needed for the next auto-started session
         }
     }
     
@@ -188,10 +192,15 @@ class PomodoroViewModel: ObservableObject {
     }
     
     func startPomodoro() {
+        startPomodoro(byUser: true)
+    }
+    
+    private func startPomodoro(byUser: Bool) {
         currentSessionType = .focus
         allSessionsCompleted = false
         isHandlingSessionEnd = false // Reset flag when starting new session
-        wasSessionStartedByUser = true // Mark that session was started by user
+        wasSessionStartedByUser = byUser // Mark if session was started by user
+        isAutoStartedSequence = !byUser // Mark if it's part of auto sequence
         let duration = focusDuration
         
         // Log the blocking session
@@ -213,10 +222,15 @@ class PomodoroViewModel: ObservableObject {
     }
     
     func startBreak() {
-        print("🍅 Pomodoro: startBreak() called")
+        startBreak(byUser: true)
+    }
+    
+    private func startBreak(byUser: Bool) {
+        print("🍅 Pomodoro: startBreak() called, byUser: \(byUser)")
         currentSessionType = .breakTime
         isHandlingSessionEnd = false // Reset flag when starting break
-        wasSessionStartedByUser = true // Mark that break was started by user
+        wasSessionStartedByUser = byUser // Mark if break was started by user
+        isAutoStartedSequence = !byUser // Mark if it's part of auto sequence
         let duration = (currentSession % 4 == 0) ? longBreakDuration : breakDuration
         print("🍅 Pomodoro: Break duration = \(duration) minutes, blockDuringBreak = \(blockDuringBreak)")
         
@@ -255,6 +269,7 @@ class PomodoroViewModel: ObservableObject {
         isRunning = false
         isHandlingSessionEnd = false // Reset flag when manually stopping
         wasSessionStartedByUser = false // Reset flag when manually stopping
+        isAutoStartedSequence = false // Reset auto sequence flag
         
         // End the blocking session logging
         Task { @MainActor in
