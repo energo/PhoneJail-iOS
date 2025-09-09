@@ -12,6 +12,7 @@ struct PomodoroSectionView: View {
   @StateObject private var viewModel = PomodoroViewModel()
   @State private var showingSettings = false
   @State private var showCompletionAnimation = false
+  @State private var showingAppPicker = false
   
   private let adaptive = AdaptiveValues.current
   
@@ -315,39 +316,58 @@ struct PomodoroSectionView: View {
   }
   
   private var blockedAppsDisplay: some View {
-    HStack(spacing: -8) {
-      // Show up to 3 app icons
-      if !viewModel.selectionActivity.applicationTokens.isEmpty || !viewModel.selectionActivity.categoryTokens.isEmpty {
-        UnifiedTokensView(
-          familyActivitySelection: viewModel.selectionActivity,
-          maxIcons: 3,
-          iconSize: 28,
-          showCount: false,
-          tokenTypes: [.applications, .categories]
-        )
+    Button(action: {
+      showingAppPicker = true
+      HapticManager.shared.impact(style: .light)
+    }) {
+      HStack(spacing: -8) {
+        let totalCount = viewModel.selectionActivity.applicationTokens.count +
+        viewModel.selectionActivity.categoryTokens.count
+        if totalCount > 0 {
+          Text("Apps")
+            .font(.system(size: 15, weight: .regular))
+            .foregroundColor(.white.opacity(0.7))
+          
+          Spacer()
+            .frame(maxWidth: 32)
+        } else {
+          Text("All Apps")
+            .font(.system(size: 15, weight: .regular))
+            .foregroundColor(.white.opacity(0.7))
+        }
+        
+        // Show up to 3 app icons
+        if !viewModel.selectionActivity.applicationTokens.isEmpty || !viewModel.selectionActivity.categoryTokens.isEmpty {
+          UnifiedTokensView(
+            familyActivitySelection: viewModel.selectionActivity,
+            maxIcons: 3,
+            showCount: true,
+            tokenTypes: [.applications, .categories]
+          )
+        }
+        
+        Spacer()
+          .frame(maxWidth: 32)
+                
+        Image(systemName: "chevron.right")
+          .foregroundColor(Color.as_white_light)
       }
-      
-      // Show count
-      let totalCount = viewModel.selectionActivity.applicationTokens.count +
-      viewModel.selectionActivity.categoryTokens.count
-      if totalCount > 0 {
-      } else {
-        Text("All Apps")
-          .font(.system(size: 15, weight: .regular))
-      }
-      
-      Spacer()
-        .frame(maxWidth: 32)
-      
-      Image(systemName: "chevron.right")
-        .foregroundColor(Color.as_white_light)
+      .padding(.horizontal, 16)
+      .padding(.vertical, 12)
+      .background(
+        Capsule()
+          .fill(Color.white.opacity(0.07))
+      )
     }
-    .padding(.horizontal, 16)
-    .padding(.vertical, 12)
-    .background(
-      Capsule()
-        .fill(Color.white.opacity(0.07))
+    .buttonStyle(PlainButtonStyle())
+    .familyActivityPicker(
+      isPresented: $showingAppPicker,
+      selection: $viewModel.selectionActivity
     )
+    .onChange(of: viewModel.selectionActivity) { _ in
+      // Auto-save when selection changes
+      viewModel.saveSettings()
+    }
   }
   
   private var statisticsView: some View {
