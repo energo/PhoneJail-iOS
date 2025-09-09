@@ -16,7 +16,6 @@ extension DeviceActivityReport.Context {
 struct ActivityReportView: View {
   // Храним выбранную дату
   @State private var selectedDate: Date = Date()
-  @State private var reportKey = UUID()
   @State private var lifetimeFocusedTime: TimeInterval = 0
   @State private var lastRefreshDate: Date? = nil
   @State private var isChangingDate = false
@@ -75,7 +74,6 @@ struct ActivityReportView: View {
         
         // Отчёт поверх placeholder
         DeviceActivityReport(context, filter: currentFilter)
-          .id(reportKey) // Используем UUID вместо комбинации date+trigger
       }
       .frame(minHeight: 200)
     }
@@ -103,11 +101,11 @@ struct ActivityReportView: View {
           devices: .init([.iPhone])
         )
         
-        // Обновляем фильтр и ключ одновременно - только ОДНА перерисовка
+        // Обновляем только фильтр - DeviceActivityReport сам обновит данные
         currentFilter = newFilter
-        reportKey = UUID()
         
         await loadLifetimeStats()
+        
         isChangingDate = false
       }
     }
@@ -117,7 +115,6 @@ struct ActivityReportView: View {
         let now = Date()
         if lastRefreshDate == nil || now.timeIntervalSince(lastRefreshDate!) > 10 {
           lastRefreshDate = now
-          reportKey = UUID()
           Task {
             await loadLifetimeStats()
           }
@@ -160,18 +157,20 @@ struct ActivityReportView: View {
           .foregroundStyle(.white, .white.opacity(0.07))
       }
       .disabled(isChangingDate)
+      .scaleEffect(isChangingDate ? 0.9 : 1.0)
+      .animation(.easeInOut(duration: 0.2), value: isChangingDate)
       
       Spacer()
       
-      if isChangingDate {
-        ProgressView()
-          .progressViewStyle(CircularProgressViewStyle(tint: .gray))
-          .scaleEffect(0.7)
-      } else {
+//      if isChangingDate {
+//        ProgressView()
+//          .progressViewStyle(CircularProgressViewStyle(tint: .gray))
+//          .scaleEffect(0.7)
+//      } else {
         Text(dateText)
           .font(.caption)
           .foregroundStyle(.gray)
-      }
+//      }
       
       Spacer()
       
@@ -185,6 +184,8 @@ struct ActivityReportView: View {
       }
       .disabled(isToday || isChangingDate)
       .opacity(isToday || isChangingDate ? 0.3 : 1.0)
+      .scaleEffect(isChangingDate ? 0.9 : 1.0)
+      .animation(.easeInOut(duration: 0.2), value: isChangingDate)
     }
     .foregroundStyle(Color.white)
   }

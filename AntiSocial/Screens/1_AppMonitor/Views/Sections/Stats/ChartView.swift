@@ -72,6 +72,7 @@ struct ChartView: View {
         }
       }
       .frame(height: 112)
+      .animation(.easeInOut(duration: 0.8), value: chartData)
     }
     .padding(.horizontal, 12)
     .padding(.vertical, 12)

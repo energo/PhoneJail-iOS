@@ -17,6 +17,7 @@ struct PercentageView: View {
       Text("\(value)%")
         .foregroundStyle(color)
         .font(.headline)
+        .animation(.easeInOut(duration: 0.8), value: value)
       Text(label)
         .foregroundStyle(.gray)
         .font(.caption)

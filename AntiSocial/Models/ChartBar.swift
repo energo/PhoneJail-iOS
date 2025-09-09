@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct ChartBar: Identifiable {
+struct ChartBar: Identifiable, Equatable {
     var id: Int { hour }
     let hour: Int
     var focusedMinutes: Int
