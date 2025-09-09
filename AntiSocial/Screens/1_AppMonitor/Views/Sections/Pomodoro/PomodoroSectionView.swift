@@ -32,7 +32,7 @@ struct PomodoroSectionView: View {
         .padding(.horizontal)
         .padding(.vertical, adaptive.spacing.medium)
         .padding(.top)
-
+      
       Spacer()
       
       if viewModel.allSessionsCompleted {
@@ -231,7 +231,7 @@ struct PomodoroSectionView: View {
           Image(systemName: "checkmark.circle.fill")
             .font(.system(size: 30))
             .foregroundColor(.green)
-                    
+          
           // Start new cycle button
           Button(action: {
             viewModel.allSessionsCompleted = false
@@ -320,40 +320,40 @@ struct PomodoroSectionView: View {
       showingAppPicker = true
       HapticManager.shared.impact(style: .light)
     }) {
-      HStack(spacing: -8) {
-        let totalCount = viewModel.selectionActivity.applicationTokens.count +
-        viewModel.selectionActivity.categoryTokens.count
-        if totalCount > 0 {
-          Text("Apps")
-            .font(.system(size: 15, weight: .regular))
-            .foregroundColor(.white.opacity(0.7))
-          
-          Spacer()
-            .frame(maxWidth: 32)
-        } else {
-          Text("All Apps")
-            .font(.system(size: 15, weight: .regular))
-            .foregroundColor(.white.opacity(0.7))
-        }
+      HStack(spacing: 8) {
         
         // Show up to 3 app icons
-        if !viewModel.selectionActivity.applicationTokens.isEmpty || !viewModel.selectionActivity.categoryTokens.isEmpty {
+        if !viewModel.selectionActivity.applicationTokens.isEmpty || !viewModel.selectionActivity.categoryTokens.isEmpty
+        {
           UnifiedTokensView(
             familyActivitySelection: viewModel.selectionActivity,
             maxIcons: 3,
-            showCount: true,
+            showCount: false,
             tokenTypes: [.applications, .categories]
           )
         }
         
+        let totalCount = viewModel.selectionActivity.applicationTokens.count +
+        viewModel.selectionActivity.categoryTokens.count
+        if totalCount > 0 {
+          Text("+\(totalCount)")
+            .font(.system(size: 15, weight: .regular))
+            .foregroundStyle(Color.white)
+            .padding(.leading, 8)
+        } else {
+          Text("All Apps")
+            .font(.system(size: 15, weight: .regular))
+            .foregroundStyle(Color.white)
+        }
+        
         Spacer()
-          .frame(maxWidth: 32)
-                
+          .frame(maxWidth: 8)
+        
         Image(systemName: "chevron.right")
           .foregroundColor(Color.as_white_light)
       }
       .padding(.horizontal, 16)
-      .padding(.vertical, 12)
+      .padding(.vertical, 14)
       .background(
         Capsule()
           .fill(Color.white.opacity(0.07))
