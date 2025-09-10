@@ -50,6 +50,9 @@ class PomodoroViewModel: ObservableObject {
     @Published var showStopSessionDialog: Bool = false
     @Published var showStopBreakDialog: Bool = false
     
+    // Intermediate states
+    @Published var showFocusCompletion: Bool = false
+    
     // App Blocking Settings
     @Published var selectionActivity = FamilyActivitySelection()
     @Published var blockDuringBreak: Bool = false
@@ -155,17 +158,27 @@ class PomodoroViewModel: ObservableObject {
         
         // Switch session type
         if currentSessionType == .focus {
-            // Switch to break
-            currentSessionType = .breakTime
-            print("🍅 Pomodoro: Switching to break. autoStartBreak = \(autoStartBreak)")
-            if autoStartBreak {
-                print("🍅 Pomodoro: Scheduling break start in 2 seconds")
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
-                    print("🍅 Pomodoro: Starting break now")
-                    self?.startBreak(byUser: false) // Auto-started break
+            // Show focus completion state first
+            showFocusCompletion = true
+            print("🍅 Pomodoro: Showing focus completion state")
+            
+            // Schedule break start after showing completion
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                guard let self = self else { return }
+                self.showFocusCompletion = false
+                
+                // Switch to break
+                self.currentSessionType = .breakTime
+                print("🍅 Pomodoro: Switching to break. autoStartBreak = \(self.autoStartBreak)")
+                if self.autoStartBreak {
+                    print("🍅 Pomodoro: Scheduling break start in 2 seconds")
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+                        print("🍅 Pomodoro: Starting break now")
+                        self?.startBreak(byUser: false) // Auto-started break
+                    }
+                } else {
+                    print("🍅 Pomodoro: autoStartBreak is disabled, break not started")
                 }
-            } else {
-                print("🍅 Pomodoro: autoStartBreak is disabled, break not started")
             }
         } else {
             // Switch back to focus

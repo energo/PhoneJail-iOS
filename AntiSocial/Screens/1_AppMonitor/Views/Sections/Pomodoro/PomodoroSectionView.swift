@@ -35,9 +35,16 @@ struct PomodoroSectionView: View {
       
       Spacer()
       
+      // Session type indicator
+      sessionTypeIndicator
+        .padding(.bottom, adaptive.spacing.medium)
+      
       if viewModel.allSessionsCompleted {
         // Completed state - all sessions done
         completedStateView
+      } else if viewModel.showFocusCompletion {
+        // Focus completion state - show progress
+        focusCompletionStateView
       } else if !viewModel.isRunning {
         // Inactive state - show setup
         inactiveStateView
@@ -185,11 +192,6 @@ struct PomodoroSectionView: View {
         VStack(spacing: adaptive.spacing.medium) {
           // Break info
           VStack(spacing: 4) {
-            Text("BREAK TIME")
-              .font(.system(size: 12, weight: .semibold))
-              .foregroundColor(.green)
-              .tracking(1.5)
-            
             Text("After session \(viewModel.currentSession)")
               .font(.system(size: 14, weight: .medium))
               .foregroundColor(.white.opacity(0.6))
@@ -244,10 +246,41 @@ struct PomodoroSectionView: View {
     }
   }
   
+  private var focusCompletionStateView: some View {
+    VStack(spacing: 0) {
+      // Large Circular Timer showing completion progress
+      CircularTimerView(
+        totalTime: TimeInterval(viewModel.focusDuration * 60),
+        remainingTime: 0, // Full circle for completed state
+        isActive: false,
+        isPaused: false,
+        timerType: .focus,
+        size: circleSize,
+        strokeWidth: circleProgressSize
+      ) {
+        // Empty content - text is shown in sessionTypeIndicator above
+        VStack(spacing: 4) {
+          Image(systemName: "checkmark.circle.fill")
+            .symbolRenderingMode(.hierarchical)
+            .font(.system(size: 30))
+            .foregroundColor(.as_light_green)
+
+          Text("Congrats!")
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundColor(Color.as_focus_red)
+            .tracking(1.5)
+          
+          Text("You completed \(viewModel.currentSession)/\(viewModel.totalSessions) focus sessions")
+            .font(.system(size: 14, weight: .medium))
+            .foregroundColor(.white.opacity(0.6))
+            .multilineTextAlignment(.center)
+        }
+      }
+    }
+  }
+  
   private var completedStateView: some View {
     VStack(spacing: 0) {
-      Spacer()
-      
       // Large Circular Timer showing completion
       CircularTimerView(
         totalTime: TimeInterval(viewModel.breakDuration * 60),
@@ -283,12 +316,6 @@ struct PomodoroSectionView: View {
           }
         }
       }
-      
-      Spacer()
-      
-      // Statistics at bottom
-      statisticsView
-        .padding(.bottom, adaptive.spacing.xLarge)
     }
   }
   
@@ -462,6 +489,32 @@ struct PomodoroSectionView: View {
         return "\(hours)h \(minutes)m"
       } else {
         return "\(hours)h"
+      }
+    }
+  }
+  
+  // MARK: - Session Type Indicator
+  private var sessionTypeIndicator: some View {
+    Group {
+      if viewModel.isRunning {
+        // Show current session type
+        if viewModel.currentSessionType == .focus {
+          Text("FOCUS SESSION")
+            .font(.system(size: 16, weight: .semibold))
+            .foregroundColor(Color.as_focus_red)
+            .tracking(1.5)
+        } else {
+            Text("BREAK SESSION")
+              .font(.system(size: 16, weight: .semibold))
+              .foregroundColor(Color.as_light_green)
+              .tracking(1.5)
+          }
+      } else {
+        //for exclude jumping whe switch states
+        Text(" ")
+          .font(.system(size: 16, weight: .semibold))
+          .foregroundColor(Color.as_focus_red)
+          .tracking(1.5)
       }
     }
   }
