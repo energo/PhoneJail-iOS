@@ -83,7 +83,7 @@ struct CircularTimerView<Content: View>: View {
   var body: some View {
     let trackSize = size - strokeWidth/2 // Track circle size
     let progressStrokeWidth = strokeWidth * 0.4
-    let progressSize = trackSize * 0.98
+    let progressSize = trackSize - strokeWidth * 0.6 // Progress circle slightly smaller to be inside track
     
     ZStack {
       // Layer 1: Outermost background circle with blur effect
@@ -92,10 +92,12 @@ struct CircularTimerView<Content: View>: View {
       // Layer 2: Track circle (gray stroke)
       trackCircle(size: trackSize)
       
-      // Layer 3: Progress circle (centered inside track)
+      // Layer 3: Progress circle (inside track)
       progressCircle(size: progressSize,
                      strokeWidth: progressStrokeWidth,
-                     fullSize: size)
+                     fullSize: size,
+                     trackSize: trackSize,
+                     progressSize: progressSize)
       
       // Inner content
       innerContentView
@@ -125,7 +127,7 @@ struct CircularTimerView<Content: View>: View {
       .frame(width: size, height: size)
   }
   
-  private func progressCircle(size: CGFloat, strokeWidth: CGFloat, fullSize: CGFloat) -> some View {
+  private func progressCircle(size: CGFloat, strokeWidth: CGFloat, fullSize: CGFloat, trackSize: CGFloat, progressSize: CGFloat) -> some View {
     // Progress stroke
     Circle()
       .trim(from: 0, to: animateProgress ? progress : 0)
@@ -142,11 +144,11 @@ struct CircularTimerView<Content: View>: View {
       .shadow(color: timerType.color.opacity(0.5), radius: 8)
       .overlay(
         // End circle indicator as overlay to ensure proper positioning
-        progressEndCircle(progressSize: size)
+        progressEndCircle(progressSize: progressSize, trackSize: trackSize)
       )
   }
   
-  private func progressEndCircle(progressSize: CGFloat) -> some View {
+  private func progressEndCircle(progressSize: CGFloat, trackSize: CGFloat) -> some View {
     GeometryReader { geometry in
       let angle = 2 * .pi * progress - .pi / 2
       // Calculate position on the progress circle's radius
