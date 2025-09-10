@@ -306,10 +306,12 @@ struct PomodoroSettingsView: View {
                 .background(Color.white.opacity(0.1))
                 .clipShape(RoundedRectangle(cornerRadius: 12))
             }
-            .familyActivityPicker(
-                isPresented: $showingAppPicker,
-                selection: $viewModel.selectionActivity
-            )
+            .fullScreenCover(isPresented: $showingAppPicker) {
+                FamilyActivityPickerWrapper(
+                    isPresented: $showingAppPicker,
+                    selection: $viewModel.selectionActivity
+                )
+            }
             
             // Block During Break Toggle
             Toggle(isOn: $viewModel.blockDuringBreak) {

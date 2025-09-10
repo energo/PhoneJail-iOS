@@ -111,10 +111,12 @@ struct AppInterruptionsSectionView: View {
       .background(Color.white.opacity(0.07))
       .clipShape(RoundedRectangle(cornerRadius: 30))
     }
-    .familyActivityPicker(
-      isPresented: $viewModel.pickerIsPresented,
-      selection: $viewModel.model.activitySelection
-    )
+    .fullScreenCover(isPresented: $viewModel.pickerIsPresented) {
+      FamilyActivityPickerWrapper(
+        isPresented: $viewModel.pickerIsPresented,
+        selection: $viewModel.model.activitySelection
+      )
+    }
   }
   
   

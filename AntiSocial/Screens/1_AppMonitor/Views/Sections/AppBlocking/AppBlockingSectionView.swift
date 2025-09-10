@@ -468,10 +468,12 @@ struct AppBlockingSectionView: View {
         .background(Color.white.opacity(0.07))
         .clipShape(RoundedRectangle(cornerRadius: 30))
       }
-      .familyActivityPicker(
-        isPresented: $isDiscouragedPresented,
-        selection: $deviceActivityService.selectionToDiscourage
-      )
+      .fullScreenCover(isPresented: $isDiscouragedPresented) {
+        FamilyActivityPickerWrapper(
+          isPresented: $isDiscouragedPresented,
+          selection: $deviceActivityService.selectionToDiscourage
+        )
+      }
       .onChange(of: deviceActivityService.selectionToDiscourage) { _, newValue in
         // Save selection when changed
         deviceActivityService.saveFamilyActivitySelection(newValue)

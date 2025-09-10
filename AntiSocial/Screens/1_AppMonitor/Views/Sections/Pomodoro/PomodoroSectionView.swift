@@ -420,13 +420,15 @@ struct PomodoroSectionView: View {
       )
     }
     .buttonStyle(PlainButtonStyle())
-    .familyActivityPicker(
-      isPresented: $showingAppPicker,
-      selection: $viewModel.selectionActivity
-    )
     .onChange(of: viewModel.selectionActivity) { _ in
       // Auto-save when selection changes
       viewModel.saveSettings()
+    }
+    .fullScreenCover(isPresented: $showingAppPicker) {
+      FamilyActivityPickerWrapper(
+        isPresented: $showingAppPicker,
+        selection: $viewModel.selectionActivity
+      )
     }
   }
   
