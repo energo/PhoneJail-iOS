@@ -150,7 +150,7 @@ class PomodoroViewModel: ObservableObject {
             print("🍅 Pomodoro: Switching to break. autoStartBreak = \(autoStartBreak)")
             if autoStartBreak {
                 print("🍅 Pomodoro: Scheduling break start in 2 seconds")
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
                     print("🍅 Pomodoro: Starting break now")
                     self?.startBreak(byUser: false) // Auto-started break
                 }

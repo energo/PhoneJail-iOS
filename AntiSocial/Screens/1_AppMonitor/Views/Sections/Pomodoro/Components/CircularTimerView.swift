@@ -81,7 +81,7 @@ struct CircularTimerView<Content: View>: View {
   
   // MARK: - Body
   var body: some View {
-    let trackSize = size - strokeWidth/2 // Track circle size
+    let trackSize = size - strokeWidth/3 // Track circle size
     let progressStrokeWidth = strokeWidth * 0.4
     let progressSize = trackSize - strokeWidth * 0.6 // Progress circle slightly smaller to be inside track
     
