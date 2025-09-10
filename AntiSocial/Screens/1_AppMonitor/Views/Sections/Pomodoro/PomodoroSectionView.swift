@@ -48,6 +48,13 @@ struct PomodoroSectionView: View {
         // Break state
         breakStateView
       }
+      
+      Spacer()
+
+      // Statistics at bottom
+      statisticsView
+        .padding(.bottom, adaptive.spacing.xLarge)
+
     }
   }
   
@@ -55,8 +62,6 @@ struct PomodoroSectionView: View {
   
   private var inactiveStateView: some View {
     VStack(spacing: 0) {
-      Spacer()
-      
       // Large Circular Timer with everything inside
       CircularTimerView(
         totalTime: TimeInterval(viewModel.focusDuration * 60),
@@ -77,18 +82,11 @@ struct PomodoroSectionView: View {
           startFocusButton
         }
       }
-      
-      Spacer()
-      
-      // Statistics at bottom
-      statisticsView
-        .padding(.bottom, adaptive.spacing.xLarge)
     }
   }
   
   private var activeFocusStateView: some View {
     VStack(spacing: 0) {
-      Spacer()
       
       // Large Circular Timer with controls inside
       CircularTimerView(
@@ -104,12 +102,6 @@ struct PomodoroSectionView: View {
       ) {
         activeInnerContentView
       }
-      
-      Spacer()
-      
-      // Statistics at bottom
-      statisticsView
-        .padding(.bottom, adaptive.spacing.xLarge)
     }
   }
   
@@ -121,7 +113,7 @@ struct PomodoroSectionView: View {
   }
   
   private var controlButtonsView: some View {
-    HStack(spacing: 0) {      
+    HStack(spacing: 0) {
       Spacer()
         .frame(maxWidth: .infinity)
 
@@ -178,8 +170,6 @@ struct PomodoroSectionView: View {
   
   private var breakStateView: some View {
     VStack(spacing: 0) {
-      Spacer()
-      
       // Large Circular Timer with controls inside
       CircularTimerView(
         totalTime: TimeInterval(viewModel.breakDuration * 60),
@@ -189,8 +179,8 @@ struct PomodoroSectionView: View {
         timerType: .breakTime,
         size: circleSize,
         strokeWidth: circleProgressSize,
-        showConfirmationDialog: viewModel.showBreakEndDialog || viewModel.showStopBreakDialog,
-        confirmationDialog: viewModel.showBreakEndDialog ? breakEndDialog : (viewModel.showStopBreakDialog ? stopBreakDialog : nil)
+        showConfirmationDialog: viewModel.showStopBreakDialog,
+        confirmationDialog: viewModel.showStopBreakDialog ? stopBreakDialog : nil
       ) {
         VStack(spacing: adaptive.spacing.medium) {
           // Break info
@@ -209,12 +199,6 @@ struct PomodoroSectionView: View {
           controlButtonsBkeakView
         }
       }
-      
-      Spacer()
-      
-      // Statistics at bottom
-      statisticsView
-        .padding(.bottom, adaptive.spacing.xLarge)
     }
   }
   
@@ -487,7 +471,7 @@ struct PomodoroSectionView: View {
     let appsText = viewModel.blockAllCategories ? "All" : "Selected"
     return PomodoroConfirmationDialog(
       dialogType: .startFocus,
-      customMessage: "\(appsText) apps will be blocked for the next 25  \(viewModel.focusDuration) minutes?",
+      customMessage: "\(appsText) apps will be blocked for the next \(viewModel.focusDuration) minutes?",
       onCancel: {
         viewModel.cancelStartFocus()
       },
@@ -500,7 +484,7 @@ struct PomodoroSectionView: View {
   private var breakEndDialog: PomodoroConfirmationDialog {
     PomodoroConfirmationDialog(
       dialogType: .breakEnd,
-      customMessage: "Are you sure you want to leave early?",
+      customMessage: "Ready to start another \(viewModel.focusDuration) minutes focus session?",
       onCancel: {
         viewModel.cancelBreakEnd()
       },
