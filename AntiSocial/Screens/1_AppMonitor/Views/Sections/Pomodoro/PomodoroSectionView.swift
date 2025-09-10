@@ -219,8 +219,8 @@ struct PomodoroSectionView: View {
       
       // Large Circular Timer showing completion
       CircularTimerView(
-        totalTime: 100,
-        remainingTime: 100, // Full circle for completed state
+        totalTime: TimeInterval(viewModel.breakDuration * 60),
+        remainingTime: 0, // Full circle for completed state
         isActive: false,
         timerType: .focus,
         size: circleSize,
