@@ -115,33 +115,44 @@ struct PomodoroSectionView: View {
   }
   
   private var controlButtonsView: some View {
-    HStack(spacing: adaptive.spacing.medium) {
-      // Pause/Resume
-      Button(action: { viewModel.togglePause() }) {
-        Image(systemName: viewModel.isPaused ? "play.fill" : "pause.fill")
-          .font(.system(size: 22))
-          .foregroundColor(.white)
-          .frame(width: 50, height: 50)
-          .background(
-            Capsule()
-              .stroke(Color.as_gradietn_stroke, lineWidth: 2)
-          )
-      }
+    HStack(spacing: 0) {
+      // Left side - Empty space for symmetry
+      Color.clear
+        .frame(width: 24, height: 24)
       
-      // Stop
-      Button(action: {
-        viewModel.stopPomodoro()
-        HapticManager.shared.impact(style: .medium)
-      }) {
-        Image(systemName: "stop.fill")
-          .font(.system(size: 22))
-          .foregroundColor(.white.opacity(0.8))
-          .frame(width: 50, height: 50)
-          .background(
-            Capsule()
-              .stroke(Color.as_gradietn_stroke, lineWidth: 2)
-          )
-      }
+      Spacer()
+        .frame(maxWidth: .infinity)
+      
+        // Pause/Resume button
+        Button(action: { viewModel.togglePause() }) {
+          Image(systemName: viewModel.isPaused ? "play.fill" : "pause.fill")
+            .font(.system(size: 24))
+            .foregroundColor(.white)
+            .frame(width: 88, height: 50)
+            .background(
+              Capsule()
+                .stroke(Color.as_gradietn_stroke, lineWidth: 2)
+            )
+        }
+        .padding(.horizontal, 8)
+        
+        // Stop button - close to main button
+        Button(action: {
+          viewModel.stopPomodoro()
+          HapticManager.shared.impact(style: .medium)
+        }) {
+          Image(systemName: "stop.fill")
+            .font(.system(size: 12))
+            .foregroundColor(.white.opacity(0.8))
+            .frame(width: 24, height: 24)
+            .background(
+              Circle()
+                .stroke(Color.as_gradietn_stroke, lineWidth: 2)
+            )
+        }
+      
+      Spacer()
+        .frame(maxWidth: .infinity)
     }
   }
   
@@ -432,9 +443,10 @@ struct PomodoroSectionView: View {
 
 // MARK: - Preview
 #Preview {
-  ScrollView {
-    PomodoroSectionView()
-      .padding()
+  BGView {
+      ScrollView {
+        PomodoroSectionView()
+          .padding()
+      }
   }
-  .background(Color.black)
 }
