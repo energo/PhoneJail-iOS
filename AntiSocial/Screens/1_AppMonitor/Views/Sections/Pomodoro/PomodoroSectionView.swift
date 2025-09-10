@@ -190,13 +190,9 @@ struct PomodoroSectionView: View {
         confirmationDialog: viewModel.showStopBreakDialog ? stopBreakDialog : nil
       ) {
         VStack(spacing: adaptive.spacing.medium) {
-          // Break info
-          VStack(spacing: 4) {
-            Text("After session \(viewModel.currentSession)")
-              .font(.system(size: 14, weight: .medium))
-              .foregroundColor(.white.opacity(0.6))
-          }
-          
+          // Spacer to match blockedAppsDisplay height
+          blockedAppsDisplay.opacity(0)
+
           // Control buttons
           controlButtonsBkeakView
         }
