@@ -121,13 +121,24 @@ struct PomodoroSectionView: View {
   }
   
   private var controlButtonsView: some View {
-    HStack(spacing: 0) {
-      // Left side - Empty space for symmetry
-      Color.clear
-        .frame(width: 24, height: 24)
-      
+    HStack(spacing: 0) {      
       Spacer()
         .frame(maxWidth: .infinity)
+
+       // Left side - skip to break
+       Button(action: {
+         viewModel.skipToBreak()
+         HapticManager.shared.impact(style: .medium)
+       }) {
+        Image(systemName: "cup.and.heat.waves.fill")
+          .font(.system(size: 12))
+          .foregroundColor(.white.opacity(0.8))
+          .frame(width: 24, height: 24)
+          .background(
+            Circle()
+              .stroke(Color.as_gradietn_stroke, lineWidth: 2)
+          )
+      }
       
         // Pause/Resume button
       Button(action: {
@@ -261,7 +272,9 @@ struct PomodoroSectionView: View {
         isPaused: false,
         timerType: .focus,
         size: circleSize,
-        strokeWidth: circleProgressSize
+        strokeWidth: circleProgressSize,
+        showConfirmationDialog: viewModel.showBreakEndDialog,
+        confirmationDialog: breakEndDialog
       ) {
         VStack(spacing: adaptive.spacing.large) {
           // Checkmark icon

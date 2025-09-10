@@ -505,4 +505,31 @@ class PomodoroViewModel: ObservableObject {
     func cancelStopBreak() {
         showStopBreakDialog = false
     }
+    
+    func skipToBreak() {
+        // Stop current focus session and immediately start break
+        print("🍅 Pomodoro: skipToBreak() called")
+        
+        // Stop the current focus session
+        pomodoroService.stop()
+        
+        // Update statistics for the completed focus session
+        let sessionDuration = focusDuration * 60
+        updateStatistics(focusTimeAdded: sessionDuration)
+        
+        // Log session completion
+        Task { @MainActor in
+            AppBlockingLogger.shared.endSession(type: .appBlocking, completed: true)
+            print("Pomodoro: Focus session completed (skipped to break)")
+        }
+        
+        // Switch to break session
+        currentSessionType = .breakTime
+        isHandlingSessionEnd = false
+        wasSessionStartedByUser = true // Mark as user-initiated
+        isAutoStartedSequence = false
+        
+        // Start break session immediately
+        startBreak(byUser: true)
+    }
 }
