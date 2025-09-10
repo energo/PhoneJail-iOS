@@ -130,7 +130,10 @@ struct PomodoroSectionView: View {
         .frame(maxWidth: .infinity)
       
         // Pause/Resume button
-        Button(action: { viewModel.togglePause() }) {
+      Button(action: {
+        HapticManager.shared.impact(style: .medium)
+        viewModel.togglePause()
+      }) {
           Image(systemName: viewModel.isPaused ? "play.fill" : "pause.fill")
             .font(.system(size: 24))
             .foregroundColor(.white)
@@ -311,7 +314,10 @@ struct PomodoroSectionView: View {
       }
       
       // Customize button
-      Button(action: { showingSettings = true }) {
+      Button(action: {
+        HapticManager.shared.impact(style: .medium)
+        showingSettings = true
+      }) {
         HStack(spacing: 8) {
           Text("Customize")
             .font(.system(size: 12, weight: .regular))

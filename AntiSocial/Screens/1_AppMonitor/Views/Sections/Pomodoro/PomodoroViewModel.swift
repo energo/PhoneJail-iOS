@@ -176,8 +176,9 @@ class PomodoroViewModel: ObservableObject {
                 // All sessions completed
                 allSessionsCompleted = true
                 showCompletionCelebration()
-              
-              showBreakEndDialog = true
+            } else {
+                // Show confirmation dialog after break session ends
+                showBreakEndDialog = true
             }
         }
         
