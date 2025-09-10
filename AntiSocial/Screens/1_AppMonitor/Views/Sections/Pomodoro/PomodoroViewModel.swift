@@ -48,6 +48,7 @@ class PomodoroViewModel: ObservableObject {
     @Published var showStartFocusDialog: Bool = false
     @Published var showBreakEndDialog: Bool = false
     @Published var showStopSessionDialog: Bool = false
+    @Published var showStopBreakDialog: Bool = false
     
     // App Blocking Settings
     @Published var selectionActivity = FamilyActivitySelection()
@@ -175,9 +176,8 @@ class PomodoroViewModel: ObservableObject {
                 // All sessions completed
                 allSessionsCompleted = true
                 showCompletionCelebration()
-            } else {
-                // Show confirmation dialog after break session ends
-                showBreakEndDialog = true
+              
+              showBreakEndDialog = true
             }
         }
         
@@ -489,5 +489,19 @@ class PomodoroViewModel: ObservableObject {
     
     func cancelStopSession() {
         showStopSessionDialog = false
+    }
+    
+    func requestStopBreak() {
+        // Show confirmation dialog before stopping break
+        showStopBreakDialog = true
+    }
+    
+    func confirmStopBreak() {
+        showStopBreakDialog = false
+        stopPomodoro()
+    }
+    
+    func cancelStopBreak() {
+        showStopBreakDialog = false
     }
 }

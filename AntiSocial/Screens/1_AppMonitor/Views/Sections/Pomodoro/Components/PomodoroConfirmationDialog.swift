@@ -11,6 +11,7 @@ enum PomodoroDialogType {
     case startFocus
     case breakEnd
     case stopSession
+    case stopBreak
     
     var title: String {
         switch self {
@@ -20,6 +21,8 @@ enum PomodoroDialogType {
             return "Leave early?"
         case .stopSession:
             return "Stop session?"
+        case .stopBreak:
+            return "Stop break?"
         }
     }
     

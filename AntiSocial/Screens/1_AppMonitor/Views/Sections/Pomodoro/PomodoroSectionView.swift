@@ -175,8 +175,8 @@ struct PomodoroSectionView: View {
         timerType: .breakTime,
         size: circleSize,
         strokeWidth: circleProgressSize,
-        showConfirmationDialog: viewModel.showBreakEndDialog,
-        confirmationDialog: breakEndDialog
+        showConfirmationDialog: viewModel.showBreakEndDialog || viewModel.showStopBreakDialog,
+        confirmationDialog: viewModel.showBreakEndDialog ? breakEndDialog : (viewModel.showStopBreakDialog ? stopBreakDialog : nil)
       ) {
         VStack(spacing: adaptive.spacing.medium) {
           // Break info
@@ -192,36 +192,7 @@ struct PomodoroSectionView: View {
           }
           
           // Control buttons
-          HStack(spacing: adaptive.spacing.medium) {
-            // Skip to next focus
-            Button(action: {
-              viewModel.skipToNextFocus()
-              HapticManager.shared.impact(style: .light)
-            }) {
-              Image(systemName: "forward.fill")
-                .font(.system(size: 22))
-                .foregroundColor(.green)
-                .frame(width: 50, height: 50)
-                .background(
-                  Circle()
-                    .stroke(Color.green.opacity(0.3), lineWidth: 1.5)
-                )
-            }
-            
-            // Stop
-            Button(action: {
-              viewModel.stopPomodoro()
-            }) {
-              Image(systemName: "stop.fill")
-                .font(.system(size: 22))
-                .foregroundColor(.white.opacity(0.8))
-                .frame(width: 50, height: 50)
-                .background(
-                  Circle()
-                    .stroke(Color.white.opacity(0.3), lineWidth: 1.5)
-                )
-            }
-          }
+          controlButtonsBkeakView
         }
       }
       
@@ -230,6 +201,48 @@ struct PomodoroSectionView: View {
       // Statistics at bottom
       statisticsView
         .padding(.bottom, adaptive.spacing.xLarge)
+    }
+  }
+  
+  private var controlButtonsBkeakView: some View {
+    HStack(spacing: 0) {
+      Color.clear
+        .frame(width: 24, height: 24)
+      
+      Spacer()
+        .frame(maxWidth: .infinity)
+
+       Button(action: {
+         viewModel.requestStopBreak()
+         HapticManager.shared.impact(style: .medium)
+       }) {
+        Image(systemName: "stop.fill")
+          .font(.system(size: 24))
+          .foregroundColor(.white)
+          .frame(width: 88, height: 50)
+          .background(
+            Capsule()
+              .stroke(Color.as_gradietn_stroke, lineWidth: 2)
+          )
+      }
+      .padding(.horizontal, 8)
+      
+      Button(action: {
+        viewModel.skipToNextFocus()
+        HapticManager.shared.impact(style: .light)
+      }) {
+        Image(systemName: "forward.fill")
+          .font(.system(size: 12))
+          .foregroundColor(.white.opacity(0.8))
+          .frame(width: 24, height: 24)
+          .background(
+            Circle()
+              .stroke(Color.as_gradietn_stroke, lineWidth: 2)
+          )
+      }
+      
+      Spacer()
+        .frame(maxWidth: .infinity)
     }
   }
   
@@ -487,6 +500,19 @@ struct PomodoroSectionView: View {
       },
       onConfirm: {
         viewModel.confirmStopSession()
+      }
+    )
+  }
+  
+  private var stopBreakDialog: PomodoroConfirmationDialog {
+    PomodoroConfirmationDialog(
+      dialogType: .stopBreak,
+      customMessage: "Are you sure you want to leave early?",
+      onCancel: {
+        viewModel.cancelStopBreak()
+      },
+      onConfirm: {
+        viewModel.confirmStopBreak()
       }
     )
   }
