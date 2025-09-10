@@ -62,6 +62,7 @@ struct PomodoroSectionView: View {
         totalTime: TimeInterval(viewModel.focusDuration * 60),
         remainingTime: TimeInterval(viewModel.focusDuration * 60), // Full time when inactive
         isActive: false,
+        isPaused: false,
         timerType: .focus,
         size: circleSize,
         strokeWidth: circleProgressSize
@@ -91,7 +92,8 @@ struct PomodoroSectionView: View {
       CircularTimerView(
         totalTime: TimeInterval(viewModel.focusDuration * 60),
         remainingTime: TimeInterval(viewModel.remainingSeconds),
-        isActive: viewModel.isRunning && !viewModel.isPaused,
+        isActive: viewModel.isRunning,
+        isPaused: viewModel.isPaused,
         timerType: .focus,
         size: circleSize,
         strokeWidth: circleProgressSize
@@ -164,7 +166,8 @@ struct PomodoroSectionView: View {
       CircularTimerView(
         totalTime: TimeInterval(viewModel.breakDuration * 60),
         remainingTime: TimeInterval(viewModel.remainingSeconds),
-        isActive: viewModel.isRunning && !viewModel.isPaused,
+        isActive: viewModel.isRunning,
+        isPaused: viewModel.isPaused,
         timerType: .breakTime,
         size: circleSize,
         strokeWidth: circleProgressSize
@@ -233,6 +236,7 @@ struct PomodoroSectionView: View {
         totalTime: TimeInterval(viewModel.breakDuration * 60),
         remainingTime: 0, // Full circle for completed state
         isActive: false,
+        isPaused: false,
         timerType: .focus,
         size: circleSize,
         strokeWidth: circleProgressSize

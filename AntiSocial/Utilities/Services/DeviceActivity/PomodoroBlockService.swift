@@ -21,12 +21,17 @@ final class PomodoroBlockService: ObservableObject {
   // MARK: - Public state
   @Published private(set) var isActive: Bool = false
   @Published private(set) var remainingSeconds: Int = 0
+  @Published private(set) var isPaused: Bool = false
   
   // MARK: - Internals
   private let store = ManagedSettingsStore(named: .pomodoro)
   private var ticker: AnyCancellable?
   private let defaultsKey = "pomodoro.unlockDate"
   private let bgTaskId = "com.app.antisocial.pomodoro.unlock"
+  
+  // Pause state
+  private var pausedAt: Date?
+  private var originalUnlockDate: Date?
   
   // Register once in AppDelegate/SceneDelegate:
   // BGTaskScheduler.shared.register(forTaskWithIdentifier: "com.app.antisocial.pomodoro.unlock", using: nil) { task in
@@ -74,7 +79,46 @@ final class PomodoroBlockService: ObservableObject {
     ticker?.cancel()
     isActive = false
     remainingSeconds = 0
+    isPaused = false
+    pausedAt = nil
+    originalUnlockDate = nil
     print("🍅 PomodoroBlockService: stop() completed, isActive now \(isActive)")
+  }
+  
+  /// Ставит таймер на паузу
+  func pause() {
+    guard isActive && !isPaused else { return }
+    print("🍅 PomodoroBlockService: pause() called")
+    
+    isPaused = true
+    pausedAt = Date()
+    originalUnlockDate = savedUnlockDate()
+    
+    // Останавливаем тикер
+    ticker?.cancel()
+  }
+  
+  /// Возобновляет таймер после паузы
+  func resume() {
+    guard isActive && isPaused else { return }
+    print("🍅 PomodoroBlockService: resume() called")
+    
+    guard let pausedAt = pausedAt,
+          let originalUnlock = originalUnlockDate else { return }
+    
+    // Вычисляем, сколько времени прошло в паузе
+    let pauseDuration = Date().timeIntervalSince(pausedAt)
+    let newUnlockDate = originalUnlock.addingTimeInterval(pauseDuration)
+    
+    // Обновляем дату разблокировки
+    SharedData.userDefaults?.set(newUnlockDate.timeIntervalSince1970, forKey: defaultsKey)
+    
+    // Перезапускаем тикер
+    startTicker(unlockDate: newUnlockDate)
+    
+    isPaused = false
+    self.pausedAt = nil
+    self.originalUnlockDate = nil
   }
   
   /// Экстренная очистка ВСЕХ блокировок (для отладки)

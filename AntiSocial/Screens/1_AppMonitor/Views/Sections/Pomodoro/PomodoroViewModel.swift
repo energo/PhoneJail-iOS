@@ -316,13 +316,14 @@ class PomodoroViewModel: ObservableObject {
     func pause() {
         isPaused = true
         timer?.invalidate()
-        // Note: We keep the blocking active but pause the timer
+        // Pause the PomodoroBlockService timer
+        pomodoroService.pause()
     }
     
     func resume() {
         isPaused = false
-        // Resume the timer
-        startTimer()
+        // Resume the PomodoroBlockService timer
+        pomodoroService.resume()
     }
     
     private func startTimer() {

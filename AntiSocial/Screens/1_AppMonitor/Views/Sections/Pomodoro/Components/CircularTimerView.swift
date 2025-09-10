@@ -12,6 +12,7 @@ struct CircularTimerView<Content: View>: View {
   let totalTime: TimeInterval
   let remainingTime: TimeInterval
   let isActive: Bool
+  let isPaused: Bool
   let timerType: TimerType
   let size: CGFloat
   let strokeWidth: CGFloat
@@ -22,6 +23,7 @@ struct CircularTimerView<Content: View>: View {
   init(totalTime: TimeInterval,
        remainingTime: TimeInterval,
        isActive: Bool,
+       isPaused: Bool = false,
        timerType: TimerType,
        size: CGFloat,
        strokeWidth: CGFloat = 10,
@@ -29,6 +31,7 @@ struct CircularTimerView<Content: View>: View {
     self.totalTime = totalTime
     self.remainingTime = remainingTime
     self.isActive = isActive
+    self.isPaused = isPaused
     self.timerType = timerType
     self.size = size
     self.strokeWidth = strokeWidth
@@ -140,7 +143,7 @@ struct CircularTimerView<Content: View>: View {
       )
       .frame(width: size, height: size)
       .rotationEffect(.degrees(-90))
-      .animation(.linear(duration: 1.0), value: progress)  // Linear animation for smooth continuous movement
+      .animation(isPaused ? .none : .linear(duration: 1.0), value: progress)  // No animation when paused
       .shadow(color: timerType.color.opacity(0.5), radius: 8)
       .overlay(
         // End circle indicator as overlay to ensure proper positioning
@@ -178,7 +181,7 @@ struct CircularTimerView<Content: View>: View {
       }
       .position(x: x, y: y)
       .opacity(progress > 0 ? 1 : 0)
-      .animation(.linear(duration: 1.0), value: progress)  // Match the progress animation
+      .animation(isPaused ? .none : .linear(duration: 1.0), value: progress)  // No animation when paused
     }
   }
   
