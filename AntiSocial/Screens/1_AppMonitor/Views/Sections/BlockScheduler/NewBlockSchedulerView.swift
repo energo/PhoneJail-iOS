@@ -432,6 +432,9 @@ struct NewBlockSchedulerView: View {
       case .strictBlock:
         isStrictBlock = true
         autoSaveIfNeeded()
+      case .startFocus, .breakEnd:
+        // These cases are handled in PomodoroSectionView
+        break
     }
     activeDialog = nil
   }

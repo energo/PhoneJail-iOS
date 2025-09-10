@@ -259,55 +259,57 @@ struct PomodoroSettingsView: View {
     
     private func appBlockingSettings() -> some View {
         VStack(spacing: adaptive.spacing.medium) {
-            // Block All Apps Toggle
-            Toggle(isOn: $viewModel.blockAllCategories) {
-                HStack {
-                    Image(systemName: "apps.iphone")
-                        .foregroundColor(.white.opacity(0.7))
-                    Text("Block All App Categories")
+            // App blocking info
+            HStack {
+                Image(systemName: "apps.iphone")
+                    .foregroundColor(.white.opacity(0.7))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("App Blocking")
                         .foregroundColor(.white)
+                        .font(.system(size: 15, weight: .medium))
+                    Text(viewModel.blockAllCategories ? "All apps will be blocked" : "Selected apps will be blocked")
+                        .foregroundColor(.white.opacity(0.6))
+                        .font(.system(size: 13))
                 }
+                Spacer()
             }
-            .tint(.as_red)
             
             // Select specific apps button
-            if !viewModel.blockAllCategories {
-                Button(action: {
-                    showingAppPicker = true
-                }) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Select Apps to Block")
-                                .foregroundColor(.white)
-                                .font(.system(size: 15, weight: .medium))
-                            
-                            if !viewModel.selectionActivity.applicationTokens.isEmpty || 
-                               !viewModel.selectionActivity.categoryTokens.isEmpty {
-                                Text("\(viewModel.selectionActivity.applicationTokens.count) apps, \(viewModel.selectionActivity.categoryTokens.count) categories")
-                                    .foregroundColor(.white.opacity(0.6))
-                                    .font(.system(size: 13))
-                            } else {
-                                Text("No apps selected")
-                                    .foregroundColor(.white.opacity(0.4))
-                                    .font(.system(size: 13))
-                            }
+            Button(action: {
+                showingAppPicker = true
+            }) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Select Apps to Block")
+                            .foregroundColor(.white)
+                            .font(.system(size: 15, weight: .medium))
+                        
+                        if !viewModel.selectionActivity.applicationTokens.isEmpty || 
+                           !viewModel.selectionActivity.categoryTokens.isEmpty {
+                            Text("\(viewModel.selectionActivity.applicationTokens.count) apps, \(viewModel.selectionActivity.categoryTokens.count) categories")
+                                .foregroundColor(.white.opacity(0.6))
+                                .font(.system(size: 13))
+                        } else {
+                            Text("No apps selected - all apps will be blocked")
+                                .foregroundColor(.white.opacity(0.4))
+                                .font(.system(size: 13))
                         }
-                        
-                        Spacer()
-                        
-                        Image(systemName: "chevron.right")
-                            .foregroundColor(.white.opacity(0.5))
-                            .font(.system(size: 14))
                     }
-                    .padding()
-                    .background(Color.white.opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.right")
+                        .foregroundColor(.white.opacity(0.5))
+                        .font(.system(size: 14))
                 }
-                .familyActivityPicker(
-                    isPresented: $showingAppPicker,
-                    selection: $viewModel.selectionActivity
-                )
+                .padding()
+                .background(Color.white.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
             }
+            .familyActivityPicker(
+                isPresented: $showingAppPicker,
+                selection: $viewModel.selectionActivity
+            )
             
             // Block During Break Toggle
             Toggle(isOn: $viewModel.blockDuringBreak) {

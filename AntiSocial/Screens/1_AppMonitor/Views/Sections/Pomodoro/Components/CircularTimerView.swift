@@ -17,6 +17,8 @@ struct CircularTimerView<Content: View>: View {
   let size: CGFloat
   let strokeWidth: CGFloat
   let content: Content?
+  let showConfirmationDialog: Bool
+  let confirmationDialog: PomodoroConfirmationDialog?
   
   @State private var animateProgress = false
   
@@ -27,6 +29,8 @@ struct CircularTimerView<Content: View>: View {
        timerType: TimerType,
        size: CGFloat,
        strokeWidth: CGFloat = 10,
+       showConfirmationDialog: Bool = false,
+       confirmationDialog: PomodoroConfirmationDialog? = nil,
        @ViewBuilder content: () -> Content? = { nil }) {
     self.totalTime = totalTime
     self.remainingTime = remainingTime
@@ -35,6 +39,8 @@ struct CircularTimerView<Content: View>: View {
     self.timerType = timerType
     self.size = size
     self.strokeWidth = strokeWidth
+    self.showConfirmationDialog = showConfirmationDialog
+    self.confirmationDialog = confirmationDialog
     self.content = content()
   }
   
@@ -95,6 +101,16 @@ struct CircularTimerView<Content: View>: View {
       // Layer 2: Track circle (gray stroke)
       trackCircle(size: trackSize)
       
+      // Inner content or dialog overlay
+      if showConfirmationDialog, let dialog = confirmationDialog {
+        // Dialog is inside trackCircle
+        dialog
+          .frame(width: trackSize - strokeWidth, height: trackSize - strokeWidth)
+      } else {
+        // Normal inner content
+        innerContentView
+      }
+      
       // Layer 3: Progress circle (inside track)
       progressCircle(size: progressSize,
                      strokeWidth: progressStrokeWidth,
@@ -102,8 +118,7 @@ struct CircularTimerView<Content: View>: View {
                      trackSize: trackSize,
                      progressSize: progressSize)
       
-      // Inner content
-      innerContentView
+
     }
     .onAppear {
       withAnimation {

@@ -65,7 +65,9 @@ struct PomodoroSectionView: View {
         isPaused: false,
         timerType: .focus,
         size: circleSize,
-        strokeWidth: circleProgressSize
+        strokeWidth: circleProgressSize,
+        showConfirmationDialog: viewModel.showStartFocusDialog,
+        confirmationDialog: startFocusDialog
       ) {
         VStack(spacing: adaptive.spacing.medium) {
           // Apps to block display
@@ -96,7 +98,9 @@ struct PomodoroSectionView: View {
         isPaused: viewModel.isPaused,
         timerType: .focus,
         size: circleSize,
-        strokeWidth: circleProgressSize
+        strokeWidth: circleProgressSize,
+        showConfirmationDialog: viewModel.showStartFocusDialog || viewModel.showStopSessionDialog,
+        confirmationDialog: viewModel.showStartFocusDialog ? startFocusDialog : (viewModel.showStopSessionDialog ? stopSessionDialog : nil)
       ) {
         activeInnerContentView
       }
@@ -140,7 +144,7 @@ struct PomodoroSectionView: View {
         
         // Stop button - close to main button
         Button(action: {
-          viewModel.stopPomodoro()
+          viewModel.requestStopPomodoro()
           HapticManager.shared.impact(style: .medium)
         }) {
           Image(systemName: "stop.fill")
@@ -170,7 +174,9 @@ struct PomodoroSectionView: View {
         isPaused: viewModel.isPaused,
         timerType: .breakTime,
         size: circleSize,
-        strokeWidth: circleProgressSize
+        strokeWidth: circleProgressSize,
+        showConfirmationDialog: viewModel.showBreakEndDialog,
+        confirmationDialog: breakEndDialog
       ) {
         VStack(spacing: adaptive.spacing.medium) {
           // Break info
@@ -442,6 +448,47 @@ struct PomodoroSectionView: View {
         return "\(hours)h"
       }
     }
+  }
+  
+  // MARK: - Dialogs
+  private var startFocusDialog: PomodoroConfirmationDialog {
+    let appsText = viewModel.blockAllCategories ? "All" : "Selected"
+    return PomodoroConfirmationDialog(
+      dialogType: .startFocus,
+      customMessage: "\(appsText) apps will be blocked for the next 25  \(viewModel.focusDuration) minutes?",
+      onCancel: {
+        viewModel.cancelStartFocus()
+      },
+      onConfirm: {
+        viewModel.confirmStartFocus()
+      }
+    )
+  }
+  
+  private var breakEndDialog: PomodoroConfirmationDialog {
+    PomodoroConfirmationDialog(
+      dialogType: .breakEnd,
+      customMessage: "Are you sure you want to leave early?",
+      onCancel: {
+        viewModel.cancelBreakEnd()
+      },
+      onConfirm: {
+        viewModel.confirmBreakEnd()
+      }
+    )
+  }
+  
+  private var stopSessionDialog: PomodoroConfirmationDialog {
+    PomodoroConfirmationDialog(
+      dialogType: .stopSession,
+      customMessage: "Are you sure you want to leave early?",
+      onCancel: {
+        viewModel.cancelStopSession()
+      },
+      onConfirm: {
+        viewModel.confirmStopSession()
+      }
+    )
   }
 }
 

@@ -44,10 +44,19 @@ class PomodoroViewModel: ObservableObject {
     @Published var weeklyFocusTime: Int = 0 // seconds
     @Published var todayFocusTime: Int = 0 // seconds
     
+    // Confirmation dialogs
+    @Published var showStartFocusDialog: Bool = false
+    @Published var showBreakEndDialog: Bool = false
+    @Published var showStopSessionDialog: Bool = false
+    
     // App Blocking Settings
-    @Published var blockAllCategories: Bool = true
     @Published var selectionActivity = FamilyActivitySelection()
     @Published var blockDuringBreak: Bool = false
+    
+    // Computed property for blockAllCategories based on selectionActivity
+    var blockAllCategories: Bool {
+        return selectionActivity.applicationTokens.isEmpty && selectionActivity.categoryTokens.isEmpty
+    }
     
     private let pomodoroService = PomodoroBlockService.shared
     private var cancellables = Set<AnyCancellable>()
@@ -166,10 +175,9 @@ class PomodoroViewModel: ObservableObject {
                 // All sessions completed
                 allSessionsCompleted = true
                 showCompletionCelebration()
-            } else if autoStartNextSession {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
-                    self?.startPomodoro(byUser: false) // Auto-started focus
-                }
+            } else {
+                // Show confirmation dialog after break session ends
+                showBreakEndDialog = true
             }
         }
         
@@ -203,6 +211,17 @@ class PomodoroViewModel: ObservableObject {
         isAutoStartedSequence = !byUser // Mark if it's part of auto sequence
         let duration = focusDuration
         
+      showStartFocusDialog = true
+        // Show confirmation dialog if all categories are blocked
+//        if blockAllCategories {
+//            showStartFocusDialog = true
+//            return
+//        }
+        // Start the session directly
+//        startFocusSession(duration: duration)
+    }
+    
+    private func startFocusSession(duration: Int) {
         // Log the blocking session
         Task { @MainActor in
             let sessionId = AppBlockingLogger.shared.startAppBlockingSessionForCategories(
@@ -278,6 +297,11 @@ class PomodoroViewModel: ObservableObject {
         }
     }
     
+    func requestStopPomodoro() {
+        // Show confirmation dialog before stopping
+        showStopSessionDialog = true
+    }
+    
     func togglePomodoro() {
         if isRunning {
             stopPomodoro()
@@ -347,7 +371,6 @@ class PomodoroViewModel: ObservableObject {
         SharedData.userDefaults?.set(soundEnabled, forKey: SharedData.Pomodoro.soundEnabled)
         
         // Save app blocking settings
-        SharedData.userDefaults?.set(blockAllCategories, forKey: "pomodoroBlockAllCategories")
         SharedData.userDefaults?.set(blockDuringBreak, forKey: "pomodoroBlockDuringBreak")
         
         // Save selected apps
@@ -373,7 +396,6 @@ class PomodoroViewModel: ObservableObject {
         soundEnabled = SharedData.userDefaults?.bool(forKey: SharedData.Pomodoro.soundEnabled) ?? true
         
         // Load app blocking settings
-        blockAllCategories = SharedData.userDefaults?.bool(forKey: "pomodoroBlockAllCategories") ?? true
         blockDuringBreak = SharedData.userDefaults?.bool(forKey: "pomodoroBlockDuringBreak") ?? false
         
         // Load selected apps
@@ -433,5 +455,39 @@ class PomodoroViewModel: ObservableObject {
         let weekOfYear = calendar.component(.weekOfYear, from: Date())
         let year = calendar.component(.year, from: Date())
         return "\(year)-W\(weekOfYear)"
+    }
+    
+    // MARK: - Dialog Actions
+    
+    func confirmStartFocus() {
+        showStartFocusDialog = false
+        startFocusSession(duration: focusDuration)
+    }
+    
+    func cancelStartFocus() {
+        showStartFocusDialog = false
+    }
+    
+    func confirmBreakEnd() {
+        showBreakEndDialog = false
+        if autoStartNextSession {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                self?.startPomodoro(byUser: false) // Auto-started focus
+            }
+        }
+        // If autoStartNextSession is false, just close dialog and wait for user to manually start
+    }
+    
+    func cancelBreakEnd() {
+        showBreakEndDialog = false
+    }
+    
+    func confirmStopSession() {
+        showStopSessionDialog = false
+        stopPomodoro()
+    }
+    
+    func cancelStopSession() {
+        showStopSessionDialog = false
     }
 }

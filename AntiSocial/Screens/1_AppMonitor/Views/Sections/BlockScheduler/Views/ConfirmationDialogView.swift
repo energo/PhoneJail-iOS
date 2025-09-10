@@ -11,6 +11,8 @@ enum DialogType {
   case deactivate
   case delete
   case strictBlock
+  case startFocus
+  case breakEnd
   
   var title: String {
     switch self {
@@ -20,6 +22,10 @@ enum DialogType {
         return "Are you sure you want to delete this schedule?"
       case .strictBlock:
         return "Strict blocking means you can't exit a block early. You also can't delete this app or any other app while it's active."
+      case .startFocus:
+        return "Ready to start?"
+      case .breakEnd:
+        return "Leave early?"
     }
   }
   
@@ -30,6 +36,10 @@ enum DialogType {
       case .delete:
         return "Confirm"
       case .strictBlock:
+        return "Confirm"
+      case .startFocus:
+        return "Confirm"
+      case .breakEnd:
         return "Confirm"
     }
   }
@@ -49,6 +59,7 @@ enum DialogType {
 
 struct ConfirmationDialogView: View {
   let dialogType: DialogType
+  var customMessage: String? = nil
   var isBlur: Bool = false
   var fillAvailableSpace: Bool = false
   let onCancel: () -> Void
@@ -93,6 +104,15 @@ struct ConfirmationDialogView: View {
         .multilineTextAlignment(.center)
         .frame(maxWidth: .infinity)
         .padding(.horizontal)
+      
+      if let customMessage = customMessage {
+        Text(customMessage)
+          .font(.system(size: 16, weight: .regular))
+          .foregroundStyle(Color.white.opacity(0.8))
+          .multilineTextAlignment(.center)
+          .frame(maxWidth: .infinity)
+          .padding(.horizontal)
+      }
       
       HStack(spacing: 16) {
         Button(action: {
