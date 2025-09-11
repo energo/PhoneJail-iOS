@@ -37,7 +37,6 @@ struct ScreenTimeAlertsSectionView: View {
       whatToMonitorView
     }
     .padding(.horizontal, 20)
-    //    .padding(.vertical, 16)
   }
   
   private var notifyView: some View {
@@ -51,14 +50,16 @@ struct ScreenTimeAlertsSectionView: View {
   
   private var whatToMonitorView: some View {
     VStack(alignment: .leading, spacing: 0) {
-      VStack(alignment: .leading, spacing: 12) {
+      VStack(alignment: .leading, spacing: 24) {
         headerView
+        SeparatorView()
         selectAppView
+        notifyView
+        bottomTextView
       }
-      bottomTextView
-        .padding(.top, 4)
-        .padding(.bottom, 12)
-      notifyView
+//      bottomTextView
+//        .padding(.top, 4)
+//        .padding(.bottom, 12)
     }
   }
   
@@ -85,9 +86,6 @@ struct ScreenTimeAlertsSectionView: View {
     Button(action: {
       viewModel.showSelectApps()
     }) {
-      VStack(alignment: .leading, spacing: 8) {
-        
-        // Основной блок — Select Apps (всегда отображается)
         HStack(spacing: 8) {
           Text("Apps")
             .foregroundColor(.white)
@@ -104,12 +102,6 @@ struct ScreenTimeAlertsSectionView: View {
           Image(systemName: "chevron.right")
             .foregroundColor(Color.as_white_light)
         }
-        
-      }
-      .padding(.horizontal, 16)
-      .padding(.vertical, 12)
-      .background(Color.white.opacity(0.07))
-      .clipShape(RoundedRectangle(cornerRadius: 30))
     }
     .fullScreenCover(isPresented: $viewModel.pickerIsPresented) {
       FamilyActivityPickerWrapper(
@@ -169,5 +161,6 @@ struct ScreenTimeAlertsSectionView: View {
 #Preview {
   BGView(imageRsc: .bgMain) {
     ScreenTimeAlertsSectionView(viewModel: ScreenTimeAlertViewModel())
+      .environmentObject(SubscriptionManager())
   }
 }
