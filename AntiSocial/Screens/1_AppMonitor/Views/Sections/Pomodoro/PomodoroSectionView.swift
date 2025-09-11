@@ -41,7 +41,7 @@ struct PomodoroSectionView: View {
       
       if viewModel.allSessionsCompleted {
         // Completed state - all sessions done
-        completedStateView
+        breakCompletedView
       } else if viewModel.showFocusCompletion {
         // Focus completion state - show progress
         focusCompletionStateView
@@ -259,24 +259,22 @@ struct PomodoroSectionView: View {
           Image(systemName: "checkmark.circle.fill")
             .symbolRenderingMode(.hierarchical)
             .font(.system(size: 30))
-
+          
           Text("Congrats!")
             .font(.system(size: 26, weight: .medium))
             .foregroundColor(.white)
             .tracking(1.5)
           
-          HStack {
-            Text("You completed \(viewModel.currentSession)/\(viewModel.totalSessions) focus sessions")
-              .font(.system(size: 14, weight: .regular))
-              .foregroundColor(.as_white_light)
-              .multilineTextAlignment(.center)
-          }
+          Text("You completed \(viewModel.currentSession)/\(viewModel.totalSessions) focus sessions")
+            .font(.system(size: 14, weight: .regular))
+            .foregroundColor(.as_white_light)
+            .multilineTextAlignment(.center)
         }
       }
     }
   }
   
-  private var completedStateView: some View {
+  private var breakCompletedView: some View {
     VStack(spacing: 0) {
       // Large Circular Timer showing completion
       CircularTimerView(
@@ -284,7 +282,7 @@ struct PomodoroSectionView: View {
         remainingTime: 0, // Full circle for completed state
         isActive: false,
         isPaused: false,
-        timerType: .focus,
+        timerType: .breakTimeCompleted,
         size: circleSize,
         strokeWidth: circleProgressSize,
         showConfirmationDialog: viewModel.showBreakEndDialog,
@@ -292,25 +290,19 @@ struct PomodoroSectionView: View {
       ) {
         VStack(spacing: adaptive.spacing.large) {
           // Checkmark icon
-          Image(systemName: "checkmark.circle.fill")
-            .font(.system(size: 30))
-            .foregroundColor(.green)
+          Image(.icBreakFinish)
+            .resizable()
+            .frame(width: 48, height: 48)
           
-          // Start new cycle button
-          Button(action: {
-            viewModel.allSessionsCompleted = false
-            viewModel.currentSession = 1
-            HapticManager.shared.notification(type: .success)
-          }) {
-            Text("Start New Cycle")
-              .font(.system(size: 16, weight: .medium))
-              .foregroundColor(.white)
-              .frame(width: 160, height: 44)
-              .background(
-                Capsule()
-                  .stroke(Color.white.opacity(0.3), lineWidth: 1.5)
-              )
-          }
+          Text("Break is over!")
+            .font(.system(size: 26, weight: .medium))
+            .foregroundColor(.white)
+            .tracking(1.5)
+          
+          Text("Time to get down to business!")
+            .font(.system(size: 14, weight: .regular))
+            .foregroundColor(.as_white_light)
+            .multilineTextAlignment(.center)
         }
       }
     }

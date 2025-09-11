@@ -45,14 +45,16 @@ struct CircularTimerView<Content: View>: View {
   
   enum TimerType {
     case focus
-    case breakTime
     case focusCompleted
+
+    case breakTime
+    case breakTimeCompleted
     
     var color: Color {
       switch self {
         case .focus, .focusCompleted:
           return Color(red: 1.0, green: 0.2, blue: 0.2) // Bright red
-        case .breakTime:
+        case .breakTime, .breakTimeCompleted:
           return Color(red: 0.2, green: 0.9, blue: 0.4) // Bright green
       }
     }
@@ -61,7 +63,7 @@ struct CircularTimerView<Content: View>: View {
       switch self {
         case .focus, .focusCompleted:
           return [Color(red: 1.0, green: 0.2, blue: 0.2), Color(red: 0.9, green: 0.1, blue: 0.1)]
-        case .breakTime:
+        case .breakTime, .breakTimeCompleted:
           return [Color(red: 0.2, green: 0.9, blue: 0.4), Color(red: 0.1, green: 0.8, blue: 0.3)]
       }
     }
@@ -83,7 +85,7 @@ struct CircularTimerView<Content: View>: View {
     switch timerType {
       case .focus, .focusCompleted:
         return "Focus Time"
-      case .breakTime:
+      case .breakTime, .breakTimeCompleted:
         return "Break Time"
     }
   }
@@ -92,7 +94,7 @@ struct CircularTimerView<Content: View>: View {
     switch timerType {
       case .focus, .focusCompleted:
         return Color.as_gradient_pomodoro_focus_progress
-      case .breakTime:
+      case .breakTime, .breakTimeCompleted:
         return Color.as_gradient_pomodoro_break_progress
     }
   }
@@ -204,16 +206,21 @@ struct CircularTimerView<Content: View>: View {
     }
   }
   
+  private var shouldShowTimerText: Bool {
+      switch timerType {
+      case .focusCompleted, .breakTimeCompleted:
+          return false
+      default:
+          return true
+      }
+  }
+
   private var innerContentView: some View {
     VStack(spacing: 0) {
-      if case .focusCompleted = timerType {
-      } else {
-        timerTextView
+      if shouldShowTimerText {
+          timerTextView
       }
-//      if !timerType == .focusCompleted  {
-//        timerTextView
-//      }
-
+      
       // Custom content below timer if provided
       if let content = content {
         Spacer()

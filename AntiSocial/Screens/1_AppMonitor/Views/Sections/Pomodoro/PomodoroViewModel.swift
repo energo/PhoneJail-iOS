@@ -182,17 +182,18 @@ class PomodoroViewModel: ObservableObject {
             // Switch back to focus
             currentSessionType = .focus
             currentSession += 1
-            
-            // Focus start notification is already scheduled in startFocusSession()
-            
+                        
             if currentSession > totalSessions {
                 // All sessions completed
                 allSessionsCompleted = true
                 showCompletionCelebration()
             } else {
                 // Show confirmation dialog after break session ends
-                showBreakEndDialog = true
             }
+          
+          if !autoStartNextSession {
+            showBreakEndDialog = true
+          }
         }
         
         // Reset flags after handling
@@ -309,6 +310,20 @@ class PomodoroViewModel: ObservableObject {
         isHandlingSessionEnd = false // Reset flag when manually stopping
         wasSessionStartedByUser = false // Reset flag when manually stopping
         isAutoStartedSequence = false // Reset auto sequence flag
+        
+        // Reset to initial state (inactiveStateView)
+        currentSessionType = .focus
+        currentSession = 1
+        allSessionsCompleted = false
+        remainingSeconds = 0
+        timeRemaining = "00:00"
+        
+        // Reset all dialog states
+        showStartFocusDialog = false
+        showBreakEndDialog = false
+        showStopSessionDialog = false
+        showStopBreakDialog = false
+        showFocusCompletion = false
         
         // Cancel any scheduled notifications
         cancelScheduledNotifications()
@@ -493,16 +508,22 @@ class PomodoroViewModel: ObservableObject {
     
     func confirmBreakEnd() {
         showBreakEndDialog = false
-        if autoStartNextSession {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                self?.startPomodoro(byUser: false) // Auto-started focus
-            }
+        
+        // Reset session state for new cycle
+        currentSession = 1
+        allSessionsCompleted = false
+        
+        // Start new focus session with same settings
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.startPomodoro(byUser: true) // User confirmed to start new cycle
         }
-        // If autoStartNextSession is false, just close dialog and wait for user to manually start
     }
     
     func cancelBreakEnd() {
         showBreakEndDialog = false
+        
+        // Stop pomodoro and go to inactive state
+        stopPomodoro()
     }
     
     func confirmStopSession() {
