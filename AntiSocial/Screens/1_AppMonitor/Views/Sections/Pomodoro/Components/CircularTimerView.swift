@@ -88,6 +88,15 @@ struct CircularTimerView<Content: View>: View {
     }
   }
   
+  private var progressGradient: LinearGradient {
+    switch timerType {
+      case .focus, .focusCompleted:
+        return Color.as_gradient_pomodoro_focus_progress
+      case .breakTime:
+        return Color.as_gradient_pomodoro_break_progress
+    }
+  }
+  
   // MARK: - Body
   var body: some View {
     let trackSize = size - strokeWidth/3 // Track circle size
@@ -143,7 +152,7 @@ struct CircularTimerView<Content: View>: View {
     Circle()
       .trim(from: 0, to: isActive ? progress : 1)
       .stroke(
-        timerType == .focus ? Color.as_gradient_pomodoro_focus_progress : Color.as_gradient_pomodoro_break_progress,
+        progressGradient,
         style: StrokeStyle(
           lineWidth: strokeWidth,
           lineCap: .round
