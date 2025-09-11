@@ -342,7 +342,7 @@ struct PomodoroSectionView: View {
         )
       }
     }
-    .sheet(isPresented: $showingSettings) {
+    .fullScreenCover(isPresented: $showingSettings) {
       PomodoroSettingsView(isPresented: $showingSettings, viewModel: viewModel)
     }
   }

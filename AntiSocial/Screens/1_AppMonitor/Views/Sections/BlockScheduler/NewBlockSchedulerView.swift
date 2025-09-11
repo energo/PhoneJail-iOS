@@ -51,6 +51,7 @@ struct NewBlockSchedulerView: View {
       VStack(spacing: 16) {
         headerView
           .padding(.horizontal, 32)
+          .padding(.top, 16)
 
         separatorView
           .padding(.horizontal, 32)

@@ -73,6 +73,7 @@ class PomodoroViewModel: ObservableObject {
     // App Blocking Settings
     @Published var selectionActivity = FamilyActivitySelection()
     @Published var blockDuringBreak: Bool = false
+    @Published var isStrictBlock: Bool = false
     
     // Computed property for blockAllCategories based on selectionActivity
     var blockAllCategories: Bool {
@@ -472,6 +473,7 @@ class PomodoroViewModel: ObservableObject {
         
         // Save app blocking settings
         SharedData.userDefaults?.set(blockDuringBreak, forKey: "pomodoroBlockDuringBreak")
+        SharedData.userDefaults?.set(isStrictBlock, forKey: "pomodoroIsStrictBlock")
         
         // Save selected apps
         if let data = try? JSONEncoder().encode(selectionActivity) {
@@ -498,6 +500,7 @@ class PomodoroViewModel: ObservableObject {
         
         // Load app blocking settings
         blockDuringBreak = SharedData.userDefaults?.bool(forKey: "pomodoroBlockDuringBreak") ?? false
+        isStrictBlock = SharedData.userDefaults?.bool(forKey: "pomodoroIsStrictBlock") ?? false
         
         // Load selected apps
         if let data = SharedData.userDefaults?.data(forKey: "pomodoroSelectedApps"),
