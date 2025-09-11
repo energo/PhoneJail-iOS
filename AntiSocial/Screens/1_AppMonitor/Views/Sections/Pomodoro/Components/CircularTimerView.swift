@@ -20,7 +20,6 @@ struct CircularTimerView<Content: View>: View {
   let showConfirmationDialog: Bool
   let confirmationDialog: PomodoroConfirmationDialog?
   
-  @State private var animateProgress = false
   
   init(totalTime: TimeInterval,
        remainingTime: TimeInterval,
@@ -71,7 +70,7 @@ struct CircularTimerView<Content: View>: View {
   
   private var progress: Double {
     guard totalTime > 0 else { return 0 }
-    return (totalTime - remainingTime) / totalTime
+    return remainingTime / totalTime
   }
   
   private var timeText: String {
@@ -118,13 +117,6 @@ struct CircularTimerView<Content: View>: View {
                      fullSize: size,
                      trackSize: trackSize,
                      progressSize: progressSize)
-      
-
-    }
-    .onAppear {
-      withAnimation {
-        animateProgress = true
-      }
     }
   }
   
@@ -147,9 +139,9 @@ struct CircularTimerView<Content: View>: View {
   }
   
   private func progressCircle(size: CGFloat, strokeWidth: CGFloat, fullSize: CGFloat, trackSize: CGFloat, progressSize: CGFloat) -> some View {
-    // Progress stroke
+    // Progress stroke - animating from full circle (1.0) to empty (0.0)
     Circle()
-      .trim(from: 0, to: animateProgress ? progress : 0)
+      .trim(from: 0, to: isActive ? progress : 1)
       .stroke(
         timerType == .focus ? Color.as_gradient_pomodoro_focus_progress : Color.as_gradient_pomodoro_break_progress,
         style: StrokeStyle(
@@ -159,7 +151,7 @@ struct CircularTimerView<Content: View>: View {
       )
       .frame(width: size, height: size)
       .rotationEffect(.degrees(-90))
-      .animation(isPaused ? .none : .linear(duration: 1.0), value: progress)  // No animation when paused
+      .animation(isActive ? (isPaused ? .none : .linear(duration: 1.0)) : .none, value: progress)  // No animation when inactive
       .shadow(color: timerType.color.opacity(0.5), radius: 8)
       .overlay(
         // End circle indicator as overlay to ensure proper positioning
@@ -169,6 +161,8 @@ struct CircularTimerView<Content: View>: View {
   
   private func progressEndCircle(progressSize: CGFloat, trackSize: CGFloat) -> some View {
     GeometryReader { geometry in
+      // Calculate angle for the end of the progress arc (where the indicator should be)
+      // progress represents remaining time (1.0 to 0.0), so the indicator should be at the end of the arc
       let angle = 2 * .pi * progress - .pi / 2
       // Calculate position on the progress circle's radius
       let radius = progressSize / 2
@@ -196,7 +190,7 @@ struct CircularTimerView<Content: View>: View {
           .frame(width: 16, height: 16)
       }
       .position(x: x, y: y)
-      .opacity(progress > 0 ? 1 : 0)
+      .opacity(isActive && progress > 0 ? 1 : 0)  // Show only when timer is active and there's remaining time
       .animation(isPaused ? .none : .linear(duration: 1.0), value: progress)  // No animation when paused
     }
   }
