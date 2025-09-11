@@ -112,10 +112,10 @@ class PomodoroViewModel: ObservableObject {
         
         if allSessionsCompleted {
             currentState = .allSessionsCompleted
-        } else if !isRunning {
-            currentState = .inactive
         } else if showFocusCompletion {
             currentState = .focusCompletion
+        } else if !isRunning {
+            currentState = .inactive
         } else if currentSessionType == .focus {
             currentState = .activeFocus
         } else {
@@ -124,6 +124,8 @@ class PomodoroViewModel: ObservableObject {
         
         if previousState != currentState {
             print("🍅 Pomodoro: State changed from \(previousState) to \(currentState) (isRunning: \(isRunning), showFocusCompletion: \(showFocusCompletion), currentSessionType: \(currentSessionType), currentSession: \(currentSession)/\(totalSessions), allSessionsCompleted: \(allSessionsCompleted))")
+        } else {
+            print("🍅 Pomodoro: State unchanged: \(currentState) (isRunning: \(isRunning), showFocusCompletion: \(showFocusCompletion), currentSessionType: \(currentSessionType), currentSession: \(currentSession)/\(totalSessions), allSessionsCompleted: \(allSessionsCompleted))")
         }
     }
     
@@ -198,7 +200,7 @@ class PomodoroViewModel: ObservableObject {
         if currentSessionType == .focus {
             // Show focus completion state first
             showFocusCompletion = true
-            updateCurrentState()
+            updateCurrentState() // Update state to show focus completion
             print("🍅 Pomodoro: Showing focus completion state")
             
             // Schedule break start after showing completion
@@ -206,21 +208,14 @@ class PomodoroViewModel: ObservableObject {
                 guard let self = self else { return }
                 self.showFocusCompletion = false
                 
-                // Switch to break
-                self.currentSessionType = .breakTime
-                self.updateCurrentState()
-                print("🍅 Pomodoro: Switching to break. autoStartBreak = \(self.autoStartBreak)")
-                
-                // Break start notification is already scheduled in startBreak()
-                
                 if self.autoStartBreak {
-                    print("🍅 Pomodoro: Scheduling break start in 2 seconds")
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
-                        print("🍅 Pomodoro: Starting break now")
-                        self?.startBreak(byUser: false) // Auto-started break
-                    }
+                    print("🍅 Pomodoro: Starting break immediately after focus completion")
+                    self.startBreak(byUser: false) // Auto-started break
                 } else {
-                    print("🍅 Pomodoro: autoStartBreak is disabled, break not started")
+                    // Switch to break but don't start it
+                    self.currentSessionType = .breakTime
+                    self.updateCurrentState()
+                    print("🍅 Pomodoro: Switching to break. autoStartBreak = \(self.autoStartBreak)")
                 }
             }
         } else {
