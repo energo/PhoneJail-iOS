@@ -33,6 +33,7 @@ struct PomodoroSectionView: View {
         .padding(.top)
       
       Spacer()
+        .frame(maxHeight: 60)
       
       // Session type indicator
       sessionTypeIndicator
