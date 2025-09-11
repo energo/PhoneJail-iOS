@@ -16,7 +16,24 @@ enum SessionType {
     case breakTime
 }
 
+/// Represents the current state of the Pomodoro timer view
+enum PomodoroViewState {
+    /// All pomodoro sessions have been completed
+    case allSessionsCompleted
+    /// Focus session just completed, showing completion animation
+    case focusCompletion
+    /// Timer is not running, showing setup interface
+    case inactive
+    /// Focus session is currently active
+    case activeFocus
+    /// Break session is currently active
+    case activeBreak
+}
+
 class PomodoroViewModel: ObservableObject {
+    // Main state
+    @Published var currentState: PomodoroViewState = .inactive
+    
     // Timer state
     @Published var selectedMinutes: Int = 25
     @Published var isRunning: Bool = false
@@ -82,7 +99,32 @@ class PomodoroViewModel: ObservableObject {
         loadSettings()
         loadStatistics()
         setupBindings()
-        print("🍅 Pomodoro: init() completed, autoStartBreak = \(autoStartBreak)")
+        showFocusCompletion = false // Ensure clean initial state
+        print("🍅 Pomodoro: Before updateCurrentState - currentSession: \(currentSession), totalSessions: \(totalSessions), isRunning: \(isRunning), showFocusCompletion: \(showFocusCompletion), currentSessionType: \(currentSessionType)")
+        updateCurrentState()
+        print("🍅 Pomodoro: init() completed, autoStartBreak = \(autoStartBreak), currentState = \(currentState)")
+    }
+    
+    // MARK: - State Management
+    
+    private func updateCurrentState() {
+        let previousState = currentState
+        
+        if allSessionsCompleted {
+            currentState = .allSessionsCompleted
+        } else if !isRunning {
+            currentState = .inactive
+        } else if showFocusCompletion {
+            currentState = .focusCompletion
+        } else if currentSessionType == .focus {
+            currentState = .activeFocus
+        } else {
+            currentState = .activeBreak
+        }
+        
+        if previousState != currentState {
+            print("🍅 Pomodoro: State changed from \(previousState) to \(currentState) (isRunning: \(isRunning), showFocusCompletion: \(showFocusCompletion), currentSessionType: \(currentSessionType), currentSession: \(currentSession)/\(totalSessions), allSessionsCompleted: \(allSessionsCompleted))")
+        }
     }
     
     private func setupBindings() {
@@ -92,6 +134,7 @@ class PomodoroViewModel: ObservableObject {
             .sink { [weak self] isActive in
                 print("🍅 Pomodoro: Binding triggered - isActive = \(isActive)")
                 self?.isRunning = isActive
+                self?.updateCurrentState() // Update state when isRunning changes
                 if !isActive {
                     print("🍅 Pomodoro: Calling handleSessionEnd() from binding")
                     self?.handleSessionEnd()
@@ -155,6 +198,7 @@ class PomodoroViewModel: ObservableObject {
         if currentSessionType == .focus {
             // Show focus completion state first
             showFocusCompletion = true
+            updateCurrentState()
             print("🍅 Pomodoro: Showing focus completion state")
             
             // Schedule break start after showing completion
@@ -164,6 +208,7 @@ class PomodoroViewModel: ObservableObject {
                 
                 // Switch to break
                 self.currentSessionType = .breakTime
+                self.updateCurrentState()
                 print("🍅 Pomodoro: Switching to break. autoStartBreak = \(self.autoStartBreak)")
                 
                 // Break start notification is already scheduled in startBreak()
@@ -186,9 +231,11 @@ class PomodoroViewModel: ObservableObject {
             if currentSession > totalSessions {
                 // All sessions completed
                 allSessionsCompleted = true
+                updateCurrentState()
                 showCompletionCelebration()
             } else {
                 // Show confirmation dialog after break session ends
+                updateCurrentState()
             }
           
           if !autoStartNextSession {
@@ -219,14 +266,17 @@ class PomodoroViewModel: ObservableObject {
     }
     
     private func startPomodoro(byUser: Bool) {
+        print("🍅 Pomodoro: startPomodoro(byUser: \(byUser)) called")
         currentSessionType = .focus
         allSessionsCompleted = false
         isHandlingSessionEnd = false // Reset flag when starting new session
         wasSessionStartedByUser = byUser // Mark if session was started by user
         isAutoStartedSequence = !byUser // Mark if it's part of auto sequence
+        updateCurrentState()
         _ = focusDuration
         
-      showStartFocusDialog = true
+        showStartFocusDialog = true
+        print("🍅 Pomodoro: showStartFocusDialog = true")
         // Show confirmation dialog if all categories are blocked
 //        if blockAllCategories {
 //            showStartFocusDialog = true
@@ -256,6 +306,7 @@ class PomodoroViewModel: ObservableObject {
             selectionActivity: selectionActivity
         )
         isPaused = false
+        // updateCurrentState() will be called by the binding when isRunning changes
     }
     
     func startBreak() {
@@ -268,6 +319,7 @@ class PomodoroViewModel: ObservableObject {
         isHandlingSessionEnd = false // Reset flag when starting break
         wasSessionStartedByUser = byUser // Mark if break was started by user
         isAutoStartedSequence = !byUser // Mark if it's part of auto sequence
+        updateCurrentState()
         let duration = (currentSession % 4 == 0) ? longBreakDuration : breakDuration
         print("🍅 Pomodoro: Break duration = \(duration) minutes, blockDuringBreak = \(blockDuringBreak)")
         
@@ -298,6 +350,7 @@ class PomodoroViewModel: ObservableObject {
             }
         }
         isPaused = false
+        // updateCurrentState() will be called by the binding when isRunning changes
     }
     
     func stopPomodoro() {
@@ -324,6 +377,8 @@ class PomodoroViewModel: ObservableObject {
         showStopSessionDialog = false
         showStopBreakDialog = false
         showFocusCompletion = false
+        
+        updateCurrentState()
         
         // Cancel any scheduled notifications
         cancelScheduledNotifications()
@@ -357,8 +412,15 @@ class PomodoroViewModel: ObservableObject {
     }
     
     func skipToNextFocus() {
-        // Stop current break
-        stopPomodoro()
+        print("🍅 Pomodoro: skipToNextFocus() called")
+        
+        // Stop current break session only (don't reset everything)
+        pomodoroService.stop()
+        isRunning = false
+        isPaused = false
+        isHandlingSessionEnd = false
+        wasSessionStartedByUser = false
+        isAutoStartedSequence = false
         
         // Move to next focus session  
         currentSessionType = .focus
@@ -367,7 +429,12 @@ class PomodoroViewModel: ObservableObject {
         // Reset if completed all sessions
         if currentSession > totalSessions {
             currentSession = 1
+            allSessionsCompleted = true
+        } else {
+            allSessionsCompleted = false
         }
+        
+        updateCurrentState()
         
         // Start new focus session
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
@@ -419,6 +486,7 @@ class PomodoroViewModel: ObservableObject {
         // Save current session state
         SharedData.userDefaults?.set(currentSession, forKey: SharedData.Pomodoro.currentSession)
         SharedData.userDefaults?.set(currentSessionType == .focus ? "focus" : "break", forKey: SharedData.Pomodoro.currentSessionType)
+        SharedData.userDefaults?.set(allSessionsCompleted, forKey: "pomodoroAllSessionsCompleted")
     }
     
     func loadSettings() {
@@ -446,6 +514,15 @@ class PomodoroViewModel: ObservableObject {
         currentSession = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.currentSession) ?? 1
         let sessionTypeString = SharedData.userDefaults?.string(forKey: SharedData.Pomodoro.currentSessionType) ?? "focus"
         currentSessionType = sessionTypeString == "focus" ? .focus : .breakTime
+        allSessionsCompleted = SharedData.userDefaults?.bool(forKey: "pomodoroAllSessionsCompleted") ?? false
+        
+        // Reset session state if it's invalid (e.g., currentSession > totalSessions)
+        if currentSession > totalSessions {
+            print("🍅 Pomodoro: Invalid session state detected (currentSession: \(currentSession) > totalSessions: \(totalSessions)), resetting to 1")
+            currentSession = 1
+            currentSessionType = .focus
+            allSessionsCompleted = false
+        }
         
         // If no settings were saved before, save defaults
         if SharedData.userDefaults?.object(forKey: SharedData.Pomodoro.focusDuration) == nil {
@@ -511,7 +588,8 @@ class PomodoroViewModel: ObservableObject {
         
         // Reset session state for new cycle
         currentSession = 1
-        allSessionsCompleted = false
+      allSessionsCompleted = false
+        updateCurrentState()
         
         // Start new focus session with same settings
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
@@ -575,6 +653,7 @@ class PomodoroViewModel: ObservableObject {
         isHandlingSessionEnd = false
         wasSessionStartedByUser = true // Mark as user-initiated
         isAutoStartedSequence = false
+        updateCurrentState()
         
         // Schedule new notifications for break session
         scheduleBreakNotifications()

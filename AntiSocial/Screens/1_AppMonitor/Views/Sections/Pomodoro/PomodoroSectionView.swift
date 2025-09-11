@@ -21,8 +21,7 @@ struct PomodoroSectionView: View {
   
   var body: some View {
     contentView
-      .animation(.easeInOut(duration: 0.3), value: viewModel.isRunning)
-      .animation(.easeInOut(duration: 0.3), value: viewModel.currentSessionType)
+      .animation(.easeInOut(duration: 0.3), value: viewModel.currentState)
   }
   
   private var contentView: some View {
@@ -39,21 +38,17 @@ struct PomodoroSectionView: View {
       sessionTypeIndicator
         .padding(.bottom, adaptive.spacing.medium)
       
-      if viewModel.allSessionsCompleted {
-        // Completed state - all sessions done
-        breakCompletedView
-      } else if viewModel.showFocusCompletion {
-        // Focus completion state - show progress
-        focusCompletionStateView
-      } else if !viewModel.isRunning {
-        // Inactive state - show setup
-        inactiveStateView
-      } else if viewModel.currentSessionType == .focus {
-        // Active focus state
-        activeFocusStateView
-      } else {
-        // Break state
-        breakStateView
+      switch viewModel.currentState {
+        case .inactive:
+          inactiveStateView
+        case .focusCompletion:
+          focusCompletionStateView
+        case .activeFocus:
+          activeFocusStateView
+        case .activeBreak:
+          breakStateView
+        case .allSessionsCompleted:
+          breakCompletedView
       }
       
       Spacer()
@@ -487,21 +482,19 @@ struct PomodoroSectionView: View {
   // MARK: - Session Type Indicator
   private var sessionTypeIndicator: some View {
     Group {
-      if viewModel.isRunning {
-        // Show current session type
-        if viewModel.currentSessionType == .focus {
-          Text("FOCUS SESSION")
-            .font(.system(size: 16, weight: .semibold))
-            .foregroundColor(Color.as_focus_red)
-            .tracking(1.5)
-        } else {
-            Text("BREAK SESSION")
-              .font(.system(size: 16, weight: .semibold))
-              .foregroundColor(Color.as_light_green)
-              .tracking(1.5)
-          }
-      } else {
-        //for exclude jumping whe switch states
+      switch viewModel.currentState {
+      case .activeFocus:
+        Text("FOCUS SESSION")
+          .font(.system(size: 16, weight: .semibold))
+          .foregroundColor(Color.as_focus_red)
+          .tracking(1.5)
+      case .activeBreak:
+        Text("BREAK SESSION")
+          .font(.system(size: 16, weight: .semibold))
+          .foregroundColor(Color.as_light_green)
+          .tracking(1.5)
+      default:
+        // For exclude jumping when switch states
         Text(" ")
           .font(.system(size: 16, weight: .semibold))
           .foregroundColor(Color.as_focus_red)
