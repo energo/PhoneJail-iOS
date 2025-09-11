@@ -152,7 +152,7 @@ final class LocalNotificationManager {
     let body: String
     
     if sessionType == "focus" {
-      title = "🍅 Focus Session Started!"
+      title = "🎯 Focus Session Started!"
       body = "Time to focus! You'll get a \(nextSession == "longBreak" ? "long break" : "short break") after this session."
     } else {
       title = "☕ Break Time Started!"
@@ -164,7 +164,7 @@ final class LocalNotificationManager {
   }
   
   func scheduleFocusSessionEnded(timeInterval: TimeInterval) {
-    let title = "🍅 Focus Session Ended!"
+    let title = "🎯 Focus Session Ended!"
     let body = "Congratulations! You completed your focus session."
     
     print("🔔 LocalNotificationManager: Scheduling focus session ended notification - timeInterval: \(timeInterval)")
@@ -180,7 +180,7 @@ final class LocalNotificationManager {
   }
   
   func schedulePomodoroAllSessionsComplete(totalSessions: Int) {
-    let title = "🎉 Pomodoro Complete!"
+    let title = "🍅 Pomodoro Complete!"
     let body = "Congratulations! You've completed all \(totalSessions) focus sessions."
     
     schedulePomodoroNotification(
