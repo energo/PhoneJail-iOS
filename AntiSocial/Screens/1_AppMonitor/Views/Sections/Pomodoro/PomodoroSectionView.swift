@@ -250,7 +250,7 @@ struct PomodoroSectionView: View {
         remainingTime: 0, // Full circle for completed state
         isActive: false,
         isPaused: false,
-        timerType: .focus,
+        timerType: .focusCompleted,
         size: circleSize,
         strokeWidth: circleProgressSize
       ) {
@@ -259,17 +259,18 @@ struct PomodoroSectionView: View {
           Image(systemName: "checkmark.circle.fill")
             .symbolRenderingMode(.hierarchical)
             .font(.system(size: 30))
-            .foregroundColor(.as_light_green)
 
           Text("Congrats!")
-            .font(.system(size: 12, weight: .semibold))
-            .foregroundColor(Color.as_focus_red)
+            .font(.system(size: 26, weight: .medium))
+            .foregroundColor(.white)
             .tracking(1.5)
           
-          Text("You completed \(viewModel.currentSession)/\(viewModel.totalSessions) focus sessions")
-            .font(.system(size: 14, weight: .medium))
-            .foregroundColor(.white.opacity(0.6))
-            .multilineTextAlignment(.center)
+          HStack {
+            Text("You completed \(viewModel.currentSession)/\(viewModel.totalSessions) focus sessions")
+              .font(.system(size: 14, weight: .regular))
+              .foregroundColor(.as_white_light)
+              .multilineTextAlignment(.center)
+          }
         }
       }
     }

@@ -47,10 +47,11 @@ struct CircularTimerView<Content: View>: View {
   enum TimerType {
     case focus
     case breakTime
+    case focusCompleted
     
     var color: Color {
       switch self {
-        case .focus:
+        case .focus, .focusCompleted:
           return Color(red: 1.0, green: 0.2, blue: 0.2) // Bright red
         case .breakTime:
           return Color(red: 0.2, green: 0.9, blue: 0.4) // Bright green
@@ -59,7 +60,7 @@ struct CircularTimerView<Content: View>: View {
     
     var gradientColors: [Color] {
       switch self {
-        case .focus:
+        case .focus, .focusCompleted:
           return [Color(red: 1.0, green: 0.2, blue: 0.2), Color(red: 0.9, green: 0.1, blue: 0.1)]
         case .breakTime:
           return [Color(red: 0.2, green: 0.9, blue: 0.4), Color(red: 0.1, green: 0.8, blue: 0.3)]
@@ -81,7 +82,7 @@ struct CircularTimerView<Content: View>: View {
   
   private var sessionText: String {
     switch timerType {
-      case .focus:
+      case .focus, .focusCompleted:
         return "Focus Time"
       case .breakTime:
         return "Break Time"
@@ -202,7 +203,13 @@ struct CircularTimerView<Content: View>: View {
   
   private var innerContentView: some View {
     VStack(spacing: 0) {
-      timerTextView
+      if case .focusCompleted = timerType {
+      } else {
+        timerTextView
+      }
+//      if !timerType == .focusCompleted  {
+//        timerTextView
+//      }
 
       // Custom content below timer if provided
       if let content = content {
