@@ -553,6 +553,10 @@ class PomodoroViewModel: ObservableObject {
         // Stop current focus session and immediately start break
         print("🍅 Pomodoro: skipToBreak() called")
         
+        // Cancel current scheduled notifications
+        cancelScheduledNotifications()
+        print("🍅 Pomodoro: Cancelled current notifications")
+        
         // Stop the current focus session
         pomodoroService.stop()
         
@@ -571,6 +575,10 @@ class PomodoroViewModel: ObservableObject {
         isHandlingSessionEnd = false
         wasSessionStartedByUser = true // Mark as user-initiated
         isAutoStartedSequence = false
+        
+        // Schedule new notifications for break session
+        scheduleBreakNotifications()
+        print("🍅 Pomodoro: Scheduled new break notifications")
         
         // Start break session immediately
         startBreak(byUser: true)
@@ -617,5 +625,28 @@ class PomodoroViewModel: ObservableObject {
     
     private func cancelScheduledNotifications() {
         LocalNotificationManager.shared.cancelScheduledPomodoroNotifications()
+    }
+    
+    private func scheduleBreakNotifications() {
+        guard notificationsEnabled else {
+            print("🍅 Pomodoro: Notifications disabled, skipping break notification scheduling")
+            return
+        }
+        
+        print("🍅 Pomodoro: Scheduling break notifications")
+        
+        // 1. Break session start notification (immediate)
+        LocalNotificationManager.shared.schedulePomodoroSessionStarted(
+            sessionType: "break",
+            nextSession: "focus",
+            timeInterval: 0.1
+        )
+        
+        // 2. Break session end notification (scheduled for when break ends)
+        let breakDurationMinutes = (currentSession % 4 == 0) ? longBreakDuration : breakDuration
+        let breakEndTime = TimeInterval(breakDurationMinutes * 60)
+        LocalNotificationManager.shared.scheduleBreakSessionEnded(timeInterval: breakEndTime)
+        
+        print("🍅 Pomodoro: Break notifications scheduled successfully")
     }
 }
