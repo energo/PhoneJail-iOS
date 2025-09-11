@@ -137,26 +137,46 @@ final class LocalNotificationManager {
     let identifier = "pomodoro-\(Date().timeIntervalSince1970)"
     let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
     
+    print("🔔 LocalNotificationManager: Adding notification request - identifier: \(identifier)")
     notificationCenter.add(request) { error in
       if let error = error {
-        print("Failed to schedule Pomodoro notification: \(error)")
+        print("❌ Failed to schedule Pomodoro notification: \(error)")
+      } else {
+        print("✅ Pomodoro notification scheduled successfully")
       }
     }
   }
   
-  func schedulePomodoroSessionComplete(sessionType: String, nextSession: String) {
+  func schedulePomodoroSessionStarted(sessionType: String, nextSession: String, timeInterval: TimeInterval = 0.1) {
     let title: String
     let body: String
     
     if sessionType == "focus" {
-      title = "🎯 Focus Session Complete!"
-      body = "Great work! Time for a \(nextSession == "longBreak" ? "long break" : "short break")."
+      title = "🍅 Focus Session Started!"
+      body = "Time to focus! You'll get a \(nextSession == "longBreak" ? "long break" : "short break") after this session."
     } else {
-      title = "☕ Break Time Over"
-      body = "Ready to get back to focused work?"
+      title = "☕ Break Time Started!"
+      body = "Enjoy your break! Focus session will start after this."
     }
     
-    schedulePomodoroNotification(title: title, body: body, timeInterval: 0.1)
+    print("🔔 LocalNotificationManager: Scheduling pomodoro session started notification - title: \(title), body: \(body), timeInterval: \(timeInterval)")
+    schedulePomodoroNotification(title: title, body: body, timeInterval: timeInterval)
+  }
+  
+  func scheduleFocusSessionEnded(timeInterval: TimeInterval) {
+    let title = "🍅 Focus Session Ended!"
+    let body = "Congratulations! You completed your focus session."
+    
+    print("🔔 LocalNotificationManager: Scheduling focus session ended notification - timeInterval: \(timeInterval)")
+    schedulePomodoroNotification(title: title, body: body, timeInterval: timeInterval)
+  }
+  
+  func scheduleBreakSessionEnded(timeInterval: TimeInterval) {
+    let title = "☕ Break Time Ended!"
+    let body = "Break time is over. Ready to focus again?"
+    
+    print("🔔 LocalNotificationManager: Scheduling break session ended notification - timeInterval: \(timeInterval)")
+    schedulePomodoroNotification(title: title, body: body, timeInterval: timeInterval)
   }
   
   func schedulePomodoroAllSessionsComplete(totalSessions: Int) {
@@ -179,6 +199,21 @@ final class LocalNotificationManager {
       
       if !pomodoroIds.isEmpty {
         self.notificationCenter.removePendingNotificationRequests(withIdentifiers: pomodoroIds)
+      }
+    }
+  }
+  
+  func cancelScheduledPomodoroNotifications() {
+    notificationCenter.getPendingNotificationRequests { requests in
+      let pomodoroIds = requests
+        .filter { $0.identifier.hasPrefix("pomodoro-") }
+        .map { $0.identifier }
+      
+      if !pomodoroIds.isEmpty {
+        self.notificationCenter.removePendingNotificationRequests(withIdentifiers: pomodoroIds)
+        print("🍅 LocalNotificationManager: Cancelled \(pomodoroIds.count) scheduled pomodoro notifications: \(pomodoroIds)")
+      } else {
+        print("🍅 LocalNotificationManager: No pomodoro notifications to cancel")
       }
     }
   }

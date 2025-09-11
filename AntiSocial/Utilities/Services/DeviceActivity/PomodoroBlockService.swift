@@ -28,10 +28,6 @@ final class PomodoroBlockService: ObservableObject {
   private var ticker: AnyCancellable?
   private let defaultsKey = "pomodoro.unlockDate"
   private let bgTaskId = "com.app.antisocial.pomodoro.unlock"
-  private let notificationIdsKey = "pomodoro.notificationIds"
-  
-  // Notification identifiers for cancellation
-  private var currentNotificationIdentifiers: [String] = []
   
   // Pause state
   private var pausedAt: Date?
@@ -62,10 +58,7 @@ final class PomodoroBlockService: ObservableObject {
 
       store.application.denyAppRemoval = isStrictBlock
     }
-    
-    // 3) Локалка «начали» и «закончим»
-    scheduleLocalNotifications(unlockDate: unlockDate, durationMinutes: m)
-    
+        
     // 4) Тикер для UI + авто-снятие
     startTicker(unlockDate: unlockDate)
     
@@ -81,9 +74,6 @@ final class PomodoroBlockService: ObservableObject {
     clearShield()
     SharedData.userDefaults?.removeObject(forKey: defaultsKey)
     ticker?.cancel()
-    
-    // Cancel scheduled notifications
-    cancelScheduledNotifications()
     
     isActive = false
     remainingSeconds = 0
@@ -164,10 +154,7 @@ final class PomodoroBlockService: ObservableObject {
     ticker?.cancel()
     isActive = false
     remainingSeconds = 0
-    
-    // Отменяем запланированные уведомления
-    cancelScheduledNotifications()
-    
+        
     ShieldService.shared.stopAppRestrictions()
     DeviceActivityScheduleService.stopSchedule()
 
@@ -211,8 +198,6 @@ final class PomodoroBlockService: ObservableObject {
   }
   
   private func restoreIfNeeded() {
-    // Load saved notification identifiers
-    loadNotificationIdentifiers()
     
     guard let unlock = savedUnlockDate() else { return }
     if Date() < unlock {
@@ -222,8 +207,7 @@ final class PomodoroBlockService: ObservableObject {
       startTicker(unlockDate: unlock)
       isActive = true
     } else {
-      // Session expired, cancel any remaining notifications and stop
-      cancelScheduledNotifications()
+      // Session expired, stop
       stop()
     }
   }
@@ -251,71 +235,5 @@ final class PomodoroBlockService: ObservableObject {
     req.earliestBeginDate = date
     do { try BGTaskScheduler.shared.submit(req) }
     catch { print("BGTask submit failed:", error) }
-  }
-  
-  private func scheduleLocalNotifications(unlockDate: Date, durationMinutes: Int) {
-    // Разрешения на уведомления запросите заранее в онбординге.
-    let center = UNUserNotificationCenter.current()
-    
-    // Clear previous notifications
-    cancelScheduledNotifications()
-    
-    // Generate unique identifiers
-    let startId = "pomodoro.start.\(UUID().uuidString)"
-    let endId = "pomodoro.end.\(UUID().uuidString)"
-    
-    // Store identifiers for later cancellation
-    currentNotificationIdentifiers = [startId, endId]
-    saveNotificationIdentifiers()
-    
-    // Старт
-    let startContent = UNMutableNotificationContent()
-    startContent.title = "Focus started"
-    startContent.body = "Blocking all apps for \(durationMinutes) minutes."
-    let startReq = UNNotificationRequest(
-      identifier: startId,
-      content: startContent,
-      trigger: UNTimeIntervalNotificationTrigger(timeInterval: 0.5, repeats: false)
-    )
-    center.add(startReq)
-    
-    // Финиш
-    let endContent = UNMutableNotificationContent()
-    endContent.title = "Focus finished"
-    endContent.body = "Time's up. Unblocking apps now."
-    let endReq = UNNotificationRequest(
-      identifier: endId,
-      content: endContent,
-      trigger: UNTimeIntervalNotificationTrigger(
-        timeInterval: max(1, unlockDate.timeIntervalSinceNow),
-        repeats: false
-      )
-    )
-    center.add(endReq)
-  }
-  
-  private func cancelScheduledNotifications() {
-    guard !currentNotificationIdentifiers.isEmpty else { return }
-    
-    let center = UNUserNotificationCenter.current()
-    center.removePendingNotificationRequests(withIdentifiers: currentNotificationIdentifiers)
-    
-    print("🍅 PomodoroBlockService: Cancelled notifications: \(currentNotificationIdentifiers)")
-    currentNotificationIdentifiers.removeAll()
-    clearSavedNotificationIdentifiers()
-  }
-  
-  // MARK: - Notification Identifiers Persistence
-  
-  private func saveNotificationIdentifiers() {
-    SharedData.userDefaults?.set(currentNotificationIdentifiers, forKey: notificationIdsKey)
-  }
-  
-  private func loadNotificationIdentifiers() {
-    currentNotificationIdentifiers = SharedData.userDefaults?.stringArray(forKey: notificationIdsKey) ?? []
-  }
-  
-  private func clearSavedNotificationIdentifiers() {
-    SharedData.userDefaults?.removeObject(forKey: notificationIdsKey)
   }
 }

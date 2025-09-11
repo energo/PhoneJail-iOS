@@ -147,14 +147,9 @@ class PomodoroViewModel: ObservableObject {
             HapticManager.shared.notification(type: .success)
         }
         
-        // Show notification if enabled
-        if notificationsEnabled {
-            let nextSession = currentSession % 4 == 0 ? "longBreak" : "break"
-            LocalNotificationManager.shared.schedulePomodoroSessionComplete(
-                sessionType: currentSessionType == .focus ? "focus" : "break",
-                nextSession: nextSession
-            )
-        }
+        // All notifications are already scheduled in startFocusSession
+        // No need to schedule them again here
+        print("🍅 Pomodoro: Session ended - notifications already scheduled")
         
         // Switch session type
         if currentSessionType == .focus {
@@ -170,6 +165,9 @@ class PomodoroViewModel: ObservableObject {
                 // Switch to break
                 self.currentSessionType = .breakTime
                 print("🍅 Pomodoro: Switching to break. autoStartBreak = \(self.autoStartBreak)")
+                
+                // Break start notification is already scheduled in startBreak()
+                
                 if self.autoStartBreak {
                     print("🍅 Pomodoro: Scheduling break start in 2 seconds")
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
@@ -184,6 +182,8 @@ class PomodoroViewModel: ObservableObject {
             // Switch back to focus
             currentSessionType = .focus
             currentSession += 1
+            
+            // Focus start notification is already scheduled in startFocusSession()
             
             if currentSession > totalSessions {
                 // All sessions completed
@@ -223,7 +223,7 @@ class PomodoroViewModel: ObservableObject {
         isHandlingSessionEnd = false // Reset flag when starting new session
         wasSessionStartedByUser = byUser // Mark if session was started by user
         isAutoStartedSequence = !byUser // Mark if it's part of auto sequence
-        let duration = focusDuration
+        _ = focusDuration
         
       showStartFocusDialog = true
         // Show confirmation dialog if all categories are blocked
@@ -243,6 +243,9 @@ class PomodoroViewModel: ObservableObject {
             )
             print("Pomodoro: Started session \(sessionId) for \(duration) minutes")
         }
+        
+        // Schedule ALL notifications for the entire pomodoro cycle
+        scheduleAllPomodoroNotifications(focusDuration: duration)
         
         // Start the Pomodoro service which handles both timer and blocking
         // PomodoroBlockService blocks all apps by default when allowWebBlock is true
@@ -266,6 +269,9 @@ class PomodoroViewModel: ObservableObject {
         isAutoStartedSequence = !byUser // Mark if it's part of auto sequence
         let duration = (currentSession % 4 == 0) ? longBreakDuration : breakDuration
         print("🍅 Pomodoro: Break duration = \(duration) minutes, blockDuringBreak = \(blockDuringBreak)")
+        
+        // All notifications are already scheduled in startFocusSession
+        // No need to schedule them again here
         
         if blockDuringBreak {
             // Continue blocking during break
@@ -303,6 +309,9 @@ class PomodoroViewModel: ObservableObject {
         isHandlingSessionEnd = false // Reset flag when manually stopping
         wasSessionStartedByUser = false // Reset flag when manually stopping
         isAutoStartedSequence = false // Reset auto sequence flag
+        
+        // Cancel any scheduled notifications
+        cancelScheduledNotifications()
         
         // End the blocking session logging
         Task { @MainActor in
@@ -544,5 +553,48 @@ class PomodoroViewModel: ObservableObject {
         
         // Start break session immediately
         startBreak(byUser: true)
+    }
+    
+    // MARK: - Notification Scheduling
+    
+    private func scheduleAllPomodoroNotifications(focusDuration: Int) {
+        guard notificationsEnabled else {
+            print("🍅 Pomodoro: Notifications disabled, skipping notification scheduling")
+            return
+        }
+        
+        print("🍅 Pomodoro: Scheduling all notifications for pomodoro cycle")
+        
+        // 1. Focus session start notification (immediate)
+        LocalNotificationManager.shared.schedulePomodoroSessionStarted(
+            sessionType: "focus",
+            nextSession: "break",
+            timeInterval: 0.1
+        )
+        
+        // 2. Focus session end notification (scheduled for when focus ends)
+        let focusEndTime = TimeInterval(focusDuration * 60) // Convert minutes to seconds
+        LocalNotificationManager.shared.scheduleFocusSessionEnded(timeInterval: focusEndTime)
+        
+        // 3. Break session start notification (scheduled for when break starts)
+        let breakStartTime = focusEndTime + 0.1 // Start break right after focus ends
+        LocalNotificationManager.shared.schedulePomodoroSessionStarted(
+            sessionType: "break",
+            nextSession: "focus",
+            timeInterval: breakStartTime
+        )
+        
+        // 4. Break session end notification (scheduled for when break ends)
+        let breakDurationMinutes = (currentSession % 4 == 0) ? longBreakDuration : breakDuration
+        let breakEndTime = breakStartTime + TimeInterval(breakDurationMinutes * 60)
+        LocalNotificationManager.shared.scheduleBreakSessionEnded(timeInterval: breakEndTime)
+        
+        print("🍅 Pomodoro: All notifications scheduled successfully")
+    }
+    
+    // MARK: - Notification Management
+    
+    private func cancelScheduledNotifications() {
+        LocalNotificationManager.shared.cancelScheduledPomodoroNotifications()
     }
 }
