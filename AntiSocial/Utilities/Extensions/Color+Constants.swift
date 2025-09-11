@@ -107,6 +107,13 @@ extension Color {
     startPoint: .trailing,
     endPoint: .leading
   )
+  
+  static let as_gradient_green = LinearGradient(
+    colors: [Color(hex: "23F48F"),
+             Color(hex: "3D47C4")],
+    startPoint: .topTrailing,
+    endPoint: .bottomLeading
+  )
 
   static let as_gradietn_time_text = LinearGradient(
     stops: [

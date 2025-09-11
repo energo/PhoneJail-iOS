@@ -18,7 +18,7 @@ struct RoundedPicker<T: Identifiable & Hashable>: View {
   var body: some View {
     HStack {
       Text(title)
-        .foregroundColor(Color.as_white_light)
+        .foregroundColor(Color.white)
         .font(.system(size: 14, weight: .regular))
       Menu {
         ForEach(options) { option in
@@ -30,22 +30,23 @@ struct RoundedPicker<T: Identifiable & Hashable>: View {
         }
       } label: {
         HStack {
+          Spacer()
+
           Text(labelProvider(selected))
-            .foregroundColor(.white)
+            .foregroundColor(Color.as_white_light)
             .font(.system(size: 12, weight: .regular))
-          
-          Image(systemName: "chevron.up.chevron.down")
-            .foregroundColor(.white)
-            .font(.system(size: 12))
+
+          Image(systemName: "chevron.right")
+            .foregroundColor(Color.as_white_light)
         }
-        .padding(.horizontal, 12)
+//        .padding(.horizontal, 12)
         .padding(.vertical, 6)
-        .background(Color.white.opacity(0.1))
-        .cornerRadius(20)
+//        .background(Color.white.opacity(0.1))
+//        .cornerRadius(20)
       }
       .preferredColorScheme(.dark)
       
-      Spacer()
+//      Spacer()
     }
   }
 }
