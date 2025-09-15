@@ -150,7 +150,9 @@ struct AppInterruptionsSectionView: View {
           }
         ),
                            onText: "On",
-                           offText: "Off")
+                           offText: "Off",
+                           shouldValidate: true,
+                           validationCheck: { viewModel.hasSelectedApps() })
         .frame(width: 80)
 
 //        Toggle("", isOn: Binding(

@@ -89,6 +89,10 @@ class AppInterruptionViewModel: ObservableObject {
     return true
   }
   
+  func hasSelectedApps() -> Bool {
+    return !model.activitySelection.applicationTokens.isEmpty || !model.activitySelection.categoryTokens.isEmpty
+  }
+  
   func startMonitoring() {
     let timeLimitMinutes = selectedInterruptionTime.minutes
     

@@ -18,6 +18,11 @@ struct CustomToggleButton: View {
   var hapticFeedback: Bool = true
   var onAction: (() -> Void)? = nil
   var offAction: (() -> Void)? = nil
+  
+  // Shake effect parameters
+  var shouldValidate: Bool = false
+  var validationCheck: (() -> Bool)? = nil
+  @State private var shakeTrigger: CGFloat = 0
 
   var height: CGFloat = 34
   var textGap: CGFloat = 8      // ← минимальный отступ между шайбой и текстом (4/8/16)
@@ -25,6 +30,15 @@ struct CustomToggleButton: View {
 
   var body: some View {
     Button {
+      // Check validation if needed
+      if shouldValidate && !isOn {
+        if let validationCheck = validationCheck, !validationCheck() {
+          // Validation failed - trigger shake effect
+          triggerShakeEffect()
+          return
+        }
+      }
+      
       if hapticFeedback {
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
       }
@@ -81,6 +95,14 @@ struct CustomToggleButton: View {
     .buttonStyle(.plain)
     .accessibilityLabel(isOn ? onText : offText)
     .accessibilityAddTraits(.isButton)
+    .modifier(ShakeEffect(animatableData: shakeTrigger))
+  }
+  
+  private func triggerShakeEffect() {
+    HapticManager.shared.notification(type: .error)
+    withAnimation(.default) {
+      shakeTrigger += 1
+    }
   }
 }
 
