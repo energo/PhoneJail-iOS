@@ -10,6 +10,7 @@ import FamilyControls
 
 struct PomodoroSectionView: View {
   @StateObject private var viewModel = PomodoroViewModel()
+  @Environment(\.scenePhase) private var scenePhase
   @State private var showingSettings = false
   @State private var showCompletionAnimation = false
   @State private var showingAppPicker = false
@@ -22,6 +23,15 @@ struct PomodoroSectionView: View {
   var body: some View {
     contentView
       .animation(.easeInOut(duration: 0.3), value: viewModel.currentState)
+      .onAppear {
+        // Restore UI if a focus/break session is active while app was closed
+        viewModel.restoreFromPersistentState()
+      }
+      .onChange(of: scenePhase) { newPhase in
+        if newPhase == .active {
+          viewModel.restoreFromPersistentState()
+        }
+      }
   }
   
   private var contentView: some View {

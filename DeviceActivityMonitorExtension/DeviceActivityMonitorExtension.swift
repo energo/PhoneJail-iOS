@@ -48,6 +48,8 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
 
     // Pomodoro start: apply restrictions using saved selection
     if activity == .pomodoro {
+      // Mark that we're in focus phase
+      SharedData.userDefaults?.set(false, forKey: "pomodoro.isBreakPhase")
       // Load selection saved by app
       var selection = FamilyActivitySelection()
       if let data = SharedData.userDefaults?.data(forKey: "pomodoroSelectedApps"),
@@ -171,10 +173,12 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         SharedData.userDefaults?.set(endDate.timeIntervalSince1970, forKey: "pomodoro.unlockDate")
         SharedData.userDefaults?.set("break", forKey: SharedData.Pomodoro.currentSessionType)
         SharedData.userDefaults?.set(blockDuringBreak, forKey: "pomodoro.isBlockingPhase")
+        SharedData.userDefaults?.set(true, forKey: "pomodoro.isBreakPhase")
         SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked) // ensure AppBlocking UI stays off
       } else {
         // No break auto-start
         SharedData.userDefaults?.removeObject(forKey: "pomodoro.unlockDate")
+        SharedData.userDefaults?.set(false, forKey: "pomodoro.isBreakPhase")
       }
     }
   }

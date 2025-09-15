@@ -20,11 +20,15 @@ final class PomodoroBlockService: ObservableObject {
   
   // MARK: - Public state
   @Published private(set) var isActive: Bool = false
+  @Published private(set) var isFocusActive: Bool = false
+  @Published private(set) var isBreakActive: Bool = false
   @Published private(set) var remainingSeconds: Int = 0
   @Published private(set) var isPaused: Bool = false
   // Whether current session should actually block apps
   private var isBlockingApps: Bool = true
-
+  // Umbrella session state
+  @Published var session = PomodoroSession()
+  
   // MARK: - Internals
   private let store = ManagedSettingsStore(named: .pomodoro)
   private var ticker: AnyCancellable?
@@ -36,7 +40,7 @@ final class PomodoroBlockService: ObservableObject {
   
   // MARK: - API
   /// Запускает помодоро-сессию на N минут. Если blockApps=false — только таймер без блокировки.
-  func start(minutes: Int, isStrictBlock: Bool = false, selectionActivity: FamilyActivitySelection, blockApps: Bool = true) {
+  func start(minutes: Int, isStrictBlock: Bool = false, selectionActivity: FamilyActivitySelection, blockApps: Bool = true, phase: String = "focus") {
     let m = max(1, minutes)
     let unlockDate = Date().addingTimeInterval(TimeInterval(m * 60))
     SharedData.userDefaults?.set(unlockDate.timeIntervalSince1970, forKey: defaultsKey)
@@ -48,8 +52,24 @@ final class PomodoroBlockService: ObservableObject {
     SharedData.userDefaults?.set(isStrictBlock, forKey: "pomodoroIsStrictBlock")
     
     // Запускаем мониторинг через DeviceActivityMonitor (расширение применит/снимет ограничения)
+    // Также накладываем щит локально сразу, чтобы избежать задержки до реакции extension
     isBlockingApps = blockApps
+    // Update phase flags
+    if phase == "focus" {
+      isFocusActive = true
+      isBreakActive = false
+    } else {
+      isBreakActive = true
+      isFocusActive = false
+    }
     if blockApps {
+      // Apply shield immediately in app process
+      ShieldService.shared.setShieldRestrictions(for: selectionActivity, storeName: .pomodoro)
+      if isStrictBlock {
+        let pomodoroStore = ManagedSettingsStore(named: .pomodoro)
+        pomodoroStore.application.denyAppRemoval = true
+      }
+      // Start monitoring so extension can maintain lifecycle and cleanup
       DeviceActivityScheduleService.setPomodoroSchedule(endAt: unlockDate)
     }
     
@@ -60,17 +80,22 @@ final class PomodoroBlockService: ObservableObject {
   }
   
   /// Принудительно завершает текущую сессию. completed=true — считать завершенной (фокус выполнен).
-  func stop(completed: Bool = false) {
+  func stop(reason: PomodoroSession.EndReason = .manualStop, completed: Bool = false) {
     print("🍅 PomodoroBlockService: stop() called, isActive was \(isActive)")
     // Остановить мониторинг и снять ограничения
     DeviceActivityScheduleService.stopPomodoroSchedule()
     ShieldService.shared.stopAppRestrictions(storeName: .pomodoro)
     SharedData.userDefaults?.removeObject(forKey: defaultsKey)
+    SharedData.userDefaults?.removeObject(forKey: "pomodoro.isBreakPhase")
     SharedData.userDefaults?.removeObject(forKey: "pomodoro.isBlockingPhase")
     ticker?.cancel()
     
     isActive = false
-    remainingSeconds = 0
+    // End both phase flags
+    isFocusActive = false
+    isBreakActive = false
+    // Set remaining to zero only on completion; keep otherwise to help UI distinguish manual stop
+    if completed { remainingSeconds = 0 }
     isPaused = false
     pausedAt = nil
     originalUnlockDate = nil
@@ -78,6 +103,7 @@ final class PomodoroBlockService: ObservableObject {
     Task { @MainActor in
       AppBlockingLogger.shared.endSession(type: .pomodoro, completed: completed)
     }
+    session.end(reason: reason)
     print("🍅 PomodoroBlockService: stop() completed, isActive now \(isActive)")
   }
   
@@ -178,7 +204,7 @@ final class PomodoroBlockService: ObservableObject {
         self.remainingSeconds = max(0, left)
         if left <= 0 {
           print("🍅 PomodoroBlockService: Timer reached 0, calling stop()")
-          self.stop(completed: true) // снимет щит и почистит стейт
+          self.stop(reason: .autoTimer, completed: true) // снимет щит и почистит стейт
         }
       }
   }
@@ -192,10 +218,34 @@ final class PomodoroBlockService: ObservableObject {
       // Restore blocking flag for current phase (focus/break)
       let isBlockingPhase = SharedData.userDefaults?.bool(forKey: "pomodoro.isBlockingPhase") ?? true
       isBlockingApps = isBlockingPhase
+      // If we're in a break phase with blocking enabled, reapply schedule so shields are active again
+      let isBreakPhase = SharedData.userDefaults?.bool(forKey: "pomodoro.isBreakPhase") ?? false
+      if isBlockingApps {
+        // Immediately reapply shield locally to avoid a gap until the extension reacts
+        if let data = SharedData.userDefaults?.data(forKey: "pomodoroSelectedApps"),
+           let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: data) {
+          ShieldService.shared.setShieldRestrictions(for: selection, storeName: .pomodoro)
+          if SharedData.userDefaults?.bool(forKey: "pomodoroIsStrictBlock") ?? false {
+            let pomodoroStore = ManagedSettingsStore(named: .pomodoro)
+            pomodoroStore.application.denyAppRemoval = true
+          }
+        }
+        // Also (re)start monitoring so the extension can manage lifecycle and cleanup
+        DeviceActivityScheduleService.stopPomodoroSchedule()
+        DeviceActivityScheduleService.setPomodoroSchedule(endAt: unlock)
+      }
+      // Set phase flags
+      if isBreakPhase {
+        isBreakActive = true
+        isFocusActive = false
+      } else {
+        isFocusActive = true
+        isBreakActive = false
+      }
       isActive = true
     } else {
-      // Session expired, stop
-      stop()
+      // Session expired, stop as autoTimer
+      stop(reason: .autoTimer, completed: true)
     }
   }
   
