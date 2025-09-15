@@ -25,7 +25,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   override func intervalDidStart(for activity: DeviceActivityName) {
     super.intervalDidStart(for: activity)
     
-    // Debug notification
+//     Debug notification
 //    LocalNotificationManager.scheduleExtensionNotification(
 //      title: "🔄 Interval Did Start",
 //      details: "\(activity.rawValue)"
@@ -159,7 +159,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       if autoStartBreak {
         // Determine break duration (short or long every N sessions)
         let totalSessions = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.totalSessions) ?? 4
-        var currentSession = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.currentSession) ?? 1
+        let currentSession = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.currentSession) ?? 1
         let longBreakDuration = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.longBreakDuration) ?? 15
         let breakDuration = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.breakDuration) ?? 5
         let blockDuringBreak = SharedData.userDefaults?.bool(forKey: "pomodoroBlockDuringBreak") ?? false

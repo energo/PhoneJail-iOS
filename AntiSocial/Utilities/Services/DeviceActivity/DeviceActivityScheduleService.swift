@@ -155,11 +155,9 @@ class DeviceActivityScheduleService {
 
   // MARK: - Pomodoro
   static func setPomodoroSchedule(endAt endDate: Date) {
-    let now = Date()
-    let intervalStart = Calendar.current.dateComponents([.hour, .minute, .second], from: now)
     let intervalEnd = Calendar.current.dateComponents([.hour, .minute, .second], from: endDate)
     let schedule = DeviceActivitySchedule(
-      intervalStart: intervalStart,
+      intervalStart: DateComponents(hour: 0, minute: 0),
       intervalEnd: intervalEnd,
       repeats: false
     )

@@ -482,7 +482,7 @@ class PomodoroViewModel: ObservableObject {
     let ts = SharedData.userDefaults?.double(forKey: "pomodoro.unlockDate") ?? 0
     let isFuture = ts > now
     let isBreakPhase = SharedData.userDefaults?.bool(forKey: "pomodoro.isBreakPhase") ?? false
-    let serviceActive = pomodoroService.isActive
+    let isFocusActive = SharedData.userDefaults?.bool(forKey: "pomodoro.isBlockingPhase") ?? false
 
     // Handle explicit break phase restoration (only if we have time left)
     if isBreakPhase {
@@ -503,7 +503,7 @@ class PomodoroViewModel: ObservableObject {
     }
 
     // Otherwise, rely on active service or future unlock date for focus phase
-    if serviceActive || isFuture {
+    if isFocusActive || isFuture {
       let typeString = SharedData.userDefaults?.string(forKey: SharedData.Pomodoro.currentSessionType) ?? "focus"
       currentSessionType = (typeString == "break") ? .breakTime : .focus
       isRunning = true
