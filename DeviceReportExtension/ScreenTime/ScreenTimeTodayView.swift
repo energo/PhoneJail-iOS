@@ -25,7 +25,6 @@ struct ScreenTimeTodayView: View {
   // Cache management
   @AppStorage(SharedData.ScreenTime.lastScreenTimeRefresh, store: SharedData.userDefaults) private var lastRefreshTimestamp: Double = 0
   
-  @State private var refreshID = UUID()
   @State private var isFirstLoad = true
   
   
@@ -54,9 +53,12 @@ struct ScreenTimeTodayView: View {
       
       DeviceActivityReport(context, filter: filter)
         .padding(0)
-        .id(refreshID)
         .onAppear {
           handleOnAppear()
+        }
+        .onChange(of: lastRefreshTimestamp) { _ in
+          // When extension updates the shared timestamp, refresh the report
+          refreshReport()
         }
 
     }
@@ -79,10 +81,6 @@ struct ScreenTimeTodayView: View {
     }
   }
   
-  private func forceRefresh() {
-    refreshReport()
-  }
-  
   private func refreshReport() {
     // Update the filter to ensure we're getting today's data
     filter = DeviceActivityFilter(
@@ -93,9 +91,7 @@ struct ScreenTimeTodayView: View {
       devices: .init([.iPhone])
     )
     
-    // Trigger report refresh
-    refreshID = UUID()
-    lastRefreshTimestamp = Date().timeIntervalSince1970
+    // Updating filter triggers DeviceActivityReport to reload
     
     // After a delay, mark as loaded
     DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {

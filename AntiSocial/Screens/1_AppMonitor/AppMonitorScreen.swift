@@ -26,14 +26,17 @@ struct AppMonitorScreen: View {
   @StateObject var vmScreenInteraption = AppInterruptionViewModel()
   @StateObject var vmScreenAlert = ScreenTimeAlertViewModel()
   
-  @State var statsView = ActivityReportView()
+  // Keep ScreenTimeTodayView instance to avoid unnecessary recreation
   @State var screenTimeView = ScreenTimeTodayView()
+  @State var statsView = ActivityReportView()
+  // Single refresh key used by pull-to-refresh and restore foregrounding
+  @State private var screenTimeRefreshID = UUID()
+
 
   // MARK: - UI State
   @State private var isShowingProfile: Bool = false
   @State private var offsetY: CGFloat = .zero
   @State private var headerHeight: CGFloat = UIScreen.main.bounds.height * 0.30
-  @State private var screenTimeID = UUID()
   @State private var lastRefreshDate = Date()
   
   // MARK: - Navigation State
@@ -251,6 +254,7 @@ private extension AppMonitorScreen {
   
   var statsContent: some View {
     statsView
+      .id(screenTimeRefreshID)
       .frame(maxWidth: .infinity)
       .frame(minHeight: 500)
       .frame(maxHeight: .infinity)
@@ -325,8 +329,8 @@ private extension AppMonitorScreen {
   }
   
   var screenTimeSection: some View {
-//    ScreenTimeTodayView(id: screenTimeID)
     screenTimeView
+      .id(screenTimeRefreshID)
       .opacity(currentSection == SectionType.pomodoro.rawValue ? 0 : 1)
       .animation(.easeInOut(duration: 0.3), value: currentSection)
   }
@@ -480,7 +484,8 @@ private extension AppMonitorScreen {
   }
   
   func refreshScreenTime() {
-    screenTimeID = UUID()
+    screenTimeRefreshID = UUID()
+    lastRefreshDate = Date()
   }
 }
 
