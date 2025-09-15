@@ -283,13 +283,7 @@ class PomodoroViewModel: ObservableObject {
     }
     
     private func startFocusSession(duration: Int) {
-        // Log the blocking session
-        Task { @MainActor in
-            let sessionId = AppBlockingLogger.shared.startAppBlockingSessionForCategories(
-                duration: TimeInterval(duration * 60)
-            )
-            print("Pomodoro: Started session \(sessionId) for \(duration) minutes")
-        }
+        // Logging is now handled by DeviceActivityMonitorExtension when Pomodoro interval starts
         
         // Schedule ALL notifications for the entire pomodoro cycle
         scheduleAllPomodoroNotifications(focusDuration: duration)
@@ -299,7 +293,8 @@ class PomodoroViewModel: ObservableObject {
         
         pomodoroService.start(
             minutes: duration,
-            selectionActivity: selectionActivity
+            selectionActivity: selectionActivity,
+            blockApps: true
         )
         isPaused = false
         // updateCurrentState() will be called by the binding when isRunning changes
@@ -326,20 +321,22 @@ class PomodoroViewModel: ObservableObject {
             // Continue blocking during break
             pomodoroService.start(
                 minutes: duration,
-                selectionActivity: selectionActivity
+                selectionActivity: selectionActivity,
+                blockApps: true
             )
         } else {
             // Don't block during break - stop the service first then restart just for timer
             // Set flag to prevent handleSessionEnd from being called again
             isHandlingSessionEnd = true
-            pomodoroService.stop()
+            pomodoroService.stop(completed: true)
             // Small delay to ensure clean stop
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
               guard let self else { return }
               
                 self.pomodoroService.start(
                     minutes: duration,
-                    selectionActivity: self.selectionActivity
+                    selectionActivity: self.selectionActivity,
+                    blockApps: false
                 )
                 // Reset flag after starting break
                 self.isHandlingSessionEnd = false
@@ -633,18 +630,14 @@ class PomodoroViewModel: ObservableObject {
         cancelScheduledNotifications()
         print("🍅 Pomodoro: Cancelled current notifications")
         
-        // Stop the current focus session
-        pomodoroService.stop()
+        // Stop the current focus session and mark it as completed
+        pomodoroService.stop(completed: true)
         
         // Update statistics for the completed focus session
         let sessionDuration = focusDuration * 60
         updateStatistics(focusTimeAdded: sessionDuration)
         
-        // Log session completion
-        Task { @MainActor in
-            AppBlockingLogger.shared.endSession(type: .appBlocking, completed: true)
-            print("Pomodoro: Focus session completed (skipped to break)")
-        }
+        // Logging handled by PomodoroBlockService.stop(completed:)
         
         // Switch to break session
         currentSessionType = .breakTime

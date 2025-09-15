@@ -22,56 +22,49 @@ final class PomodoroBlockService: ObservableObject {
   @Published private(set) var isActive: Bool = false
   @Published private(set) var remainingSeconds: Int = 0
   @Published private(set) var isPaused: Bool = false
-  
+  // Whether current session should actually block apps
+  private var isBlockingApps: Bool = true
+
   // MARK: - Internals
   private let store = ManagedSettingsStore(named: .pomodoro)
   private var ticker: AnyCancellable?
   private let defaultsKey = "pomodoro.unlockDate"
-  private let bgTaskId = "com.app.antisocial.pomodoro.unlock"
   
   // Pause state
   private var pausedAt: Date?
   private var originalUnlockDate: Date?
   
-  // Register once in AppDelegate/SceneDelegate:
-  // BGTaskScheduler.shared.register(forTaskWithIdentifier: "com.app.antisocial.pomodoro.unlock", using: nil) { task in
-  //     PomodoroBlockService.shared.handleUnlockBGTask(task: task as! BGAppRefreshTask)
-  // }
-
   // MARK: - API
-  /// Запускает помодоро-блок на N минут (минимум 1)
-  func start(minutes: Int, isStrictBlock: Bool = false, selectionActivity: FamilyActivitySelection) {
+  /// Запускает помодоро-сессию на N минут. Если blockApps=false — только таймер без блокировки.
+  func start(minutes: Int, isStrictBlock: Bool = false, selectionActivity: FamilyActivitySelection, blockApps: Bool = true) {
     let m = max(1, minutes)
     let unlockDate = Date().addingTimeInterval(TimeInterval(m * 60))
     SharedData.userDefaults?.set(unlockDate.timeIntervalSince1970, forKey: defaultsKey)
     
-    // 1) Вешаем щит на всё
-    if selectionActivity.applicationTokens.isEmpty && selectionActivity.categoryTokens.isEmpty {
-      store.shield.applicationCategories = .all()
-//      store.shield.webDomainCategories = .all()
-    } else {
-      store.shield.applications = selectionActivity.applicationTokens
-      store.shield.applicationCategories = (selectionActivity.categoryTokens.isEmpty)
-      ? nil
-      : ShieldSettings.ActivityCategoryPolicy.specific(selectionActivity.categoryTokens)
-      store.shield.webDomains = selectionActivity.webDomainTokens
-
-      store.application.denyAppRemoval = isStrictBlock
+    // Сохраняем выбранные приложения (используется в расширении)
+    if let data = try? JSONEncoder().encode(selectionActivity) {
+      SharedData.userDefaults?.set(data, forKey: "pomodoroSelectedApps")
     }
-        
-    // 4) Тикер для UI + авто-снятие
-    startTicker(unlockDate: unlockDate)
+    SharedData.userDefaults?.set(isStrictBlock, forKey: "pomodoroIsStrictBlock")
     
-    // 5) Резервный фоновый «разблокировщик»
-    scheduleBGUnlock(at: unlockDate)
+    // Запускаем мониторинг через DeviceActivityMonitor (расширение применит/снимет ограничения)
+    isBlockingApps = blockApps
+    if blockApps {
+      DeviceActivityScheduleService.setPomodoroSchedule(endAt: unlockDate)
+    }
+    
+    // Тикер для UI + авто-снятие в активном приложении
+    startTicker(unlockDate: unlockDate)
     
     isActive = true
   }
   
-  /// Принудительно снимает блок
-  func stop() {
+  /// Принудительно завершает текущую сессию. completed=true — считать завершенной (фокус выполнен).
+  func stop(completed: Bool = false) {
     print("🍅 PomodoroBlockService: stop() called, isActive was \(isActive)")
-    clearShield()
+    // Остановить мониторинг и снять ограничения
+    DeviceActivityScheduleService.stopPomodoroSchedule()
+    ShieldService.shared.stopAppRestrictions(storeName: .pomodoro)
     SharedData.userDefaults?.removeObject(forKey: defaultsKey)
     ticker?.cancel()
     
@@ -80,6 +73,10 @@ final class PomodoroBlockService: ObservableObject {
     isPaused = false
     pausedAt = nil
     originalUnlockDate = nil
+    // Завершить логирование
+    Task { @MainActor in
+      AppBlockingLogger.shared.endSession(type: .appBlocking, completed: completed)
+    }
     print("🍅 PomodoroBlockService: stop() completed, isActive now \(isActive)")
   }
   
@@ -114,6 +111,12 @@ final class PomodoroBlockService: ObservableObject {
     // Перезапускаем тикер
     startTicker(unlockDate: newUnlockDate)
     
+    // Переназначаем расписание для блокировки, если она включена
+    if isBlockingApps {
+      DeviceActivityScheduleService.stopPomodoroSchedule()
+      DeviceActivityScheduleService.setPomodoroSchedule(endAt: newUnlockDate)
+    }
+    
     isPaused = false
     self.pausedAt = nil
     self.originalUnlockDate = nil
@@ -121,8 +124,6 @@ final class PomodoroBlockService: ObservableObject {
   
   /// Экстренная очистка ВСЕХ блокировок (для отладки)
   func emergencyClearAllBlocks() {
-    // Очищаем Pomodoro store
-    clearShield()
     
     // Очищаем другие возможные stores
     let appBlockingStore = ManagedSettingsStore(named: .appBlocking)
@@ -160,26 +161,7 @@ final class PomodoroBlockService: ObservableObject {
 
     print("🚨 Emergency clear: All blocks removed")
   }
-  
-  // MARK: - Background task handler
-  func handleUnlockBGTask(task: BGAppRefreshTask) {
-    // Если уже пора — снять блок; если нет — перезапланировать
-    if let unlock = savedUnlockDate() {
-      if Date() >= unlock {
-        clearShield()
-        SharedData.userDefaults?.removeObject(forKey: defaultsKey)
-        isActive = false
-        remainingSeconds = 0
-        task.setTaskCompleted(success: true)
-      } else {
-        scheduleBGUnlock(at: unlock)
-        task.setTaskCompleted(success: true)
-      }
-    } else {
-      task.setTaskCompleted(success: true)
-    }
-  }
-  
+    
   // MARK: - Helpers
   private func startTicker(unlockDate: Date) {
     ticker?.cancel()
@@ -192,7 +174,7 @@ final class PomodoroBlockService: ObservableObject {
         self.remainingSeconds = max(0, left)
         if left <= 0 {
           print("🍅 PomodoroBlockService: Timer reached 0, calling stop()")
-          self.stop() // снимет щит и почистит стейт
+          self.stop(completed: true) // снимет щит и почистит стейт
         }
       }
   }
@@ -201,9 +183,7 @@ final class PomodoroBlockService: ObservableObject {
     
     guard let unlock = savedUnlockDate() else { return }
     if Date() < unlock {
-      // Приложение перезапустили — вернуть «щит» и тикер
-//      store.shield.applicationCategories = .all()
-//      store.shield.webDomainCategories = .all()
+      // Приложение перезапустили — восстановить тикер. Ограничения поднимет расширение.
       startTicker(unlockDate: unlock)
       isActive = true
     } else {
@@ -220,20 +200,5 @@ final class PomodoroBlockService: ObservableObject {
     }
     
     return Date(timeIntervalSince1970: ts)
-  }
-  
-  private func clearShield() {
-    store.shield.applications = []
-    store.shield.applicationCategories = Optional.none
-    store.shield.webDomains = []
-    store.shield.webDomainCategories = ShieldSettings.ActivityCategoryPolicy<WebDomain>.none
-  }
-  
-  private func scheduleBGUnlock(at date: Date) {
-    // Требуется capability Background fetch + Permitted identifiers в Info.plist
-    let req = BGAppRefreshTaskRequest(identifier: bgTaskId)
-    req.earliestBeginDate = date
-    do { try BGTaskScheduler.shared.submit(req) }
-    catch { print("BGTask submit failed:", error) }
   }
 }

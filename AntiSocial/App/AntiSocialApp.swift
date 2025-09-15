@@ -13,17 +13,12 @@ import AppTrackingTransparency
 //import FBSDKCoreKit_Basics
 import DeviceActivity
 import BackgroundTasks
-//import FamilyControls
 
 class AppDelegate: NSObject, UIApplicationDelegate {
   func application(_ application: UIApplication,
                    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
     FirebaseApp.configure()
     
-    // Register Pomodoro background task
-    BGTaskScheduler.shared.register(forTaskWithIdentifier: "com.app.antisocial.pomodoro.unlock", using: nil) { task in
-      PomodoroBlockService.shared.handleUnlockBGTask(task: task as! BGAppRefreshTask)
-    }
     
     //    Settings.shared.isAdvertiserIDCollectionEnabled = true
     //    Settings.shared.isAutoLogAppEventsEnabled = true

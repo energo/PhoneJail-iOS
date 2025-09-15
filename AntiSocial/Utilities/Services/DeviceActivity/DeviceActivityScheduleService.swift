@@ -18,6 +18,7 @@ extension DeviceActivityName {
   static let appBlockingInterruption = Self("Block Apps Interruption")
   static let appMonitoringAlert = Self("Monitoring Alert App")
   static let appMonitoringInterruption = Self("Monitoring Interruption App")
+  static let pomodoro = Self("Pomodoro Focus")
 }
 
 extension DeviceActivityEvent.Name {
@@ -151,5 +152,28 @@ class DeviceActivityScheduleService {
   static func stopInterruptionSchedule() {
     center.stopMonitoring([.appBlockingInterruption])
   }
-}
 
+  // MARK: - Pomodoro
+  static func setPomodoroSchedule(endAt endDate: Date) {
+    let intervalEnd = Calendar.current.dateComponents([.hour, .minute, .second], from: endDate)
+    let schedule = DeviceActivitySchedule(
+      intervalStart: DateComponents(hour: 0, minute: 0),
+      intervalEnd: intervalEnd,
+      repeats: false
+    )
+    do {
+      try center.startMonitoring(.pomodoro, during: schedule)
+    } catch {
+      print("Failed to start Pomodoro schedule: \(error)")
+    }
+  }
+  
+  static func setPomodoroSchedule(durationMinutes: Int) {
+    let endDate = Calendar.current.date(byAdding: .minute, value: max(1, durationMinutes), to: Date()) ?? Date()
+    setPomodoroSchedule(endAt: endDate)
+  }
+  
+  static func stopPomodoroSchedule() {
+    center.stopMonitoring([.pomodoro])
+  }
+}

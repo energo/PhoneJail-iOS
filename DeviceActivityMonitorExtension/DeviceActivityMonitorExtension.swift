@@ -45,6 +45,35 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       handleScheduleStart(scheduleId: scheduleId)
       return
     }
+
+    // Pomodoro start: apply restrictions using saved selection
+    if activity == .pomodoro {
+      // Load selection saved by app
+      var selection = FamilyActivitySelection()
+      if let data = SharedData.userDefaults?.data(forKey: "pomodoroSelectedApps"),
+         let decoded = try? JSONDecoder().decode(FamilyActivitySelection.self, from: data) {
+        selection = decoded
+      }
+
+      // Apply shield restrictions to the dedicated Pomodoro store
+      ShieldService.shared.setShieldRestrictions(for: selection, storeName: .pomodoro)
+
+      // Strict mode: deny app removal if enabled
+      let isStrict = SharedData.userDefaults?.bool(forKey: "pomodoroIsStrictBlock") ?? false
+      if isStrict {
+        let pomodoroStore = ManagedSettingsStore(named: .pomodoro)
+        pomodoroStore.application.denyAppRemoval = true
+      }
+
+      // Start logging a blocking session for categories with expected duration if available
+      if let ts = SharedData.userDefaults?.double(forKey: "pomodoro.unlockDate"), ts > 0 {
+        let duration = max(0, ts - Date().timeIntervalSince1970)
+        Task { @MainActor in
+          _ = AppBlockingLogger.shared.startAppBlockingSessionForCategories(duration: duration)
+        }
+      }
+      return
+    }
   }
   
   override func intervalDidEnd(for activity: DeviceActivityName) {
@@ -113,6 +142,14 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       if isEnabled {
         // Перезапускаем мониторинг после окончания блокировки
         restartMonitoring(for: .appMonitoringInterruption)
+      }
+    }
+    else if activity == .pomodoro {
+      // End of Pomodoro session: clear restrictions and end logging
+      ShieldService.shared.stopAppRestrictions(storeName: .pomodoro)
+      SharedData.userDefaults?.removeObject(forKey: "pomodoro.unlockDate")
+      Task { @MainActor in
+        AppBlockingLogger.shared.endSession(type: .appBlocking, completed: true)
       }
     }
   }
