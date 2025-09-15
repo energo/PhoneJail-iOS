@@ -183,7 +183,7 @@ class PomodoroViewModel: ObservableObject {
             updateStatistics(focusTimeAdded: sessionDuration)
             
             Task { @MainActor in
-                AppBlockingLogger.shared.endSession(type: .appBlocking, completed: true)
+                AppBlockingLogger.shared.endSession(type: .pomodoro, completed: true)
                 print("Pomodoro: Focus session completed")
             }
         }
@@ -285,6 +285,11 @@ class PomodoroViewModel: ObservableObject {
     private func startFocusSession(duration: Int) {
         // Logging is now handled by DeviceActivityMonitorExtension when Pomodoro interval starts
         
+        // Persist state for restore after relaunch
+        saveSettings()
+        SharedData.userDefaults?.set("focus", forKey: SharedData.Pomodoro.currentSessionType)
+        SharedData.userDefaults?.set(true, forKey: "pomodoro.isBlockingPhase")
+
         // Schedule ALL notifications for the entire pomodoro cycle
         scheduleAllPomodoroNotifications(focusDuration: duration)
         
@@ -311,6 +316,10 @@ class PomodoroViewModel: ObservableObject {
         wasSessionStartedByUser = byUser // Mark if break was started by user
         isAutoStartedSequence = !byUser // Mark if it's part of auto sequence
         updateCurrentState()
+        // Persist break state for restore after relaunch
+        saveSettings()
+        SharedData.userDefaults?.set("break", forKey: SharedData.Pomodoro.currentSessionType)
+        SharedData.userDefaults?.set(blockDuringBreak, forKey: "pomodoro.isBlockingPhase")
         let duration = (currentSession % 4 == 0) ? longBreakDuration : breakDuration
         print("🍅 Pomodoro: Break duration = \(duration) minutes, blockDuringBreak = \(blockDuringBreak)")
         
@@ -378,7 +387,7 @@ class PomodoroViewModel: ObservableObject {
         
         // End the blocking session logging
         Task { @MainActor in
-            AppBlockingLogger.shared.endSession(type: .appBlocking, completed: false)
+            AppBlockingLogger.shared.endSession(type: .pomodoro, completed: false)
             print("Pomodoro: Stopped blocking apps")
         }
     }
@@ -645,6 +654,8 @@ class PomodoroViewModel: ObservableObject {
         wasSessionStartedByUser = true // Mark as user-initiated
         isAutoStartedSequence = false
         updateCurrentState()
+        // Persist state change
+        saveSettings()
         
         // Schedule new notifications for break session
         scheduleBreakNotifications()

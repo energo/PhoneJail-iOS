@@ -245,6 +245,14 @@ public class SharedData {
       }
     }
     
+    // Also check for active pomodoro session
+    if let pomodoroData = userDefaults?.data(forKey: "active_pomodoro_session"),
+       let pomodoroSession = try? JSONDecoder().decode(BlockingSession.self, from: pomodoroData) {
+      if calendar.isDate(pomodoroSession.startTime, inSameDayAs: date) {
+        allSessions.append(pomodoroSession)
+      }
+    }
+    
     // Also check for active interruption session
     if let interruptionData = userDefaults?.data(forKey: "active_interruption_session"),
        let interruptionSession = try? JSONDecoder().decode(BlockingSession.self, from: interruptionData) {
@@ -397,4 +405,3 @@ public class SharedData {
     }
   }
 }
-

@@ -14,6 +14,7 @@ enum BlockingType: String, Codable {
     case appBlocking      // Focus Time - ручная блокировка пользователем
     case appInterruption  // Автоматическая блокировка при превышении лимита
     case scheduleBlocking // Автоматическая блокировка по расписанию
+    case pomodoro         // Фокус сессия Помодоро
 }
 
 // MARK: - Data Models
@@ -85,6 +86,7 @@ final class AppBlockingLogger: ObservableObject {
     @Published private(set) var activeAppBlockingSession: BlockingSession?
     @Published private(set) var activeInterruptionSession: BlockingSession?
     @Published private(set) var activeScheduleSessions: [String: BlockingSession] = [:] // Key is session ID
+    @Published private(set) var activePomodoroSession: BlockingSession?
     @Published private(set) var todayStats: DailyStats
     
     private let calendar = Calendar.current
@@ -154,6 +156,9 @@ final class AppBlockingLogger: ObservableObject {
         case .scheduleBlocking:
             self.activeScheduleSessions[session.id] = session
             saveScheduleSessions()
+        case .pomodoro:
+            self.activePomodoroSession = session
+            saveActiveSession(session, key: "active_pomodoro_session")
         }
         
         // Обновляем статистику
@@ -204,6 +209,16 @@ final class AppBlockingLogger: ObservableObject {
         
         print("AppBlockingLogger: Started appBlocking session for categories with ID: \(session.id)")
         
+        return session.id
+    }
+
+    /// Начать сессию Pomodoro (для категорий). Не трогает SharedData.AppBlocking.* ключи, чтобы не загрязнять App Blocking UI
+    func startPomodoroSessionForCategories(duration: TimeInterval) -> String {
+        let session = BlockingSession(type: .pomodoro, blockedApps: ["Categories"])
+        self.activePomodoroSession = session
+        saveActiveSession(session, key: "active_pomodoro_session")
+        updateHourlyData()
+        print("AppBlockingLogger: Started pomodoro session with ID: \(session.id)")
         return session.id
     }
     
@@ -291,6 +306,10 @@ final class AppBlockingLogger: ObservableObject {
             foundSession = scheduleSession
             foundType = .scheduleBlocking
         }
+        else if activePomodoroSession?.id == sessionId {
+            foundSession = activePomodoroSession
+            foundType = .pomodoro
+        }
         
         guard var session = foundSession, let type = foundType else {
             print("AppBlockingLogger: No active session with ID: \(sessionId)")
@@ -329,6 +348,9 @@ final class AppBlockingLogger: ObservableObject {
         case .scheduleBlocking:
             self.activeScheduleSessions.removeValue(forKey: sessionId)
             saveScheduleSessions()
+        case .pomodoro:
+            self.activePomodoroSession = nil
+            SharedData.userDefaults?.removeObject(forKey: "active_pomodoro_session")
         }
     }
     
@@ -344,6 +366,8 @@ final class AppBlockingLogger: ObservableObject {
         case .scheduleBlocking:
             print("AppBlockingLogger: Cannot end schedule session by type - use sessionId")
             return
+        case .pomodoro:
+            session = activePomodoroSession
         }
         
         guard let activeSession = session else {
@@ -366,6 +390,8 @@ final class AppBlockingLogger: ObservableObject {
         case .scheduleBlocking:
             // Return first schedule session if any
             return activeScheduleSessions.values.first
+        case .pomodoro:
+            return activePomodoroSession
         }
     }
     
@@ -382,6 +408,9 @@ final class AppBlockingLogger: ObservableObject {
         }
         if let interruptionSession = activeInterruptionSession {
             sessions.append(interruptionSession)
+        }
+        if let pomodoroSession = activePomodoroSession {
+            sessions.append(pomodoroSession)
         }
         sessions.append(contentsOf: activeScheduleSessions.values)
         return sessions
@@ -446,6 +475,12 @@ final class AppBlockingLogger: ObservableObject {
            let sessions = try? JSONDecoder().decode([String: BlockingSession].self, from: data) {
             self.activeScheduleSessions = sessions
         }
+        
+        // Load pomodoro session
+        if let data = SharedData.userDefaults?.data(forKey: "active_pomodoro_session"),
+           let session = try? JSONDecoder().decode(BlockingSession.self, from: data) {
+            self.activePomodoroSession = session
+        }
     }
     
     private func loadTodayStats() {
@@ -503,6 +538,9 @@ final class AppBlockingLogger: ObservableObject {
             stats.interruptionTime += duration
         case .scheduleBlocking:
             stats.scheduleBlockingTime += duration
+        case .pomodoro:
+            // Учитываем помодоро как фокус-время (appBlockingTime)
+            stats.appBlockingTime += duration
         }
         
         // Сохраняем обновленную статистику
@@ -669,6 +707,7 @@ extension AppBlockingLogger {
     var hasActiveSession: Bool {
         return activeAppBlockingSession != nil || 
                activeInterruptionSession != nil || 
+               activePomodoroSession != nil ||
                !activeScheduleSessions.isEmpty
     }
     
@@ -681,6 +720,8 @@ extension AppBlockingLogger {
             return activeInterruptionSession != nil
         case .scheduleBlocking:
             return !activeScheduleSessions.isEmpty
+        case .pomodoro:
+            return activePomodoroSession != nil
         }
     }
     

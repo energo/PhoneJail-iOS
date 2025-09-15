@@ -69,7 +69,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       if let ts = SharedData.userDefaults?.double(forKey: "pomodoro.unlockDate"), ts > 0 {
         let duration = max(0, ts - Date().timeIntervalSince1970)
         Task { @MainActor in
-          _ = AppBlockingLogger.shared.startAppBlockingSessionForCategories(duration: duration)
+          _ = AppBlockingLogger.shared.startPomodoroSessionForCategories(duration: duration)
         }
       }
       return
@@ -145,11 +145,36 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       }
     }
     else if activity == .pomodoro {
-      // End of Pomodoro session: clear restrictions and end logging
+      // End of Pomodoro focus session: clear restrictions and end logging
       ShieldService.shared.stopAppRestrictions(storeName: .pomodoro)
-      SharedData.userDefaults?.removeObject(forKey: "pomodoro.unlockDate")
+      
       Task { @MainActor in
-        AppBlockingLogger.shared.endSession(type: .appBlocking, completed: true)
+        AppBlockingLogger.shared.endSession(type: .pomodoro, completed: true)
+      }
+      
+      // Handle auto start of break phase even if the app is closed
+      let autoStartBreak = SharedData.userDefaults?.bool(forKey: SharedData.Pomodoro.autoStartBreak) ?? true
+      if autoStartBreak {
+        // Determine break duration (short or long every N sessions)
+        let totalSessions = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.totalSessions) ?? 4
+        var currentSession = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.currentSession) ?? 1
+        let longBreakDuration = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.longBreakDuration) ?? 15
+        let breakDuration = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.breakDuration) ?? 5
+        let blockDuringBreak = SharedData.userDefaults?.bool(forKey: "pomodoroBlockDuringBreak") ?? false
+
+        // Keep currentSession as is for break phase (increment happens when next focus starts)
+        let isLongBreak = currentSession % totalSessions == 0
+        let minutes = isLongBreak ? longBreakDuration : breakDuration
+        let endDate = Date().addingTimeInterval(TimeInterval(max(1, minutes) * 60))
+        
+        // Persist break phase so UI can restore without the app running
+        SharedData.userDefaults?.set(endDate.timeIntervalSince1970, forKey: "pomodoro.unlockDate")
+        SharedData.userDefaults?.set("break", forKey: SharedData.Pomodoro.currentSessionType)
+        SharedData.userDefaults?.set(blockDuringBreak, forKey: "pomodoro.isBlockingPhase")
+        SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked) // ensure AppBlocking UI stays off
+      } else {
+        // No break auto-start
+        SharedData.userDefaults?.removeObject(forKey: "pomodoro.unlockDate")
       }
     }
   }
