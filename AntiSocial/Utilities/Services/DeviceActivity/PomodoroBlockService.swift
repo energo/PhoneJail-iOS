@@ -208,15 +208,18 @@ final class PomodoroBlockService: ObservableObject {
   }
   
   private func restoreIfNeeded() {
-    guard let unlock = savedUnlockDate() else { return }
+    let unlock = savedUnlockDate()
+    guard let unlock = unlock else { return }
+    
     if Date() < unlock {
       // Приложение перезапустили — восстановить тикер. Ограничения поднимет расширение.
       startTicker(unlockDate: unlock)
       // Restore blocking flag for current phase (focus/break)
       let isBlockingPhase = SharedData.userDefaults?.bool(forKey: "pomodoro.isBlockingPhase") ?? true
       isBlockingApps = isBlockingPhase
-      // If we're in a break phase with blocking enabled, reapply schedule so shields are active again
       let isBreakPhase = SharedData.userDefaults?.bool(forKey: "pomodoro.isBreakPhase") ?? false
+
+      
 
       // Set phase flags
       if isBreakPhase {

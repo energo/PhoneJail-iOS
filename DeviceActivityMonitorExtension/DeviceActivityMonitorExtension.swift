@@ -25,11 +25,11 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   override func intervalDidStart(for activity: DeviceActivityName) {
     super.intervalDidStart(for: activity)
     
-//     Debug notification
-//    LocalNotificationManager.scheduleExtensionNotification(
-//      title: "🔄 Interval Did Start",
-//      details: "\(activity.rawValue)"
-//    )
+    //     Debug notification
+    //    LocalNotificationManager.scheduleExtensionNotification(
+    //      title: "🔄 Interval Did Start",
+    //      details: "\(activity.rawValue)"
+    //    )
     
     // Check if this is a schedule activity starting
     let activityName = "\(activity.rawValue)"
@@ -40,12 +40,12 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       } else {
         scheduleId = activityName.replacingOccurrences(of: "schedule_", with: "")
       }
-            
+      
       // Load schedule and apply restrictions
       handleScheduleStart(scheduleId: scheduleId)
       return
     }
-
+    
     // Pomodoro start: apply restrictions using saved selection
     if activity == .pomodoro {
       // Mark that we're in focus phase
@@ -56,17 +56,17 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
          let decoded = try? JSONDecoder().decode(FamilyActivitySelection.self, from: data) {
         selection = decoded
       }
-
+      
       // Apply shield restrictions to the dedicated Pomodoro store
       ShieldService.shared.setShieldRestrictions(for: selection, storeName: .pomodoro)
-
+      
       // Strict mode: deny app removal if enabled
       let isStrict = SharedData.userDefaults?.bool(forKey: "pomodoroIsStrictBlock") ?? false
       if isStrict {
         let pomodoroStore = ManagedSettingsStore(named: .pomodoro)
         pomodoroStore.application.denyAppRemoval = true
       }
-
+      
       // Start logging a blocking session for categories with expected duration if available
       if let ts = SharedData.userDefaults?.double(forKey: "pomodoro.unlockDate"), ts > 0 {
         let duration = max(0, ts - Date().timeIntervalSince1970)
@@ -82,12 +82,12 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     super.intervalDidEnd(for: activity)
     
     let activityName = "\(activity.rawValue)"
-
+    
     // Debug notification
-//    LocalNotificationManager.scheduleExtensionNotification(
-//      title: "🔄 Interval Did End",
-//      details: "\(activityName)"
-//    )
+//        LocalNotificationManager.scheduleExtensionNotification(
+//          title: "🔄 Interval Did End",
+//          details: "\(activityName)"
+//        )
     
     // Check if this is a schedule activity ending
     if activityName.contains("schedule_") || activityName.contains("scheduledBlock_") {
@@ -97,7 +97,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       } else {
         scheduleId = activityName.replacingOccurrences(of: "schedule_", with: "")
       }
-            
+      
       // Load schedule and remove restrictions
       handleScheduleEnd(scheduleId: scheduleId)
       return
@@ -106,22 +106,22 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     // Interval ended silently
     // Handle different activities differently
     if activity == .appBlocking {
-        
-//          LocalNotificationManager.scheduleExtensionNotification(
-//            title: "✅ Apps Unblocked",
-//            details: "You can use your apps again"
-//          )
-          
-          // Clear regular blocking store
-          ShieldService.shared.stopAppRestrictions()
-
-          // Clear regular blocking state only if unlock date has passed
-          DeviceActivityScheduleService.stopSchedule()
-          SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
-          SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
-          SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endHour)
-          SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endMinutes)
-          SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.unlockDate)
+      
+      //          LocalNotificationManager.scheduleExtensionNotification(
+      //            title: "✅ Apps Unblocked",
+      //            details: "You can use your apps again"
+      //          )
+      
+      // Clear regular blocking store
+      ShieldService.shared.stopAppRestrictions()
+      
+      // Clear regular blocking state only if unlock date has passed
+      DeviceActivityScheduleService.stopSchedule()
+      SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
+      SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
+      SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endHour)
+      SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endMinutes)
+      SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.unlockDate)
       
     } else if activity == .appBlockingInterruption {
       // Interruption block ending
@@ -147,38 +147,51 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       }
     }
     else if activity == .pomodoro {
-      // End of Pomodoro focus session: clear restrictions and end logging
-      ShieldService.shared.stopAppRestrictions(storeName: .pomodoro)
-      
       Task { @MainActor in
-        AppBlockingLogger.shared.endSession(type: .pomodoro, completed: true)
-      }
-      
-      // Handle auto start of break phase even if the app is closed
-      let autoStartBreak = SharedData.userDefaults?.bool(forKey: SharedData.Pomodoro.autoStartBreak) ?? true
-      if autoStartBreak {
-        // Determine break duration (short or long every N sessions)
-        let totalSessions = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.totalSessions) ?? 4
-        let currentSession = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.currentSession) ?? 1
-        let longBreakDuration = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.longBreakDuration) ?? 15
-        let breakDuration = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.breakDuration) ?? 5
-        let blockDuringBreak = SharedData.userDefaults?.bool(forKey: "pomodoroBlockDuringBreak") ?? false
+//        LocalNotificationManager.scheduleExtensionNotification(
+//          title: "🔄 End Focus",
+//          details: "\(activityName)"
+//        )
 
-        // Keep currentSession as is for break phase (increment happens when next focus starts)
-        let isLongBreak = currentSession % totalSessions == 0
-        let minutes = isLongBreak ? longBreakDuration : breakDuration
-        let endDate = Date().addingTimeInterval(TimeInterval(max(1, minutes) * 60))
+        // End of Pomodoro focus session: clear restrictions and end logging
+        ShieldService.shared.stopAppRestrictions(storeName: .pomodoro)
+        AppBlockingLogger.shared.endSession(type: .pomodoro, completed: true)
         
-        // Persist break phase so UI can restore without the app running
-        SharedData.userDefaults?.set(endDate.timeIntervalSince1970, forKey: "pomodoro.unlockDate")
-        SharedData.userDefaults?.set("break", forKey: SharedData.Pomodoro.currentSessionType)
-        SharedData.userDefaults?.set(blockDuringBreak, forKey: "pomodoro.isBlockingPhase")
-        SharedData.userDefaults?.set(true, forKey: "pomodoro.isBreakPhase")
-        SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked) // ensure AppBlocking UI stays off
-      } else {
-        // No break auto-start
-        SharedData.userDefaults?.removeObject(forKey: "pomodoro.unlockDate")
-        SharedData.userDefaults?.set(false, forKey: "pomodoro.isBreakPhase")
+        // Handle auto start of break phase even if the app is closed
+        let autoStartBreak = SharedData.userDefaults?.bool(forKey: SharedData.Pomodoro.autoStartBreak) ?? true
+        if autoStartBreak {
+          // Determine break duration (short or long every N sessions)
+          var totalSessions = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.totalSessions) ?? 1
+          let currentSession = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.currentSession) ?? 1
+          let longBreakDuration = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.longBreakDuration) ?? 15
+          let breakDuration = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.breakDuration) ?? 5
+          let blockDuringBreak = SharedData.userDefaults?.bool(forKey: "pomodoroBlockDuringBreak") ?? false
+          
+          // Keep currentSession as is for break phase (increment happens when next focus starts)
+        if totalSessions < 1  {
+          totalSessions = 1
+          SharedData.userDefaults?.set(1, forKey: SharedData.Pomodoro.totalSessions)
+        }
+          let isLongBreak = currentSession % totalSessions == 0
+          let minutes = isLongBreak ? longBreakDuration : breakDuration
+          let endDate = Date().addingTimeInterval(TimeInterval(max(1, minutes) * 60))
+          
+          // Persist break phase so UI can restore without the app running
+          SharedData.userDefaults?.set(endDate.timeIntervalSince1970, forKey: "pomodoro.unlockDate")
+          SharedData.userDefaults?.set("break", forKey: SharedData.Pomodoro.currentSessionType)
+          SharedData.userDefaults?.set(blockDuringBreak, forKey: "pomodoro.isBlockingPhase")
+          SharedData.userDefaults?.set(true, forKey: "pomodoro.isBreakPhase")
+          SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked) // ensure AppBlocking UI stays off
+          
+//          LocalNotificationManager.scheduleExtensionNotification(
+//            title: "🔄 End Focus",
+//            details: "\(minutes)"
+//          )
+        } else {
+          // No break auto-start
+          SharedData.userDefaults?.removeObject(forKey: "pomodoro.unlockDate")
+          SharedData.userDefaults?.set(false, forKey: "pomodoro.isBreakPhase")
+        }
       }
     }
   }
@@ -188,11 +201,11 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     super.eventDidReachThreshold(event, activity: activity)
     
     // Debug notification to confirm threshold reached
-//    LocalNotificationManager.scheduleExtensionNotification(
-//      title: "📊 Threshold Reached!",
-//      details: "Event: \(event.rawValue)\nActivity: \(activity.rawValue)"
-//    )
-        
+    //    LocalNotificationManager.scheduleExtensionNotification(
+    //      title: "📊 Threshold Reached!",
+    //      details: "Event: \(event.rawValue)\nActivity: \(activity.rawValue)"
+    //    )
+    
     // Check if this is an interruption event
     if event == DeviceActivityEvent.Name.interruption {
       handleTresholdScreenInterruption(event)
@@ -213,7 +226,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     let now = Date()
     lastAlertTrigger = now
     
-//    checkAndResetDailyCounters()
+    //    checkAndResetDailyCounters()
     
     if let _ = SharedData.selectedAlertActivity {
       
@@ -240,7 +253,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       // Already in interruption block, skip
       return
     }
-        
+    
     // Check if enough time has passed since last trigger
     let now = Date()
     if let lastTrigger = lastInterruptionTrigger,
@@ -253,7 +266,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     
     // Processing interruption
     if let selection = SharedData.selectedInterruptionsActivity {
-
+      
       // Save the current time as last interruption time
       SharedData.userDefaults?.set(Date().timeIntervalSince1970, forKey: SharedData.AppBlocking.lastInterruptionBlockTime)
       
@@ -273,7 +286,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       )
     }
   }
-    
+  
   //MARK: - Restart Monitoring
   private func restartMonitoring(for activity: DeviceActivityName) {
     // Restarting monitoring after threshold
@@ -357,11 +370,11 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       // Monitor restarted successfully
       // Don't reset lastAlertTrigger here - we want to maintain the timing
     } catch {
-            LocalNotificationManager.scheduleExtensionNotification(
-              title: "❌ Failed to restart monitoring",
-              details: "\(error.localizedDescription)"
-            )
-
+      LocalNotificationManager.scheduleExtensionNotification(
+        title: "❌ Failed to restart monitoring",
+        details: "\(error.localizedDescription)"
+      )
+      
       print("Failed to restart monitoring: \(error.localizedDescription)")
     }
   }
@@ -373,27 +386,27 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
           let schedules = try? JSONDecoder().decode([BlockSchedule].self, from: data),
           let schedule = schedules.first(where: { $0.id == scheduleId }) else {
       
-//      LocalNotificationManager.scheduleExtensionNotification(
-//        title: "❌ Schedule Not Found Start",
-//        details: "Could not find schedule with ID: \(scheduleId)"
-//      )
+      //      LocalNotificationManager.scheduleExtensionNotification(
+      //        title: "❌ Schedule Not Found Start",
+      //        details: "Could not find schedule with ID: \(scheduleId)"
+      //      )
       return
     }
     
-//    LocalNotificationManager.scheduleExtensionNotification(
-//      title: "📊 Schedule Data Check",
-//      details: "ID: \(schedule.id)\nName: \(schedule.name)\nApps: \(schedule.selection.applicationTokens.count)"
-//    )
+    //    LocalNotificationManager.scheduleExtensionNotification(
+    //      title: "📊 Schedule Data Check",
+    //      details: "ID: \(schedule.id)\nName: \(schedule.name)\nApps: \(schedule.selection.applicationTokens.count)"
+    //    )
     
     // Check if today is in the schedule's days
     let calendar = Calendar.current
     let weekday = calendar.component(.weekday, from: Date())
     
     if !schedule.daysOfWeek.contains(weekday) {
-//      LocalNotificationManager.scheduleExtensionNotification(
-//        title: "📅 Not Today",
-//        details: "Schedule \(schedule.name) not active on weekday \(weekday)"
-//      )
+      //      LocalNotificationManager.scheduleExtensionNotification(
+      //        title: "📅 Not Today",
+      //        details: "Schedule \(schedule.name) not active on weekday \(weekday)"
+      //      )
       return
     }
     
@@ -407,17 +420,17 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
           let schedules = try? JSONDecoder().decode([BlockSchedule].self, from: data),
           let schedule = schedules.first(where: { $0.id == scheduleId }) else {
       
-//      LocalNotificationManager.scheduleExtensionNotification(
-//        title: "❌ Schedule Not Found End",
-//        details: "Could not find schedule with ID: \(scheduleId)"
-//      )
+      //      LocalNotificationManager.scheduleExtensionNotification(
+      //        title: "❌ Schedule Not Found End",
+      //        details: "Could not find schedule with ID: \(scheduleId)"
+      //      )
       return
     }
     
     // Remove restrictions
     removeScheduledBlockRestrictions(schedule: schedule)
   }
-
+  
   private func applyScheduledBlockRestrictions(schedule: BlockSchedule) {
     let scheduleId = schedule.id
     
@@ -434,7 +447,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     ? nil
     : ShieldSettings.ActivityCategoryPolicy.specific(schedule.selection.categoryTokens)
     store.shield.webDomains = schedule.selection.webDomainTokens
-
+    
     store.application.denyAppRemoval = schedule.isStrictBlock
     
     // Mark as active in SharedData
@@ -643,10 +656,10 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   private func isTodayInSchedule(scheduleId: String) -> Bool {
     // Check if we have days of week data
     guard let daysArray = SharedData.userDefaults?.object(forKey: "schedule_\(scheduleId)_daysOfWeek") as? [Int] else {
-//      LocalNotificationManager.scheduleExtensionNotification(
-//        title: "📆 No Days Data",
-//        details: "Default to true (daily schedule)"
-//      )
+      //      LocalNotificationManager.scheduleExtensionNotification(
+      //        title: "📆 No Days Data",
+      //        details: "Default to true (daily schedule)"
+      //      )
       return true // Default to true if no days specified (daily schedule)
     }
     
@@ -656,10 +669,10 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     
     let isToday = daysArray.contains(weekday)
     
-//    LocalNotificationManager.scheduleExtensionNotification(
-//      title: "📅 Day Check",
-//      details: "Today: \(weekday), Schedule days: \(daysArray), Match: \(isToday)"
-//    )
+    //    LocalNotificationManager.scheduleExtensionNotification(
+    //      title: "📅 Day Check",
+    //      details: "Today: \(weekday), Schedule days: \(daysArray), Match: \(isToday)"
+    //    )
     
     return isToday
   }
@@ -671,10 +684,10 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     
     // Check day first
     if !schedule.daysOfWeek.contains(weekday) {
-//      LocalNotificationManager.scheduleExtensionNotification(
-//        title: "❌ Wrong Day",
-//        details: "Today (\(weekday)) not in schedule days: \(schedule.daysOfWeek)"
-//      )
+      //      LocalNotificationManager.scheduleExtensionNotification(
+      //        title: "❌ Wrong Day",
+      //        details: "Today (\(weekday)) not in schedule days: \(schedule.daysOfWeek)"
+      //      )
       return false
     }
     
@@ -683,10 +696,10 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
           let startMinute = schedule.startTime.minute,
           let endHour = schedule.endTime.hour,
           let endMinute = schedule.endTime.minute else {
-//      LocalNotificationManager.scheduleExtensionNotification(
-//        title: "❌ Missing Times",
-//        details: "Schedule has incomplete time data"
-//      )
+      //      LocalNotificationManager.scheduleExtensionNotification(
+      //        title: "❌ Missing Times",
+      //        details: "Schedule has incomplete time data"
+      //      )
       return false
     }
     
@@ -701,33 +714,33 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     let startMinutes = startHour * 60 + startMinute
     let endMinutes = endHour * 60 + endMinute
     
-//    LocalNotificationManager.scheduleExtensionNotification(
-//      title: "⏰ Time Check",
-//      details: "Now: \(currentHour):\(String(format: "%02d", currentMinute)) (\(currentMinutes)min)\n" +
-//               "Start: \(startHour):\(String(format: "%02d", startMinute)) (\(startMinutes)min)\n" +
-//               "End: \(endHour):\(String(format: "%02d", endMinute)) (\(endMinutes)min)"
-//    )
+    //    LocalNotificationManager.scheduleExtensionNotification(
+    //      title: "⏰ Time Check",
+    //      details: "Now: \(currentHour):\(String(format: "%02d", currentMinute)) (\(currentMinutes)min)\n" +
+    //               "Start: \(startHour):\(String(format: "%02d", startMinute)) (\(startMinutes)min)\n" +
+    //               "End: \(endHour):\(String(format: "%02d", endMinute)) (\(endMinutes)min)"
+    //    )
     
     // Handle overnight schedules
     if endMinutes < startMinutes {
       // Schedule crosses midnight
       let isActive = currentMinutes >= startMinutes || currentMinutes < endMinutes
-//      LocalNotificationManager.scheduleExtensionNotification(
-//        title: "🌙 Overnight Schedule",
-//        details: "Current >= Start: \(currentMinutes >= startMinutes)\n" +
-//                 "Current < End: \(currentMinutes < endMinutes)\n" +
-//                 "Result: \(isActive)"
-//      )
+      //      LocalNotificationManager.scheduleExtensionNotification(
+      //        title: "🌙 Overnight Schedule",
+      //        details: "Current >= Start: \(currentMinutes >= startMinutes)\n" +
+      //                 "Current < End: \(currentMinutes < endMinutes)\n" +
+      //                 "Result: \(isActive)"
+      //      )
       return isActive
     } else {
       // Normal schedule
       let isActive = currentMinutes >= startMinutes && currentMinutes < endMinutes
-//      LocalNotificationManager.scheduleExtensionNotification(
-//        title: "☀️ Normal Schedule",
-//        details: "Current >= Start: \(currentMinutes >= startMinutes)\n" +
-//                 "Current < End: \(currentMinutes < endMinutes)\n" +
-//                 "Result: \(isActive)"
-//      )
+      //      LocalNotificationManager.scheduleExtensionNotification(
+      //        title: "☀️ Normal Schedule",
+      //        details: "Current >= Start: \(currentMinutes >= startMinutes)\n" +
+      //                 "Current < End: \(currentMinutes < endMinutes)\n" +
+      //                 "Result: \(isActive)"
+      //      )
       return isActive
     }
   }
@@ -736,14 +749,14 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   private func isScheduleActiveNow(scheduleId: String) -> Bool {
     let calendar = Calendar.current
     let now = Date()
-    let weekday = calendar.component(.weekday, from: now)
     
     // Check day first
     if !isTodayInSchedule(scheduleId: scheduleId) {
-//      LocalNotificationManager.scheduleExtensionNotification(
-//        title: "❌ Wrong Day",
-//        details: "Today (\(weekday)) not in schedule days"
-//      )
+//      let weekday = calendar.component(.weekday, from: now)
+      //      LocalNotificationManager.scheduleExtensionNotification(
+      //        title: "❌ Wrong Day",
+      //        details: "Today (\(weekday)) not in schedule days"
+      //      )
       return false
     }
     
@@ -752,10 +765,10 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
           let startMinute = SharedData.userDefaults?.object(forKey: "schedule_\(scheduleId)_startMinute") as? Int,
           let endHour = SharedData.userDefaults?.object(forKey: "schedule_\(scheduleId)_endHour") as? Int,
           let endMinute = SharedData.userDefaults?.object(forKey: "schedule_\(scheduleId)_endMinute") as? Int else {
-//      LocalNotificationManager.scheduleExtensionNotification(
-//        title: "❌ Missing Times",
-//        details: "Could not load schedule times from SharedData"
-//      )
+      //      LocalNotificationManager.scheduleExtensionNotification(
+      //        title: "❌ Missing Times",
+      //        details: "Could not load schedule times from SharedData"
+      //      )
       return false
     }
     
@@ -770,37 +783,37 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     let startMinutes = startHour * 60 + startMinute
     let endMinutes = endHour * 60 + endMinute
     
-//    LocalNotificationManager.scheduleExtensionNotification(
-//      title: "⏰ Time Check",
-//      details: "Now: \(currentHour):\(String(format: "%02d", currentMinute)) (\(currentMinutes)min)\n" +
-//               "Start: \(startHour):\(String(format: "%02d", startMinute)) (\(startMinutes)min)\n" +
-//               "End: \(endHour):\(String(format: "%02d", endMinute)) (\(endMinutes)min)"
-//    )
+    //    LocalNotificationManager.scheduleExtensionNotification(
+    //      title: "⏰ Time Check",
+    //      details: "Now: \(currentHour):\(String(format: "%02d", currentMinute)) (\(currentMinutes)min)\n" +
+    //               "Start: \(startHour):\(String(format: "%02d", startMinute)) (\(startMinutes)min)\n" +
+    //               "End: \(endHour):\(String(format: "%02d", endMinute)) (\(endMinutes)min)"
+    //    )
     
     // Handle overnight schedules
     if endMinutes < startMinutes {
       // Schedule crosses midnight
       let isActive = currentMinutes >= startMinutes || currentMinutes < endMinutes
-//      LocalNotificationManager.scheduleExtensionNotification(
-//        title: "🌙 Overnight Schedule",
-//        details: "Current >= Start: \(currentMinutes >= startMinutes)\n" +
-//                 "Current < End: \(currentMinutes < endMinutes)\n" +
-//                 "Result: \(isActive)"
-//      )
+      //      LocalNotificationManager.scheduleExtensionNotification(
+      //        title: "🌙 Overnight Schedule",
+      //        details: "Current >= Start: \(currentMinutes >= startMinutes)\n" +
+      //                 "Current < End: \(currentMinutes < endMinutes)\n" +
+      //                 "Result: \(isActive)"
+      //      )
       return isActive
     } else {
       // Normal schedule
       let isActive = currentMinutes >= startMinutes && currentMinutes < endMinutes
-//      LocalNotificationManager.scheduleExtensionNotification(
-//        title: "☀️ Normal Schedule",
-//        details: "Current >= Start: \(currentMinutes >= startMinutes)\n" +
-//                 "Current < End: \(currentMinutes < endMinutes)\n" +
-//                 "Result: \(isActive)"
-//      )
+      //      LocalNotificationManager.scheduleExtensionNotification(
+      //        title: "☀️ Normal Schedule",
+      //        details: "Current >= Start: \(currentMinutes >= startMinutes)\n" +
+      //                 "Current < End: \(currentMinutes < endMinutes)\n" +
+      //                 "Result: \(isActive)"
+      //      )
       return isActive
     }
   }
-    
+  
   private func restartScheduleMonitoring(scheduleId: String) {
     let monitoringActivityName = DeviceActivityName("monitor_\(scheduleId)")
     let center = DeviceActivityCenter()
@@ -859,60 +872,60 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     do {
       try center.startMonitoring(monitoringActivityName, during: monitoringSchedule, events: events)
       
-//      LocalNotificationManager.scheduleExtensionNotification(
-//        title: "🔄 Monitoring Restarted",
-//        details: "Schedule \(scheduleId) monitoring restarted"
-//      )
+      //      LocalNotificationManager.scheduleExtensionNotification(
+      //        title: "🔄 Monitoring Restarted",
+      //        details: "Schedule \(scheduleId) monitoring restarted"
+      //      )
       
       print("Restarted schedule monitoring for \(scheduleId)")
     } catch {
-//      LocalNotificationManager.scheduleExtensionNotification(
-//        title: "❌ Restart Failed",
-//        details: "Error: \(error.localizedDescription)"
-//      )
+      //      LocalNotificationManager.scheduleExtensionNotification(
+      //        title: "❌ Restart Failed",
+      //        details: "Error: \(error.localizedDescription)"
+      //      )
       
       print("Failed to restart schedule monitoring: \(error)")
     }
   }
   
   private func getPersonalizedMessage() -> String {
-      let messages = [
-          "Your thumb needs a break. Put down your phone.",
-          "Still scrolling? Time to stop.",
-          "Screens won’t cuddle you back. Block your phone.",
-          "Put down your phone. Go touch grass. Seriously.",
-          "Your future self just rolled their eyes. Log off?",
-          "Plot twist: nothing new on your feed.",
-          "Why not get dopamine from the real world?",
-          "This app thinks you’re cute offline.",
-          "Congrats. You just beat your high score in procrastination.",
-          "Spoiler: You won’t find meaning here.",
-          "Breaking news: Your life is happening elsewhere.",
-          "Your screen time is judging you.",
-          "Achievement unlocked: Wasted time.",
-          "Even your battery is tired of this. Block your phone.",
-          "If scrolling burned calories, you’d be ripped.",
-          "Real life has better graphics. Go live it.",
-          "Stop scrolling. Start strolling. (Go take a walk, buddy)",
-          "Go do literally anything cooler than this.",
-          "Life > feed. Choose wisely.",
-          "Go outside. The graphics are insane.",
-          "You’re one scroll away from nothing. Stop.",
-          "Endless feed. Endless waste. Stop.",
-          "You’re in a loop. Break it.",
-          "One more scroll and you officially qualify as furniture.",
-          "Breaking news: Your thumb has filed a complaint.",
-          "This feed is junk food. Go eat real life.",
-          "Nothing new here. Even your feed is bored.",
-          "Too much screen time shrinks your attention span to 8 seconds.",
-          "Studies show phone use kills focus. But hey, you’re really focused on scrolling.",
-          "Life expectancy = ~80 years. You’ll spend 9 of them staring at a rectangle.",
-          "Phone addiction raises anxiety by 30%. Keep scrolling if you’re into that.",
-          "Heavy phone users sleep an hour less. Worth it?",
-          "Go live your life — your feed will still be here."
-      ]
-      
-      return messages.randomElement() ?? "Go live your life — your feed will still be here."
+    let messages = [
+      "Your thumb needs a break. Put down your phone.",
+      "Still scrolling? Time to stop.",
+      "Screens won’t cuddle you back. Block your phone.",
+      "Put down your phone. Go touch grass. Seriously.",
+      "Your future self just rolled their eyes. Log off?",
+      "Plot twist: nothing new on your feed.",
+      "Why not get dopamine from the real world?",
+      "This app thinks you’re cute offline.",
+      "Congrats. You just beat your high score in procrastination.",
+      "Spoiler: You won’t find meaning here.",
+      "Breaking news: Your life is happening elsewhere.",
+      "Your screen time is judging you.",
+      "Achievement unlocked: Wasted time.",
+      "Even your battery is tired of this. Block your phone.",
+      "If scrolling burned calories, you’d be ripped.",
+      "Real life has better graphics. Go live it.",
+      "Stop scrolling. Start strolling. (Go take a walk, buddy)",
+      "Go do literally anything cooler than this.",
+      "Life > feed. Choose wisely.",
+      "Go outside. The graphics are insane.",
+      "You’re one scroll away from nothing. Stop.",
+      "Endless feed. Endless waste. Stop.",
+      "You’re in a loop. Break it.",
+      "One more scroll and you officially qualify as furniture.",
+      "Breaking news: Your thumb has filed a complaint.",
+      "This feed is junk food. Go eat real life.",
+      "Nothing new here. Even your feed is bored.",
+      "Too much screen time shrinks your attention span to 8 seconds.",
+      "Studies show phone use kills focus. But hey, you’re really focused on scrolling.",
+      "Life expectancy = ~80 years. You’ll spend 9 of them staring at a rectangle.",
+      "Phone addiction raises anxiety by 30%. Keep scrolling if you’re into that.",
+      "Heavy phone users sleep an hour less. Worth it?",
+      "Go live your life — your feed will still be here."
+    ]
+    
+    return messages.randomElement() ?? "Go live your life — your feed will still be here."
   }
   
   // MARK: - Helper Methods
