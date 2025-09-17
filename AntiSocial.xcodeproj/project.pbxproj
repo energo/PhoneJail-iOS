@@ -148,9 +148,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				"AdaptiveUI+Extension.swift",
-				CardView.swift,
 				Models/ActivityReport.swift,
-				ScreenTime/ScreenTimeSectionView.swift,
 			);
 			target = 478055D52D5BE259003988E7 /* DeviceActivityMonitorExtension */;
 		};

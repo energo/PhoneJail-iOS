@@ -1,14 +1,25 @@
+////
+////  ScreenTimeSectionView.swift
+////  AntiSocial
+////
+////  Created by D C on 26.06.2025.
+////
 //
-//  ScreenTimeSectionView.swift
-//  AntiSocial
-//
-//  Created by D C on 26.06.2025.
-//
-
 import SwiftUI
 import Foundation
+import ManagedSettings
 
-// Uses AdaptiveUI from AdaptiveUI+Extension.swift
+private struct AppIconView: View {
+  let token: ApplicationToken
+  
+  var body: some View {
+    // Label(.iconOnly) безопасно рисует системный бейдж по токену
+    Label(token)
+      .labelStyle(.iconOnly)
+      .frame(width: 24, height: 24)
+//      .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+  }
+}
 
 struct ScreenTimeSectionView: View {
   let report: ActivityReport
@@ -26,7 +37,7 @@ struct ScreenTimeSectionView: View {
       screenTimeView
       bottomView
     }
-    .onAppear {
+    .task {
       loadBlockingStats()
     }
   }
@@ -95,7 +106,7 @@ struct ScreenTimeSectionView: View {
       VStack(spacing: adaptive.spacing.xxSmall) {
         HStack(spacing: -adaptive.spacing.xSmall) {
           ForEach(report.topApps.prefix(AdaptiveValues.isCompactDevice ? 2 : 3)) { app in
-            CardView(app: app, disablePopover: true)
+            AppIconView(token: app.token)
               .adaptiveFrame(width: \.appIconSize, height: \.appIconSize)
           }
         }
