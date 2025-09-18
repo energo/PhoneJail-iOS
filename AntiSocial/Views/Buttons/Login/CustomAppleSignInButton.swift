@@ -15,8 +15,28 @@ struct CustomAppleSignInButton: View {
 
   @State private var signInDelegate: AppleSignInDelegate? = nil
 
+  let title: String? = "Sign in with Apple"
+  var imageLeading: Image? = Image(.icApple)
+  
+  var imageLeft: Image?
+  var imageRight: Image?
+
+  var colorBackground: Color = Color.white
+  var colorTxt: Color = Color.black
+  var height: CGFloat = 54
+  var showStroke: Bool = false
+  var cornerRadius: CGFloat = 14
+    
   var body: some View {
-    Button(action: {
+    contentView
+      .frame(maxWidth: .infinity)
+      .frame(height: height)
+      .background(colorBackground)
+      .cornerRadius(cornerRadius)
+  }
+  
+  private var contentView: some View {
+    Button(action:  {
       let provider = ASAuthorizationAppleIDProvider()
       let request = provider.createRequest()
       onRequest(request)
@@ -29,24 +49,53 @@ struct CustomAppleSignInButton: View {
       controller.performRequests()
     }) {
       HStack {
-        Image(.icApple)
-          .resizable()
-          .frame(width: 18, height: 20)
         
-        Text("Sign in with Apple")
-          .font(.primary(weight: .semibold,
-                         size: .smallPlus))
+        if let image = imageLeft {
+          image
+            .padding(.vertical)
+            .foregroundColor(colorTxt)
+        } else {
+          Spacer()
+          
+          if let image = imageLeading {
+            image
+              .padding(.vertical)
+              .foregroundColor(colorTxt)
+          }
+        }
+        
+        if let title = title {
+          Text(title)
+          //                        .bold()
+            .font(.system(size: 16, weight: .semibold))
+            .multilineTextAlignment(.center)
+            .foregroundColor(colorTxt)
+            .padding(.vertical)
+        }
+                
+        if let image = imageRight {
+          image
+            .padding(.vertical)
+            .foregroundColor(colorTxt)
+        } else {
+          Spacer()
+        }
       }
-      .foregroundColor(.black)
-      .frame(maxWidth: .infinity)
-      .frame(height: 54)
-      .background(Color.white)
-      .cornerRadius(14)
+      .padding(.horizontal, 4)
+    }
+  }
+  
+  private var overlayView: some View {
+    Group {
+      if showStroke {
+        RoundedRectangle(cornerRadius: cornerRadius)
+          .stroke(Color.white, lineWidth: 1)
+      } else {
+        Color.clear
+      }
     }
   }
 }
-
-
 
 // Delegate helper (bridging UIKit to SwiftUI)
 class AppleSignInDelegate: NSObject, ASAuthorizationControllerDelegate {
