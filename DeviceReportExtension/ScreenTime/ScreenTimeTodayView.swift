@@ -13,43 +13,35 @@ extension DeviceActivityReport.Context {
 }
 
 struct ScreenTimeTodayView: View {
+  var refreshToken = UUID()
+  @Environment(\.scenePhase) private var scenePhase
+
   @State private var context: DeviceActivityReport.Context = .totalActivity
-  @State private var filter = DeviceActivityFilter(
-    segment: .daily(during: Calendar.current.dateInterval(of: .day, for: .now)!),
-    users: .all,
-    devices: .init([.iPhone])
-  )
-  
+  @State private var filter: DeviceActivityFilter = ScreenTimeTodayView.makeTodayFilter()
 
   var body: some View {
     DeviceActivityReport(context, filter: filter)
+      .onChange(of: scenePhase) { _, newPhase in
+        if newPhase == .active {
+          refreshToday()
+        }
+      }
+      .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
+        refreshToday()
+      }
   }
 
-  //  @State private var showSpinner = true
-  //  var minShowTime: Double = 0.5
+  private func refreshToday() {
+    filter = Self.makeTodayFilter()
+    context = .totalActivity
+  }
 
-//  var body: some View {
-//    ZStack {
-//      if showSpinner {
-//        VStack(spacing: 32) {
-//          ProgressView().scaleEffect(1.6)
-//          Text("Loading Screen Time…")
-//            .font(.caption)
-//            .foregroundColor(.secondary)
-//        }
-//        .transition(.opacity)
-//        .allowsHitTesting(false)
-//      }
-//      
-//       сам отчёт
-//      DeviceActivityReport(context, filter: filter)
-//    }
-//    .task {
-//      // гарантированно показываем на minShowTime и прячем
-//      showSpinner = true
-//      try? await Task.sleep(nanoseconds: UInt64(minShowTime * 1_000_000_000))
-//      withAnimation(.easeOut(duration: 0.25)) { showSpinner = false }
-//    }
-//  }
-  
+  static func makeTodayFilter() -> DeviceActivityFilter {
+    let today = Calendar.current.dateInterval(of: .day, for: Date())!
+    return DeviceActivityFilter(
+      segment: .daily(during: today),
+      users: .all,
+      devices: .init([.iPhone])
+    )
+  }
 }

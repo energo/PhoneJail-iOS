@@ -13,11 +13,9 @@ private struct AppIconView: View {
   let token: ApplicationToken
   
   var body: some View {
-    // Label(.iconOnly) безопасно рисует системный бейдж по токену
     Label(token)
       .labelStyle(.iconOnly)
       .frame(width: 24, height: 24)
-//      .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
   }
 }
 
