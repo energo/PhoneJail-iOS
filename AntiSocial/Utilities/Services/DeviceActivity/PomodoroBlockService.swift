@@ -109,7 +109,10 @@ final class PomodoroBlockService: ObservableObject {
     
     isPaused = true
     pausedAt = Date()
-    originalUnlockDate = savedUnlockDate()
+
+    // Store the current remaining seconds at pause time
+    let currentRemaining = remainingSeconds
+    SharedData.userDefaults?.set(currentRemaining, forKey: "pomodoro.pausedRemaining")
     
     // Останавливаем тикер
     ticker?.cancel()
@@ -118,30 +121,25 @@ final class PomodoroBlockService: ObservableObject {
   /// Возобновляет таймер после паузы
   func resume() {
     guard (isBreakActive || isFocusActive) && isPaused else { return }
-    print("🍅 PomodoroBlockService: resume() called")
     
-    guard let pausedAt = pausedAt,
-          let originalUnlock = originalUnlockDate else { return }
+    // Get the remaining seconds from when we paused
+    let pausedRemaining = SharedData.userDefaults?.integer(forKey: "pomodoro.pausedRemaining") ?? remainingSeconds
     
-    // Вычисляем, сколько времени прошло в паузе
-    let pauseDuration = Date().timeIntervalSince(pausedAt)
-    let newUnlockDate = originalUnlock.addingTimeInterval(pauseDuration)
-    
-    // Обновляем дату разблокировки
+    // Set new unlock date based on paused remaining time
+    let newUnlockDate = Date().addingTimeInterval(TimeInterval(pausedRemaining))
     SharedData.userDefaults?.set(newUnlockDate.timeIntervalSince1970, forKey: defaultsKey)
     
-    // Перезапускаем тикер
+    // Restart ticker with new unlock date
     startTicker(unlockDate: newUnlockDate)
     
-    // Переназначаем расписание для блокировки, если она включена
     if isBlockingApps {
       DeviceActivityScheduleService.stopPomodoroSchedule()
       DeviceActivityScheduleService.setPomodoroSchedule(endAt: newUnlockDate)
     }
     
     isPaused = false
-    self.pausedAt = nil
-    self.originalUnlockDate = nil
+    pausedAt = nil
+    originalUnlockDate = nil
   }
   
   /// Экстренная очистка ВСЕХ блокировок (для отладки)
