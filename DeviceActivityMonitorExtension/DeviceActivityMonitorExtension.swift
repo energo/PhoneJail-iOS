@@ -159,7 +159,8 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         
         // Handle auto start of break phase even if the app is closed
         let autoStartBreak = SharedData.userDefaults?.bool(forKey: SharedData.Pomodoro.autoStartBreak) ?? true
-        if autoStartBreak {
+        let isBreakPhase = SharedData.userDefaults?.bool(forKey: "pomodoro.isBreakPhase") ?? false
+        if autoStartBreak && isBreakPhase {
           // Determine break duration (short or long every N sessions)
           var totalSessions = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.totalSessions) ?? 1
           let currentSession = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.currentSession) ?? 1
