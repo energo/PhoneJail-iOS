@@ -250,13 +250,15 @@ struct ProfileScreen: View {
       
       separatorView
       
-      settingsRow(icon: "arrow.clockwise", text: "Restore purchases") {
-        Task {
-          try await SubscriptionManager.shared.restorePurchases()
+      if !SubscriptionManager.shared.isSubscriptionActive {
+        settingsRow(icon: "arrow.clockwise", text: "Restore purchases") {
+          Task {
+            try await SubscriptionManager.shared.restorePurchases()
+          }
         }
+        
+        separatorView
       }
-      
-      separatorView
       
       settingsRow(icon: "rectangle.portrait.and.arrow.forward",
                   text: "Log Out",
