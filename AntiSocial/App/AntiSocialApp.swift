@@ -12,7 +12,6 @@ import AppTrackingTransparency
 //import FBSDKCoreKit
 //import FBSDKCoreKit_Basics
 import DeviceActivity
-import BackgroundTasks
 
 class AppDelegate: NSObject, UIApplicationDelegate {
   func application(_ application: UIApplication,

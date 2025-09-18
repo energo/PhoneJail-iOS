@@ -8,139 +8,81 @@
 import DeviceActivity
 import SwiftUI
 
-//func containsIPhone(_ name: String) -> Bool {
-//  return name.range(of: "iPhone", options: .caseInsensitive) != nil
-//}
-
-
 struct TotalActivityReport: DeviceActivityReportScene {
   
-  // Define which context your scene will represent.
   let context: DeviceActivityReport.Context = .totalActivity
-  
-  // Define the custom configuration and the resulting view for this report.
   let content: (ActivityReport) -> ScreenTimeSectionView
   
   func makeConfiguration(representing data: DeviceActivityResults<DeviceActivityData>) async -> ActivityReport {
-    // Reformat the data into a configuration that can be used to create
-    // the report's view.
-    var list: [AppDeviceActivity] = []
-    var topList: [AppDeviceActivity] = []
+    var apps: [AppDeviceActivity] = []
+    var top: [AppDeviceActivity] = []
     
-    let totalActivityDuration = await data.flatMap { $0.activitySegments }.reduce(0, {
-      $0 + $1.totalActivityDuration
-    })
+    var totalDuration: TimeInterval = 0
     var totalPickups = 0
     var longestActivity: DateInterval?
     var firstPickup: Date?
     var categories: [String] = []
     
-    for await d in data {
-      for await a in d.activitySegments {
-        totalPickups = a.totalPickupsWithoutApplicationActivity
-        longestActivity = a.longestActivity
-        firstPickup = a.firstPickup
+    
+    for await device in data {
+      for await segment in device.activitySegments {
+        totalDuration += segment.totalActivityDuration
+        totalPickups = segment.totalPickupsWithoutApplicationActivity
+        if longestActivity == nil { longestActivity = segment.longestActivity }
+        if firstPickup == nil { firstPickup = segment.firstPickup }
         
-        
-        for await c in a.categories {
-          categories.append((c.category.localizedDisplayName)!)
+        for await cat in segment.categories {
+          if let name = cat.category.localizedDisplayName {
+            categories.append(name)
+          }
           
-          for await ap in c.applications {
-            let appName = (ap.application.localizedDisplayName ?? "nil")
-            let bundle = (ap.application.bundleIdentifier ?? "nil")
-            
-            
-            if appName == bundle{
+          for await ap in cat.applications {
+            // Без токена — пропускаем (иначе потом любая попытка отрисовать/обработать может упасть)
+            guard let token = ap.application.token else {
               continue
             }
             
-            let duration = Int(ap.totalActivityDuration)
+            let bundle = ap.application.bundleIdentifier
+            let appName = ap.application.localizedDisplayName ?? bundle ?? "App"
             let durationInterval = ap.totalActivityDuration
-            let category = c.category.localizedDisplayName!
-            let token = ap.application.token!
             
-            let numberOfHours = duration / 3600
-            let numberOfMins = (duration % 3600) / 60
-            var formatedDuration = ""
+            // Уникальный id: сначала bundle, если его нет — на основе хэша имени и токена
+            let id: String = bundle ?? "tok-\(token.hashValue)-\(abs(appName.hashValue))"
             
-            if numberOfHours == 0 {
-              if numberOfMins != 1{
-                formatedDuration = "\(numberOfMins)m"
-              }else{
-                formatedDuration = "\(numberOfMins)m"
-              }
-            } else if numberOfHours == 1 {
-              if numberOfMins != 1{
-                formatedDuration = "\(numberOfHours)h \(numberOfMins)m"
-              } else {
-                formatedDuration = "\(numberOfHours)h \(numberOfMins)m"
-              }
-            } else {
-              if numberOfMins != 1 {
-                formatedDuration = "\(numberOfHours)h \(numberOfMins)m"
-              } else {
-                formatedDuration = "\(numberOfHours)h \(numberOfMins)m"
-              }
-            }
+            // Формат времени
+            let totalSeconds = Int(durationInterval)
+            let h = totalSeconds / 3600
+            let m = (totalSeconds % 3600) / 60
+            let formatted = (h > 0) ? "\(h)h \(m)m" : "\(m)m"
             
-            let numberOfPickups = ap.numberOfPickups
-            let notifs = ap.numberOfNotifications
-            
-
-            let app = AppDeviceActivity(id: bundle,
-                                        token: token,
-                                        displayName: appName,
-                                        duration: formatedDuration,
-                                        durationInterval: durationInterval,
-                                        numberOfPickups: numberOfPickups,
-                                        category: category,
-                                        numberOfNotifs: notifs)
-            list.append(app)
+            let entry = AppDeviceActivity(
+              id: id,
+              token: token,
+              displayName: appName,
+              duration: formatted,
+              durationInterval: durationInterval,
+              numberOfPickups: ap.numberOfPickups,
+              category: cat.category.localizedDisplayName ?? "Other",
+              numberOfNotifs: ap.numberOfNotifications
+            )
+            apps.append(entry)
           }
         }
       }
     }
     
-    topList = list
-    topList = Array(list.sorted(by: sortApps).prefix(3))
+    top = Array(apps.sorted { $0.durationInterval > $1.durationInterval }.prefix(3))
     
-    // Save app token to display name mapping for use in extensions
-//    var tokenMap = SharedData.tokenDisplayNameMap
-//    for app in list {
-//      let tokenString = String(describing: app.token)
-//      tokenMap[tokenString] = app.displayName
-//    }
-//    SharedData.tokenDisplayNameMap = tokenMap
-    
-    // Debug notification to show saved apps
-//    let savedApps = SharedData.getAppList()
-//    let debugApps = savedApps.prefix(3).map { $0.displayName }.joined(separator: ", ")
-//    LocalNotificationManager.scheduleExtensionNotification(
-//      title: "DEBUG: TotalReport saved",
-//      details: "Saved:\(storedApps.count) Retrieved:\(savedApps.count) Apps:\(debugApps)"
-//    )
-    
-    // Cache the data for future use
-    let topAppsForCache = topList.map { app in
-      (name: app.displayName, duration: app.duration, bundleId: app.id)
-    }
-    
-    ScreenTimeCache.shared.cacheScreenTimeData(
-      totalDuration: totalActivityDuration,
-      totalPickups: totalPickups,
-      topApps: topAppsForCache
+    let report = ActivityReport(
+      totalDuration: totalDuration,
+      totalPickupsWithoutApplicationActivity: totalPickups,
+      longestActivity: longestActivity,
+      firstPickup: firstPickup,
+      categories: categories,
+      apps: apps,
+      topApps: top
     )
     
-    return ActivityReport(totalDuration: totalActivityDuration,
-                          totalPickupsWithoutApplicationActivity: totalPickups,
-                          longestActivity: longestActivity,
-                          firstPickup: firstPickup,
-                          categories: categories,
-                          apps: list,
-                          topApps: topList)
-  }
-  
-  func sortApps(this:AppDeviceActivity, that:AppDeviceActivity) -> Bool {
-    return this.durationInterval > that.durationInterval
+    return report
   }
 }

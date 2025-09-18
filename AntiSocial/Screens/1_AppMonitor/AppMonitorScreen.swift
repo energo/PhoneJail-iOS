@@ -423,12 +423,14 @@ private extension AppMonitorScreen {
   func handleScenePhaseChange(_ newPhase: ScenePhase) {
     switch newPhase {
       case .active:
+        // Check and apply active schedules when app becomes active
+        
         let timeSinceLastRefresh = Date().timeIntervalSince(lastRefreshDate)
         if timeSinceLastRefresh > 5 {
-          refreshScreenTime()
+          screenTimeView = ScreenTimeTodayView()
           lastRefreshDate = Date()
         }
-        // Check and apply active schedules when app becomes active
+
         BlockSchedulerService.shared.checkAndApplyActiveSchedules()
       case .inactive, .background:
         break
