@@ -244,16 +244,6 @@ class PomodoroViewModel: ObservableObject {
 
     // MARK: - Flow helpers
     private func startBreakFlow() {
-//        // Avoid duplicate start if already persisted as active
-//        let persistedBreak = SharedData.userDefaults?.bool(forKey: "pomodoro.isBreakPhase") ?? false
-//        let ts = SharedData.userDefaults?.double(forKey: "pomodoro.unlockDate") ?? 0
-//        let hasTime = ts > Date().timeIntervalSince1970
-//        if persistedBreak && hasTime {
-//            print("🍅 Pomodoro: Break already active (persisted), skipping duplicate start")
-//            currentSessionType = .breakTime
-//            updateCurrentState()
-//            return
-//        }
         startBreak(byUser: false)
     }
 

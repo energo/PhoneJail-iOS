@@ -109,7 +109,7 @@ final class PomodoroBlockService: ObservableObject {
     
     isPaused = true
     pausedAt = Date()
-//    originalUnlockDate = savedUnlockDate()
+
     // Store the current remaining seconds at pause time
     let currentRemaining = remainingSeconds
     SharedData.userDefaults?.set(currentRemaining, forKey: "pomodoro.pausedRemaining")
