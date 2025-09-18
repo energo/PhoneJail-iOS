@@ -100,10 +100,7 @@ struct BlockSchedulerSectionView: View {
       headerView
       separatorView
       
-      if activeBlockedSchedules.isEmpty &&
-          activeNotBlockedSchedules.isEmpty &&
-          inactiveSchedules.isEmpty
-      {
+      if isEmpty {
         emptyView
       } else {
         activeBlocksSection
@@ -112,6 +109,12 @@ struct BlockSchedulerSectionView: View {
       }
       addButton
     }
+  }
+  
+  private var isEmpty: Bool {
+    return activeBlockedSchedules.isEmpty &&
+    activeNotBlockedSchedules.isEmpty &&
+    inactiveSchedules.isEmpty
   }
   
   private var emptyView: some View {
@@ -124,8 +127,10 @@ struct BlockSchedulerSectionView: View {
         .foregroundColor(.white)
         .adaptiveFont(\.subheadline)
         .fontWeight(.regular)
+        .padding(.horizontal, 20)
     }
   }
+  
   private var headerView: some View {
     HStack {
       Image(.icNavSchedule)
