@@ -244,16 +244,16 @@ class PomodoroViewModel: ObservableObject {
 
     // MARK: - Flow helpers
     private func startBreakFlow() {
-        // Avoid duplicate start if already persisted as active
-        let persistedBreak = SharedData.userDefaults?.bool(forKey: "pomodoro.isBreakPhase") ?? false
-        let ts = SharedData.userDefaults?.double(forKey: "pomodoro.unlockDate") ?? 0
-        let hasTime = ts > Date().timeIntervalSince1970
-        if persistedBreak && hasTime {
-            print("🍅 Pomodoro: Break already active (persisted), skipping duplicate start")
-            currentSessionType = .breakTime
-            updateCurrentState()
-            return
-        }
+//        // Avoid duplicate start if already persisted as active
+//        let persistedBreak = SharedData.userDefaults?.bool(forKey: "pomodoro.isBreakPhase") ?? false
+//        let ts = SharedData.userDefaults?.double(forKey: "pomodoro.unlockDate") ?? 0
+//        let hasTime = ts > Date().timeIntervalSince1970
+//        if persistedBreak && hasTime {
+//            print("🍅 Pomodoro: Break already active (persisted), skipping duplicate start")
+//            currentSessionType = .breakTime
+//            updateCurrentState()
+//            return
+//        }
         startBreak(byUser: false)
     }
 
@@ -549,12 +549,20 @@ class PomodoroViewModel: ObservableObject {
     }
     
     func loadSettings() {
-        // Load from SharedData with default values if not set
-        focusDuration = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.focusDuration) ?? 25
-        breakDuration = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.breakDuration) ?? 5
-        longBreakDuration = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.longBreakDuration) ?? 15
-        totalSessions = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.totalSessions) ?? 4
+      // Load from SharedData with default values if not set
+      let hasStoredAutoStartBreak = SharedData.userDefaults?.object(forKey: SharedData.Pomodoro.autoStartBreak) != nil
+      
+      focusDuration = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.focusDuration) ?? 25
+      breakDuration = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.breakDuration) ?? 5
+      longBreakDuration = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.longBreakDuration) ?? 15
+      totalSessions = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.totalSessions) ?? 4
+      if !hasStoredAutoStartBreak {
+        // First time - use default true
+        autoStartBreak = true
+      } else {
+        // User has explicitly set it
         autoStartBreak = SharedData.userDefaults?.bool(forKey: SharedData.Pomodoro.autoStartBreak) ?? true
+      }
         print("🍅 Pomodoro: loadSettings() - autoStartBreak = \(autoStartBreak)")
         autoStartNextSession = SharedData.userDefaults?.bool(forKey: SharedData.Pomodoro.autoStartNextSession) ?? false
         notificationsEnabled = SharedData.userDefaults?.bool(forKey: SharedData.Pomodoro.notificationsEnabled) ?? true
