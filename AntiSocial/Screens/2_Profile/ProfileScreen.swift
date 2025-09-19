@@ -226,7 +226,7 @@ struct ProfileScreen: View {
   
   private var settingsSection: some View {
     VStack(spacing: 1) {
-      settingRow(icon: "bell.fill", text: "Notifications") {
+      settingsRow(icon: "bell.fill", text: "Notifications") {
         isShowNotifcations = true
       }
       
@@ -235,38 +235,34 @@ struct ProfileScreen: View {
       if let url = URL(string: "https://apps.apple.com/app/id6747712365") {
         shareButton(url)
       }
-
+      
       separatorView
       
-//      settingRow(icon: "doc.text.fill", text: "Contact Us") {
-//        //        openSupportForm()
-//      }
-//      
-//      separatorView
-//      
-//      settingRow(icon: "questionmark.circle", text: "FAQ") {
-//        //        openFAQ()
-//      }
-//      
-//      separatorView
+      settingsRow(icon: "text.document.fill", text: "Terms and Conditions") {
+        isTermsPresented = true
+      }
       
-      settingRow(icon: "shield.fill", text: "Terms & Policy") {
+      separatorView
+      
+      settingsRow(icon: "shield.fill", text: "Privacy Policy") {
         isPrivacyPresented = true
       }
       
       separatorView
       
-      settingRow(icon: "arrow.clockwise", text: "Restore purchases") {
-        Task {
-          try await SubscriptionManager.shared.restorePurchases()
+      if !SubscriptionManager.shared.isSubscriptionActive {
+        settingsRow(icon: "arrow.clockwise", text: "Restore purchases") {
+          Task {
+            try await SubscriptionManager.shared.restorePurchases()
+          }
         }
+        
+        separatorView
       }
       
-      separatorView
-      
-      settingRow(icon: "rectangle.portrait.and.arrow.forward",
-                 text: "Log Out",
-                 color: .red) {
+      settingsRow(icon: "rectangle.portrait.and.arrow.forward",
+                  text: "Log Out",
+                  color: .red) {
         loguOut()
       }
     }
@@ -276,15 +272,20 @@ struct ProfileScreen: View {
   
   private func shareButton(_ url: URL) -> some View {
     ShareLink(item: url) {
-      settingRow(icon: "person.2.fill", text: "Invite a friend")
+      HStack {
+        Label("Invite a friend", systemImage: "person.2.fill")
+          .contentShape(Rectangle()) // улучшает область нажатия
+        Spacer()
+      }
+      .padding(.vertical, 12)
+      .foregroundColor(Color.white)
     }
   }
-
   
-  private func settingRow(icon: String,
-                          text: String,
-                          color: Color = .white,
-                          action: @escaping () -> Void = {}) -> some View {
+  private func settingsRow(icon: String,
+                           text: String,
+                           color: Color = .white,
+                           action: @escaping () -> Void = {}) -> some View {
     Button(action: action) {
       HStack(spacing: 12) {
         Image(systemName: icon)

@@ -359,7 +359,6 @@ struct PomodoroSectionView: View {
   
   private var startFocusButton: some View {
     Button(action: {
-      viewModel.selectedMinutes = viewModel.focusDuration
       viewModel.startPomodoro()
       HapticManager.shared.notification(type: .success)
     }) {

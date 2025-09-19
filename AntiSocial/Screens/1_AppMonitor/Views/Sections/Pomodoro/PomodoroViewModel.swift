@@ -35,7 +35,6 @@ class PomodoroViewModel: ObservableObject {
     @Published var currentState: PomodoroViewState = .inactive
     
     // Timer state
-    @Published var selectedMinutes: Int = 25
     @Published var isRunning: Bool = false
     @Published var isPaused: Bool = false
     @Published var timeRemaining: String = "00:00"
@@ -176,10 +175,12 @@ class PomodoroViewModel: ObservableObject {
         pomodoroService.$remainingSeconds
             .receive(on: DispatchQueue.main)
             .sink { [weak self] seconds in
+                print("🍅 Pomodoro: remainingSeconds updated = \(seconds)")
                 self?.remainingSeconds = TimeInterval(seconds)
                 let minutes = seconds / 60
                 let remainingSeconds = seconds % 60
                 self?.timeRemaining = String(format: "%02d:%02d", minutes, remainingSeconds)
+                print("🍅 Pomodoro: timeRemaining = \(self?.timeRemaining ?? "nil")")
             }
             .store(in: &cancellables)
     }
@@ -542,8 +543,14 @@ class PomodoroViewModel: ObservableObject {
       // Load from SharedData with default values if not set
       let hasStoredAutoStartBreak = SharedData.userDefaults?.object(forKey: SharedData.Pomodoro.autoStartBreak) != nil
       
-      focusDuration = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.focusDuration) ?? 25
-      breakDuration = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.breakDuration) ?? 5
+      let storedFocusDuration = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.focusDuration) ?? 25
+      let storedBreakDuration = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.breakDuration) ?? 5
+      
+      print("🍅 Pomodoro: loadSettings() - storedFocusDuration = \(storedFocusDuration), storedBreakDuration = \(storedBreakDuration)")
+      
+      // Only use stored values if they are valid (not 0)
+      focusDuration = storedFocusDuration > 0 ? storedFocusDuration : 25
+      breakDuration = storedBreakDuration > 0 ? storedBreakDuration : 5
       longBreakDuration = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.longBreakDuration) ?? 15
       totalSessions = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.totalSessions) ?? 4
       if !hasStoredAutoStartBreak {
@@ -570,6 +577,7 @@ class PomodoroViewModel: ObservableObject {
         
         // Load session state
         currentSession = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.currentSession) ?? 1
+        totalSessions = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.totalSessions) ?? 1
         let sessionTypeString = SharedData.userDefaults?.string(forKey: SharedData.Pomodoro.currentSessionType) ?? "focus"
         currentSessionType = sessionTypeString == "focus" ? .focus : .breakTime
         allSessionsCompleted = SharedData.userDefaults?.bool(forKey: "pomodoroAllSessionsCompleted") ?? false
@@ -584,7 +592,10 @@ class PomodoroViewModel: ObservableObject {
         
         // If no settings were saved before, save defaults
         if SharedData.userDefaults?.object(forKey: SharedData.Pomodoro.focusDuration) == nil {
-            saveSettings()
+            // Only save if we have valid values (not 0)
+            if focusDuration > 0 && breakDuration > 0 {
+                saveSettings()
+            }
         }
     }
     
@@ -633,6 +644,7 @@ class PomodoroViewModel: ObservableObject {
     // MARK: - Dialog Actions
     
     func confirmStartFocus() {
+        print("🍅 Pomodoro: confirmStartFocus() - focusDuration = \(focusDuration)")
         showStartFocusDialog = false
         startFocusSession(duration: focusDuration)
     }
