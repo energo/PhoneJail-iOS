@@ -21,7 +21,8 @@ final class BlockingNotificationService: ObservableObject {
     hours: Int,
     minutes: Int,
     selection: FamilyActivitySelection,
-    restrictionModel: MyRestrictionModel
+    restrictionModel: MyRestrictionModel,
+    animationDelay: TimeInterval = 0
   ) {
     guard hours > 0 || minutes > 0 else { return }
     
@@ -30,25 +31,29 @@ final class BlockingNotificationService: ObservableObject {
     // Сохраняем timestamp начала блокировки
     SharedData.userDefaults?.set(Date().timeIntervalSince1970, forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
     
-    let (endHour, endMin) = getEndTime(hourDuration: hours, minuteDuration: minutes)
+    // Here is can be used animationDelay to compensate delay
+    let compensatedDuration = TimeInterval(hours * 3600 + minutes * 60) + animationDelay
+    let compensatedMinutes = Int(compensatedDuration) / 60
+    
+    // Получаем endHour и endMin с учетом компенсации
+    let (endHour, endMin) = getEndTime(hourDuration: 0, minuteDuration: compensatedMinutes)
     restrictionModel.endHour = endHour
     restrictionModel.endMins = endMin
     
-    // Устанавливаем дату разблокировки сразу для UI
-    if ShieldService.shared.unlockDate == nil || (ShieldService.shared.unlockDate ?? Date()) <= Date() {
-      ShieldService.shared.setUnlockDate(hour: endHour, minute: endMin)
-      // Also save to SharedData for extensions and app restart
-      if let unlockDate = ShieldService.shared.unlockDate {
-        SharedData.userDefaults?.set(unlockDate, forKey: SharedData.AppBlocking.unlockDate)
-      }
-    }
+    // Setting unlockDate with animation delay
+    let totalSeconds = Int(compensatedDuration)
+    let adjustedHours = totalSeconds / 3600
+    let adjustedMinutes = (totalSeconds % 3600) / 60
     
+    ShieldService.shared.setUnlockDuration(hours: adjustedHours, minutes: adjustedMinutes)
+    
+    if let unlockDate = ShieldService.shared.unlockDate {
+      SharedData.userDefaults?.set(unlockDate, forKey: SharedData.AppBlocking.unlockDate)
+    }
     // Сохраняем выбор приложений
     ShieldService.shared.saveFamilyActivitySelectionAsync(selection)
     
     // Устанавливаем время
-    
-    
     Task { @MainActor in
       DeviceActivityScheduleService.setSchedule(endHour: endHour, endMins: endMin)
       ShieldService.shared.setShieldRestrictions(restrictionModel.isStricted)

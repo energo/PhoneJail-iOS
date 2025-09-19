@@ -533,7 +533,8 @@ struct AppBlockingSectionView: View {
             hours: hours,
             minutes: minutes,
             selection: deviceActivityService.selectionToDiscourage,
-            restrictionModel: restrictionModel
+            restrictionModel: restrictionModel,
+            animationDelay: Constants.Timer.animationDelay
           )
           // Start timer after blocking animation completes
           // Проверяем что таймер еще не подключен
@@ -589,7 +590,7 @@ struct AppBlockingSectionView: View {
   
   // MARK: - Time Formatting Methods
   private func formatRemainingTime(_ timeInterval: TimeInterval) -> String {
-    let remaining = Int(timeInterval)
+    let remaining = Int(ceil(timeInterval))
     
     guard remaining > 0 else {
       return Constants.TimeFormat.initialRemaining

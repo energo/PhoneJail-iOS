@@ -71,6 +71,13 @@ class ShieldService: ObservableObject {
     }
   }
   
+  func setUnlockDuration(hours: Int, minutes: Int) {
+    let duration = TimeInterval(hours * 3600 + minutes * 60)
+    let newUnlockDate = Date().addingTimeInterval(duration)
+    
+    unlockDate = newUnlockDate
+  }
+  
   static var logDateFormat = "HH:mm:ss.SSS"
   static var logDateFormatter: DateFormatter {
     let formatter = DateFormatter()
@@ -86,7 +93,7 @@ class ShieldService: ObservableObject {
     //    let dateFormatted = DeviceActivityService.logDateFormatter.string(from: unlockDate)
     //    AppLogger.notice("\n[MyModel] timeRemainingString: \(dateFormatted)")
     
-    let remaining = Int(unlockDate.timeIntervalSinceNow)
+    let remaining = Int(ceil(unlockDate.timeIntervalSinceNow))
     if remaining <= 0 { return "0:00:00" }
     let hours = remaining / 3600
     let minutes = (remaining % 3600) / 60
