@@ -160,10 +160,18 @@ class ShieldService: ObservableObject {
   
   func setShieldRestrictions(for selection: FamilyActivitySelection, storeName: ManagedSettingsStore.Name) {
     let customStore = ManagedSettingsStore(named: storeName)
-    customStore.shield.applications = selection.applicationTokens.isEmpty ? nil : selection.applicationTokens
-    customStore.shield.applicationCategories = selection.categoryTokens.isEmpty
-    ? nil
-    : ShieldSettings.ActivityCategoryPolicy.specific(selection.categoryTokens)
+    
+    // If selection is empty, block all apps (like original pomodoro logic)
+    if selection.applicationTokens.isEmpty && selection.categoryTokens.isEmpty && storeName == .pomodoro {
+      customStore.shield.applicationCategories = .all()
+      customStore.shield.webDomainCategories = .all()
+    } else {
+      customStore.shield.applications = selection.applicationTokens
+      customStore.shield.applicationCategories = selection.categoryTokens.isEmpty
+      ? nil
+      : ShieldSettings.ActivityCategoryPolicy.specific(selection.categoryTokens)
+      customStore.shield.webDomains = selection.webDomainTokens
+    }
   }
   
   func setShieldRestrictionsAsync(_ isStricted: Bool = false) async {
