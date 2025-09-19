@@ -119,6 +119,7 @@ struct AppMonitorScreen: View {
       ProfileScreen()
     }
     .task {
+      screenTimeView.refreshToken = screenTimeRefreshID
       await setupInitialData()
     }
     .onChangeWithOldValue(of: scenePhase) { _, newPhase in
@@ -330,7 +331,6 @@ private extension AppMonitorScreen {
   
   var screenTimeSection: some View {
     screenTimeView
-      .id(screenTimeRefreshID)
       .opacity(currentSection == SectionType.pomodoro.rawValue ? 0 : 1)
       .animation(.easeInOut(duration: 0.3), value: currentSection)
   }
@@ -423,19 +423,21 @@ private extension AppMonitorScreen {
   func handleScenePhaseChange(_ newPhase: ScenePhase) {
     switch newPhase {
       case .active:
-        // Check and apply active schedules when app becomes active
-        
-        let timeSinceLastRefresh = Date().timeIntervalSince(lastRefreshDate)
-        if timeSinceLastRefresh > 5 {
-          screenTimeView = ScreenTimeTodayView()
-          lastRefreshDate = Date()
-        }
-
+        reloadScreenTimeIfNeeded()
         BlockSchedulerService.shared.checkAndApplyActiveSchedules()
+
       case .inactive, .background:
         break
       @unknown default:
         break
+    }
+  }
+  
+  private func reloadScreenTimeIfNeeded() {
+    let timeSinceLastRefresh = Date().timeIntervalSince(lastRefreshDate)
+    if timeSinceLastRefresh > 5 {
+        refreshScreenTime()
+        lastRefreshDate = Date()
     }
   }
   

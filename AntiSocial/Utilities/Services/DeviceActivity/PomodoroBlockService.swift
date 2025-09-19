@@ -19,7 +19,6 @@ final class PomodoroBlockService: ObservableObject {
   private init() { restoreIfNeeded() }
   
   // MARK: - Public state
-//  @Published private(set) var isActive: Bool = false
   @Published private(set) var isFocusActive: Bool = false
   @Published private(set) var isBreakActive: Bool = false
   @Published private(set) var remainingSeconds: Int = 0
@@ -41,7 +40,9 @@ final class PomodoroBlockService: ObservableObject {
   // MARK: - API
   /// Запускает помодоро-сессию на N минут. Если blockApps=false — только таймер без блокировки.
   func start(minutes: Int, isStrictBlock: Bool = false, selectionActivity: FamilyActivitySelection, blockApps: Bool = true, phase: String = "focus") {
-    let m = max(1, minutes)
+    print("🍅 PomodoroBlockService: start() - minutes = \(minutes), phase = \(phase)")
+    let m = max(5, minutes)
+    print("🍅 PomodoroBlockService: start() - after max(1, minutes) = \(m)")
     let unlockDate = Date().addingTimeInterval(TimeInterval(m * 60))
     SharedData.userDefaults?.set(unlockDate.timeIntervalSince1970, forKey: defaultsKey)
     
@@ -70,8 +71,6 @@ final class PomodoroBlockService: ObservableObject {
     
     // Тикер для UI + авто-снятие в активном приложении
     startTicker(unlockDate: unlockDate)
-    
-//    isActive = true
   }
   
   /// Принудительно завершает текущую сессию. completed=true — считать завершенной (фокус выполнен).
@@ -85,7 +84,6 @@ final class PomodoroBlockService: ObservableObject {
     SharedData.userDefaults?.removeObject(forKey: "pomodoro.isBlockingPhase")
     ticker?.cancel()
     
-//    isActive = false
     // End both phase flags
     isFocusActive = false
     isBreakActive = false
@@ -190,6 +188,7 @@ final class PomodoroBlockService: ObservableObject {
     ticker?.cancel()
     // Set initial remaining immediately so UI reflects progress on restore/open
     let initialLeft = Int(max(0, unlockDate.timeIntervalSinceNow))
+    print("🍅 PomodoroBlockService: startTicker - unlockDate = \(unlockDate), initialLeft = \(initialLeft)")
     self.remainingSeconds = initialLeft
     ticker = Timer
       .publish(every: 1, on: .main, in: .common)
@@ -207,8 +206,12 @@ final class PomodoroBlockService: ObservableObject {
   
   private func restoreIfNeeded() {
     let unlock = savedUnlockDate()
-    guard let unlock = unlock else { return }
+    guard let unlock = unlock else { 
+      print("🍅 PomodoroBlockService: restoreIfNeeded - no saved unlock date")
+      return 
+    }
     
+    print("🍅 PomodoroBlockService: restoreIfNeeded - unlock = \(unlock), now = \(Date())")
     if Date() < unlock {
       // Приложение перезапустили — восстановить тикер. Ограничения поднимет расширение.
       startTicker(unlockDate: unlock)

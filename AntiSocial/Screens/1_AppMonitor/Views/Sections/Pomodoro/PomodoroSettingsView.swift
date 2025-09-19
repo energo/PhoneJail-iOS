@@ -109,7 +109,7 @@ struct PomodoroSettingsView: View {
       // Duration input field
       durationInputField(
         value: $viewModel.focusDuration,
-        range: 1...60
+        range: 5...60
       )
     }
   }
@@ -141,7 +141,7 @@ struct PomodoroSettingsView: View {
             // Duration input field
             durationInputField(
                 value: $viewModel.breakDuration,
-                range: 1...30
+                range: 5...30
             )
         }
     }
