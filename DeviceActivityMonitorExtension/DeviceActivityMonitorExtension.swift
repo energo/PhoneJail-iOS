@@ -116,7 +116,6 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       ShieldService.shared.stopAppRestrictions()
       
       // Clear regular blocking state only if unlock date has passed
-      DeviceActivityScheduleService.stopSchedule()
       SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
       SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
       SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endHour)
