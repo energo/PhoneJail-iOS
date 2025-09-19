@@ -116,7 +116,6 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       ShieldService.shared.stopAppRestrictions()
       
       // Clear regular blocking state only if unlock date has passed
-      DeviceActivityScheduleService.stopSchedule()
       SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
       SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
       SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endHour)
@@ -494,22 +493,6 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     // Mark as inactive in SharedData
     SharedData.userDefaults?.set(false, forKey: "schedule_\(scheduleId)_active")
     SharedData.userDefaults?.removeObject(forKey: "schedule_\(scheduleId)_startTimestamp")
-    
-    // Check if any other schedules are active
-    let allScheduleIds = SharedData.userDefaults?.dictionaryRepresentation().keys
-      .filter { $0.contains("schedule_") && $0.contains("_active") }
-      .compactMap { key -> String? in
-        guard let isActive = SharedData.userDefaults?.bool(forKey: key), isActive else { return nil }
-        // Extract schedule ID from key like "schedule_UUID_active"
-        let components = key.split(separator: "_")
-        guard components.count >= 3 else { return nil }
-        return String(components[1])
-      } ?? []
-    
-    if allScheduleIds.isEmpty {
-      SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
-      SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isStricted)
-    }
   }
   
   // Removed - duplicate method, using the one with BlockSchedule parameter
