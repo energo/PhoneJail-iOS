@@ -263,13 +263,11 @@ struct CircularTimerView<Content: View>: View {
         .font(Font.primary(weight: .digital, size: .big))
         .foregroundColor(.white)
         .frame(width: boxWidth, alignment: .center)
-        .offset(x: isNarrowDigit(minuteTens) ? -10 : 0)
       
       Text("\(minuteOnes)")
         .font(Font.primary(weight: .digital, size: .big))
         .foregroundColor(.white)
         .frame(width: boxWidth, alignment: .center)
-        .offset(x: isNarrowDigit(minuteOnes) ? -8 : 0)
 
       
       // Двоеточие — в этом шрифте тоже моноширинное
@@ -277,7 +275,7 @@ struct CircularTimerView<Content: View>: View {
         .font(Font.primary(weight: .digital, size: .big))
         .foregroundColor(.white)
         .frame(width: 20, alignment: .center)
-        .padding(.trailing, 6)
+        .offset(x: -4)
       
       // Секунды
         Text("\(secondTens)")
@@ -290,9 +288,10 @@ struct CircularTimerView<Content: View>: View {
           .font(Font.primary(weight: .digital, size: .big))
           .foregroundColor(.white)
           .frame(width: boxWidth, alignment: .center)
-          .offset(x: isNarrowDigit(secondTens) ? -15 : isNarrowDigit(secondOnes) ? -8 : 0)
+          .offset(x: isNarrowDigit(secondTens) ? -10 : isNarrowDigit(secondOnes) ? -0 : 0)
       Spacer()
     }
+    .padding(.trailing, 6)
     .padding(.top, size * 0.15)
   }
 }
@@ -303,7 +302,7 @@ struct CircularTimerView<Content: View>: View {
     VStack(spacing: 40) {
       CircularTimerView(
         totalTime: 1500,
-        remainingTime: 771,
+        remainingTime: 570,
         isActive: true,
         timerType: .focus,
         size: 300,
