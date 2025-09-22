@@ -276,7 +276,8 @@ struct CircularTimerView<Content: View>: View {
       Text(":")
         .font(Font.primary(weight: .digital, size: .big))
         .foregroundColor(.white)
-        .frame(width: boxWidth, alignment: .center)
+        .frame(width: 20, alignment: .center)
+        .padding(.trailing, 6)
       
       // Секунды
         Text("\(secondTens)")
@@ -292,7 +293,6 @@ struct CircularTimerView<Content: View>: View {
           .offset(x: isNarrowDigit(secondTens) ? -15 : isNarrowDigit(secondOnes) ? -8 : 0)
       Spacer()
     }
-//    .padding(.trailing, 4)
     .padding(.top, size * 0.15)
   }
 }
