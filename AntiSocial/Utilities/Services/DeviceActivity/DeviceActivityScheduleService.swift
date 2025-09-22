@@ -30,16 +30,16 @@ extension DeviceActivityEvent.Name {
 class DeviceActivityScheduleService {
   static let center = DeviceActivityCenter()
   
-  static func setScheduleAsync(endHour: Int, endMins: Int) async {
+  static func setScheduleAsync(endHour: Int, endMins: Int, endSec: Int) async {
     await withCheckedContinuation { continuation in
       Task {
-        setSchedule(endHour: endHour, endMins: endMins)
+        setSchedule(endHour: endHour, endMins: endMins, endSec: endSec)
         continuation.resume()
       }
     }
   }
   
-  static func setSchedule(endHour: Int, endMins: Int) {
+  static func setSchedule(endHour: Int, endMins: Int, endSec: Int) {
     let now = Date()
     let calendar = Calendar.current
     
@@ -50,7 +50,7 @@ class DeviceActivityScheduleService {
     let month = startComponents.month ?? 1
     let day = startComponents.day ?? 1
     
-    var endDate = calendar.date(from: DateComponents(year: year, month: month, day: day, hour: endHour, minute: endMins))!
+    var endDate = calendar.date(from: DateComponents(year: year, month: month, day: day, hour: endHour, minute: endMins, second: endSec))!
     
     // If end time is before current time, it means it's for tomorrow
     if endDate < now {
