@@ -30,13 +30,14 @@ private extension UIFontDescriptor {
 
 extension Font {
   enum FontWeight {
-    case bold, regular, semibold
+    case bold, regular, semibold, digital
     
     var fontName: String {
       switch self {
         case .bold: return "ZCOOLQingKeHuangYou-Regular"
         case .semibold: return "ZCOOLQingKeHuangYou-Regular"
         case .regular: return "ZCOOLQingKeHuangYou-Regular"
+        case .digital: return "DigitalNumbers-Regular"
       }
     }
   }
@@ -89,6 +90,11 @@ extension Font {
                       size: FontSize = .small) -> Font {
     let fontSize = size.getFontSize(for: getScreenSizeCategory())
     return customFont(name: weight.fontName, size: fontSize)
+  }
+  
+  static func digital(size: FontSize = .extraBig) -> Font {
+      let fontSize = size.getFontSize(for: getScreenSizeCategory())
+      return customFont(name: "DigitalNumbers-Regular", size: fontSize)
   }
   
   //MARK: - Private Methods
