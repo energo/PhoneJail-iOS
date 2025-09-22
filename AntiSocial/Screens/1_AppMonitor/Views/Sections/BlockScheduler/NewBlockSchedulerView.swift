@@ -28,15 +28,15 @@ struct NewBlockSchedulerView: View {
   let onDelete: (() -> Void)?
   
   @State private var name: String = ""
-  @State private var startHour: Int = 12
-  @State private var startMinute: Int = 0
-  @State private var endHour: Int = 13
-  @State private var endMinute: Int = 0
-  @State private var selectedDays: Set<Int> = []
-  @State private var selection: FamilyActivitySelection = FamilyActivitySelection()
-  @State private var isStrictBlock: Bool = false
+  @State private var startHour: Int
+  @State private var startMinute: Int
+  @State private var endHour: Int
+  @State private var endMinute: Int
+  @State private var selectedDays: Set<Int>
+  @State private var selection: FamilyActivitySelection
+  @State private var isStrictBlock: Bool
+  @State private var isActive: Bool
   @State private var showingActivityPicker = false
-  @State private var isActive: Bool = false
   @State private var hasUnsavedChanges: Bool = false
   @State private var activeDialog: DialogType? = nil
   
@@ -44,6 +44,42 @@ struct NewBlockSchedulerView: View {
     self.schedule = schedule
     self.onSave = onSave
     self.onDelete = onDelete
+    
+    if let schedule = schedule {
+      self._name = .init(initialValue: schedule.name)
+      startHour = schedule.startTime.hour ?? 12
+      startMinute = schedule.startTime.minute ?? 0
+      endHour = schedule.endTime.hour ?? 13
+      endMinute = schedule.endTime.minute ?? 0
+      selectedDays = schedule.daysOfWeek
+      selection = schedule.selection
+      isStrictBlock = schedule.isStrictBlock
+      isActive = schedule.isActive
+    } else {
+      isStrictBlock = false
+      selection = FamilyActivitySelection()
+      isActive = false
+      
+      let calendar = Calendar.current
+      let now = Date()
+      let in10Minutes = calendar.date(byAdding: .minute, value: 10, to: now) ?? now
+      let in1Hour10Minutes = calendar.date(byAdding: .minute, value: 70, to: now) ?? now
+      
+      let startComponents = calendar.dateComponents([.hour, .minute], from: in10Minutes)
+      let endComponents = calendar.dateComponents([.hour, .minute], from: in1Hour10Minutes)
+      
+      startHour = startComponents.hour ?? 12
+      startMinute = startComponents.minute ?? 0
+      endHour = endComponents.hour ?? 13
+      endMinute = endComponents.minute ?? 0
+      
+      // Set default day to today only
+      let todayWeekday = calendar.component(.weekday, from: now)
+      selectedDays = [todayWeekday]
+      
+      // Default values for new schedule
+      self._name = .init(initialValue: generateDefaultName())
+    }
   }
   
   var body: some View {
@@ -65,9 +101,6 @@ struct NewBlockSchedulerView: View {
         
         bottomButtons
       }
-    }
-    .onAppear {
-      loadScheduleData()
     }
     .fullScreenCover(isPresented: $showingActivityPicker) {
         FamilyActivityPickerWrapper(
@@ -488,42 +521,6 @@ struct NewBlockSchedulerView: View {
   }
   
   // MARK: - Functions
-  
-  private func loadScheduleData() {
-    if let schedule = schedule {
-      name = schedule.name
-      startHour = schedule.startTime.hour ?? 12
-      startMinute = schedule.startTime.minute ?? 0
-      endHour = schedule.endTime.hour ?? 13
-      endMinute = schedule.endTime.minute ?? 0
-      selectedDays = schedule.daysOfWeek
-      selection = schedule.selection
-      isStrictBlock = schedule.isStrictBlock
-      isActive = schedule.isActive
-    } else {
-      // Default values for new schedule
-      name = generateDefaultName()
-      
-      // Set default time to current time + 10 minutes for start, +1 hour for end
-      let calendar = Calendar.current
-      let now = Date()
-      let in10Minutes = calendar.date(byAdding: .minute, value: 10, to: now) ?? now
-      let in1Hour10Minutes = calendar.date(byAdding: .minute, value: 70, to: now) ?? now
-      
-      let startComponents = calendar.dateComponents([.hour, .minute], from: in10Minutes)
-      let endComponents = calendar.dateComponents([.hour, .minute], from: in1Hour10Minutes)
-      
-      startHour = startComponents.hour ?? 12
-      startMinute = startComponents.minute ?? 0
-      endHour = endComponents.hour ?? 13
-      endMinute = endComponents.minute ?? 0
-      
-      // Set default day to today only
-      let todayWeekday = calendar.component(.weekday, from: now)
-      selectedDays = [todayWeekday]
-    }
-  }
-  
   private func generateDefaultName() -> String {
     let schedules = BlockSchedule.loadAll()
     let existingNames = Set(schedules.map { $0.name })
