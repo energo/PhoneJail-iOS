@@ -112,7 +112,7 @@ class BlockSchedulerService: ObservableObject {
       applyRestrictions(schedule)
       
       // Update schedule status
-      var updatedSchedule = schedule
+      var updatedSchedule = allSchedules.first(where: { $0.id == schedule.id }) ?? schedule
       updatedSchedule.isActive = true
       BlockSchedule.update(updatedSchedule)
       
