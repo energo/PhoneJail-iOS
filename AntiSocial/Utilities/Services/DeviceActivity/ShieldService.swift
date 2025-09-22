@@ -214,7 +214,10 @@ class ShieldService: ObservableObject {
     customStore.shield.applicationCategories = nil
     customStore.clearAllSettings()
     WidgetCenter.shared.reloadAllTimelines()
-    unlockDate = nil
+    
+    if storeName != .pomodoro {
+      unlockDate = nil
+    }
   }
   
   // MARK: - Helpers
