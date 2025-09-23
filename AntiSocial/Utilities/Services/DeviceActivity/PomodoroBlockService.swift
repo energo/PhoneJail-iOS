@@ -46,9 +46,9 @@ final class PomodoroBlockService: ObservableObject {
   }
   
   func start(minutes: Int, isStrictBlock: Bool = false, selectionActivity: FamilyActivitySelection, blockApps: Bool = true, phase: String = "focus") {
-    print("🍅 PomodoroBlockService: start() - minutes = \(minutes), phase = \(phase)")
+    AppLogger.notice("🍅 PomodoroBlockService: start() - minutes = \(minutes), phase = \(phase)")
     let m = max(5, minutes)
-    print("🍅 PomodoroBlockService: start() - after max(1, minutes) = \(m)")
+    AppLogger.notice("🍅 PomodoroBlockService: start() - after max(1, minutes) = \(m)")
     let unlockDate = alignedUnlockDate(minutes: m)
 
     SharedData.userDefaults?.set(unlockDate.timeIntervalSince1970, forKey: defaultsKey)
@@ -82,7 +82,7 @@ final class PomodoroBlockService: ObservableObject {
   
   /// Принудительно завершает текущую сессию. completed=true — считать завершенной (фокус выполнен).
   func stop(reason: PomodoroSession.EndReason = .manualStop, completed: Bool = false) {
-//    print("🍅 PomodoroBlockService: stop() called, isActive was \(isActive)")
+//    AppLogger.notice("🍅 PomodoroBlockService: stop() called, isActive was \(isActive)")
     // Остановить мониторинг и снять ограничения
     DeviceActivityScheduleService.stopPomodoroSchedule()
     ShieldService.shared.stopAppRestrictions(storeName: .pomodoro)
@@ -104,13 +104,13 @@ final class PomodoroBlockService: ObservableObject {
       AppBlockingLogger.shared.endSession(type: .pomodoro, completed: completed)
     }
     session.end(reason: reason)
-//    print("🍅 PomodoroBlockService: stop() completed, isActive now \(isActive)")
+//    AppLogger.notice("🍅 PomodoroBlockService: stop() completed, isActive now \(isActive)")
   }
   
   /// Ставит таймер на паузу
   func pause() {
     guard (isBreakActive || isFocusActive) && !isPaused else { return }
-    print("🍅 PomodoroBlockService: pause() called")
+    AppLogger.notice("🍅 PomodoroBlockService: pause() called")
     
     isPaused = true
     pausedAt = Date()
@@ -195,7 +195,7 @@ final class PomodoroBlockService: ObservableObject {
     ticker?.cancel()
     // Set initial remaining immediately so UI reflects progress on restore/open
     let initialLeft = Int(max(0, unlockDate.timeIntervalSinceNow))
-    print("🍅 PomodoroBlockService: startTicker - unlockDate = \(unlockDate), initialLeft = \(initialLeft)")
+    AppLogger.notice("🍅 PomodoroBlockService: startTicker - unlockDate = \(unlockDate), initialLeft = \(initialLeft)")
     self.remainingSeconds = initialLeft
     ticker = Timer
       .publish(every: 1, on: .main, in: .common)
@@ -205,7 +205,7 @@ final class PomodoroBlockService: ObservableObject {
         let left = Int(unlockDate.timeIntervalSince(now))
         self.remainingSeconds = max(0, left)
         if left <= 0 {
-          print("🍅 PomodoroBlockService: Timer reached 0, calling stop()")
+          AppLogger.notice("🍅 PomodoroBlockService: Timer reached 0, calling stop()")
           self.stop(reason: .autoTimer, completed: true) // снимет щит и почистит стейт
         }
       }
@@ -214,11 +214,11 @@ final class PomodoroBlockService: ObservableObject {
   private func restoreIfNeeded() {
     let unlock = savedUnlockDate()
     guard let unlock = unlock else { 
-      print("🍅 PomodoroBlockService: restoreIfNeeded - no saved unlock date")
+      AppLogger.notice("🍅 PomodoroBlockService: restoreIfNeeded - no saved unlock date")
       return 
     }
     
-    print("🍅 PomodoroBlockService: restoreIfNeeded - unlock = \(unlock), now = \(Date())")
+    AppLogger.notice("🍅 PomodoroBlockService: restoreIfNeeded - unlock = \(unlock), now = \(Date())")
     if Date() < unlock {
       // Приложение перезапустили — восстановить тикер. Ограничения поднимет расширение.
       startTicker(unlockDate: unlock)
