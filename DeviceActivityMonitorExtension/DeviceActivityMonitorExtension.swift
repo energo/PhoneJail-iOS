@@ -216,9 +216,9 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     // Check if this is a screen alert event
     if event == DeviceActivityEvent.Name.screenAlert {
       handleTresholdScreenAlert(event)
+      restartMonitoring(for: activity)
     }
     
-    restartMonitoring(for: activity)
   }
   
   //MARK: - Screen Time Alert
@@ -795,80 +795,6 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       //                 "Result: \(isActive)"
       //      )
       return isActive
-    }
-  }
-  
-  private func restartScheduleMonitoring(scheduleId: String) {
-    let monitoringActivityName = DeviceActivityName("monitor_\(scheduleId)")
-    let center = DeviceActivityCenter()
-    
-    // Stop current monitoring
-    center.stopMonitoring([monitoringActivityName])
-    
-    // Get schedule times from SharedData to create proper monitoring window
-    guard let startHour = SharedData.userDefaults?.object(forKey: "schedule_\(scheduleId)_startHour") as? Int,
-          let startMinute = SharedData.userDefaults?.object(forKey: "schedule_\(scheduleId)_startMinute") as? Int,
-          let endHour = SharedData.userDefaults?.object(forKey: "schedule_\(scheduleId)_endHour") as? Int,
-          let endMinute = SharedData.userDefaults?.object(forKey: "schedule_\(scheduleId)_endMinute") as? Int else {
-      print("Failed to get schedule times for \(scheduleId)")
-      return
-    }
-    
-    // Calculate monitoring window (1 minute before start to 1 minute after end)
-    var monitorStart = DateComponents()
-    var adjustedStartMinute = startMinute - 1
-    var adjustedStartHour = startHour
-    if adjustedStartMinute < 0 {
-      adjustedStartMinute = 59
-      adjustedStartHour = (adjustedStartHour - 1 + 24) % 24
-    }
-    monitorStart.hour = adjustedStartHour
-    monitorStart.minute = adjustedStartMinute
-    
-    var monitorEnd = DateComponents()
-    var adjustedEndMinute = endMinute + 1
-    var adjustedEndHour = endHour
-    if adjustedEndMinute >= 60 {
-      adjustedEndMinute = 0
-      adjustedEndHour = (adjustedEndHour + 1) % 24
-    }
-    monitorEnd.hour = adjustedEndHour
-    monitorEnd.minute = adjustedEndMinute
-    
-    // Create monitoring schedule
-    let monitoringSchedule = DeviceActivitySchedule(
-      intervalStart: monitorStart,
-      intervalEnd: monitorEnd,
-      repeats: true
-    )
-    
-    // Create trigger event that fires every minute
-    let triggerEvent = DeviceActivityEvent(
-      applications: Set<ApplicationToken>(),
-      threshold: DateComponents(minute: 1)
-    )
-    
-    let events: [DeviceActivityEvent.Name: DeviceActivityEvent] = [
-      DeviceActivityEvent.Name("trigger_\(scheduleId)"): triggerEvent
-    ]
-    
-    // Restart monitoring
-    do {
-      try center.startMonitoring(monitoringActivityName, during: monitoringSchedule, events: events)
-      
-      //      LocalNotificationManager.scheduleExtensionNotification(
-      //        title: "🔄 Monitoring Restarted",
-      //        details: "Schedule \(scheduleId) monitoring restarted"
-      //      )
-      
-      print("Restarted schedule monitoring for \(scheduleId)")
-    } catch {
-      //      LocalNotificationManager.scheduleExtensionNotification(
-      //        title: "❌ Restart Failed",
-      //        details: "Error: \(error.localizedDescription)"
-      //      )
-      
-      print("Failed to restart schedule monitoring: \(error)")
     }
   }
   

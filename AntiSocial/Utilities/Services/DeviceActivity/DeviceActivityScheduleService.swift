@@ -80,7 +80,7 @@ class DeviceActivityScheduleService {
     let event = DeviceActivityEvent(
       applications: ShieldService.shared.selectionToDiscourage.applicationTokens,  // ВСЕ выбранные приложения
       categories: ShieldService.shared.selectionToDiscourage.categoryTokens,
-      threshold: DateComponents(second: 10)
+      threshold: DateComponents(second: 10) //TODO: - need to check if this can be removed
     )
     
     var events: [DeviceActivityEvent.Name: DeviceActivityEvent] = [:]
