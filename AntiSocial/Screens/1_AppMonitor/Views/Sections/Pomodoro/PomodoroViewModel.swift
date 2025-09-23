@@ -312,6 +312,10 @@ class PomodoroViewModel: ObservableObject {
     currentSessionType = .breakTime
     isHandlingSessionEnd = false // Reset flag when starting break
     updateCurrentState()
+    
+    isHandlingSessionEnd = true
+    pomodoroService.stop(completed: true)
+
     // Persist break state for restore after relaunch
     saveSettings()
     SharedData.userDefaults?.set("break", forKey: SharedData.Pomodoro.currentSessionType)
@@ -323,8 +327,6 @@ class PomodoroViewModel: ObservableObject {
     
     // Don't block during break - stop the service first then restart just for timer
     // Set flag to prevent handleSessionEnd from being called again
-    isHandlingSessionEnd = true
-    pomodoroService.stop(completed: true)
     // Small delay to ensure clean stop
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
       guard let self else { return }
