@@ -22,6 +22,37 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   private let minimumTriggerInterval: TimeInterval = 120 // 2 minutes minimum between triggers
   
   //MARK: - Interval Delegates Methods
+  override func intervalDidStart(for activity: DeviceActivityName) {
+    super.intervalDidStart(for: activity)
+    
+    //     Debug notification
+    //    LocalNotificationManager.scheduleExtensionNotification(
+    //      title: "🔄 Interval Did Start",
+    //      details: "\(activity.rawValue)"
+    //    )
+    
+    // Check if this is a schedule activity starting
+    let activityName = "\(activity.rawValue)"
+    if activityName.contains("schedule_") || activityName.contains("scheduledBlock_") {
+      let scheduleId: String
+      if activityName.contains("scheduledBlock_") {
+        scheduleId = activityName.replacingOccurrences(of: "scheduledBlock_", with: "")
+      } else {
+        scheduleId = activityName.replacingOccurrences(of: "schedule_", with: "")
+      }
+      
+      // Load schedule and apply restrictions
+      handleScheduleStart(scheduleId: scheduleId)
+      return
+    }
+    
+    // Pomodoro start: apply restrictions using saved selection
+    if activity == .pomodoro {
+      handleStartPomodoroPhases()
+      return
+    }
+  }
+  
   fileprivate func handleStartPomodoroPhases() {
     let isFocusPhase = SharedData.userDefaults?.bool(forKey: SharedData.Pomodoro.isFocusPhase) ?? true
     if isFocusPhase {
@@ -55,34 +86,31 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     }
   }
   
-  override func intervalDidStart(for activity: DeviceActivityName) {
-    super.intervalDidStart(for: activity)
+  override func intervalDidEnd(for activity: DeviceActivityName) {
+    super.intervalDidEnd(for: activity)
     
-    //     Debug notification
-    //    LocalNotificationManager.scheduleExtensionNotification(
-    //      title: "🔄 Interval Did Start",
-    //      details: "\(activity.rawValue)"
-    //    )
-    
-    // Check if this is a schedule activity starting
     let activityName = "\(activity.rawValue)"
+    
+    // Debug notification
+    //        LocalNotificationManager.scheduleExtensionNotification(
+    //          title: "🔄 Interval Did End",
+    //          details: "\(activityName)"
+    //        )
+    
+    // Check if this is a schedule activity ending
     if activityName.contains("schedule_") || activityName.contains("scheduledBlock_") {
-      let scheduleId: String
-      if activityName.contains("scheduledBlock_") {
-        scheduleId = activityName.replacingOccurrences(of: "scheduledBlock_", with: "")
-      } else {
-        scheduleId = activityName.replacingOccurrences(of: "schedule_", with: "")
-      }
-      
-      // Load schedule and apply restrictions
-      handleScheduleStart(scheduleId: scheduleId)
+      handleEndSchedule(activityName)
       return
     }
     
-    // Pomodoro start: apply restrictions using saved selection
-    if activity == .pomodoro {
-      handleStartPomodoroPhases()
-      return
+    // Interval ended silently
+    // Handle different activities differently
+    if activity == .appBlocking {
+      handleEndAppBlocking()
+    } else if activity == .appBlockingInterruption {
+      handleEndAppBlockingInterruption()
+    } else if activity == .pomodoro {
+      handleEndPomodoroPhases()
     }
   }
   
@@ -209,33 +237,6 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     SharedData.userDefaults?.set(false, forKey: SharedData.Pomodoro.isFocusPhase) // ensure AppBlocking UI stays off
   }
   
-  override func intervalDidEnd(for activity: DeviceActivityName) {
-    super.intervalDidEnd(for: activity)
-    
-    let activityName = "\(activity.rawValue)"
-    
-    // Debug notification
-    //        LocalNotificationManager.scheduleExtensionNotification(
-    //          title: "🔄 Interval Did End",
-    //          details: "\(activityName)"
-    //        )
-    
-    // Check if this is a schedule activity ending
-    if activityName.contains("schedule_") || activityName.contains("scheduledBlock_") {
-      handleEndSchedule(activityName)
-      return
-    }
-    
-    // Interval ended silently
-    // Handle different activities differently
-    if activity == .appBlocking {
-      handleEndAppBlocking()
-    } else if activity == .appBlockingInterruption {
-      handleEndAppBlockingInterruption()
-    } else if activity == .pomodoro {
-      handleEndPomodoroPhases()
-    }
-  }
   
   //MARK: - Inrterval Threshold
   override func eventDidReachThreshold(_ event: DeviceActivityEvent.Name, activity: DeviceActivityName) {
