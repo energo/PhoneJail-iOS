@@ -259,7 +259,7 @@ struct CircularTimerView<Content: View>: View {
         fromValue: 2, toValue: 60,
         spacing: 0,
         steps: 1, valueStep: 1,
-        style: .styleThree
+        style: .styleSlim
       )
       
       Button {
