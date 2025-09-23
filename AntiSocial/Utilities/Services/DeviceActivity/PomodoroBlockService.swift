@@ -19,10 +19,10 @@ final class PomodoroBlockService: ObservableObject {
   private init() { restoreIfNeeded() }
   
   // MARK: - Public state
-  @Published private(set) var isFocusActive: Bool = false
-  @Published private(set) var isBreakActive: Bool = false
-  @Published private(set) var remainingSeconds: Int = 0
-  @Published private(set) var isPaused: Bool = false
+  @Published  var isFocusActive: Bool = false
+  @Published  var isBreakActive: Bool = false
+  @Published  var remainingSeconds: Int = 0
+  @Published  var isPaused: Bool = false
   // Whether current session should actually block apps
   private var isBlockingApps: Bool = true
   // Umbrella session state
@@ -39,10 +39,9 @@ final class PomodoroBlockService: ObservableObject {
   
   // MARK: - API
   /// Запускает помодоро-сессию на N минут. Если blockApps=false — только таймер без блокировки.
-  
   func alignedUnlockDate(minutes m: Int) -> Date {
-      let accurateStartTime = ceil(Date().timeIntervalSince1970) // round up to the next whole second
-      return Date(timeIntervalSince1970: accurateStartTime + Double(m * 60))
+    let accurateStartTime = ceil(Date().timeIntervalSince1970) // round up to the next whole second
+    return Date(timeIntervalSince1970: accurateStartTime + Double(m * 60))
   }
   
   func start(minutes: Int, isStrictBlock: Bool = false, selectionActivity: FamilyActivitySelection, blockApps: Bool = true, phase: String = "focus") {
@@ -50,7 +49,7 @@ final class PomodoroBlockService: ObservableObject {
     let m = max(5, minutes)
     print("🍅 PomodoroBlockService: start() - after max(1, minutes) = \(m)")
     let unlockDate = alignedUnlockDate(minutes: m)
-
+    
     SharedData.userDefaults?.set(unlockDate.timeIntervalSince1970, forKey: defaultsKey)
     
     // Сохраняем выбранные приложения (используется в расширении)
@@ -82,10 +81,11 @@ final class PomodoroBlockService: ObservableObject {
   
   /// Принудительно завершает текущую сессию. completed=true — считать завершенной (фокус выполнен).
   func stop(reason: PomodoroSession.EndReason = .manualStop, completed: Bool = false) {
-//    print("🍅 PomodoroBlockService: stop() called, isActive was \(isActive)")
+    //    print("🍅 PomodoroBlockService: stop() called, isActive was \(isActive)")
     // Остановить мониторинг и снять ограничения
     DeviceActivityScheduleService.stopPomodoroSchedule()
     ShieldService.shared.stopAppRestrictions(storeName: .pomodoro)
+    SharedData.userDefaults?.set(false, forKey: "pomodoro.isPaused")
     SharedData.userDefaults?.removeObject(forKey: defaultsKey)
     SharedData.userDefaults?.removeObject(forKey: "pomodoro.isBreakPhase")
     SharedData.userDefaults?.removeObject(forKey: "pomodoro.isBlockingPhase")
@@ -96,6 +96,7 @@ final class PomodoroBlockService: ObservableObject {
     isBreakActive = false
     // Set remaining to zero only on completion; keep otherwise to help UI distinguish manual stop
     if completed { remainingSeconds = 0 }
+    
     isPaused = false
     pausedAt = nil
     originalUnlockDate = nil
@@ -104,7 +105,7 @@ final class PomodoroBlockService: ObservableObject {
       AppBlockingLogger.shared.endSession(type: .pomodoro, completed: completed)
     }
     session.end(reason: reason)
-//    print("🍅 PomodoroBlockService: stop() completed, isActive now \(isActive)")
+    //    print("🍅 PomodoroBlockService: stop() completed, isActive now \(isActive)")
   }
   
   /// Ставит таймер на паузу
@@ -114,9 +115,14 @@ final class PomodoroBlockService: ObservableObject {
     
     isPaused = true
     pausedAt = Date()
-
+    
     // Store the current remaining seconds at pause time
+    if isBlockingApps {
+      DeviceActivityScheduleService.stopPomodoroSchedule()
+    }
+    
     let currentRemaining = remainingSeconds
+    SharedData.userDefaults?.set(true, forKey: "pomodoro.isPaused")
     SharedData.userDefaults?.set(currentRemaining, forKey: "pomodoro.pausedRemaining")
     
     // Останавливаем тикер
@@ -134,11 +140,14 @@ final class PomodoroBlockService: ObservableObject {
     let newUnlockDate = Date().addingTimeInterval(TimeInterval(pausedRemaining))
     SharedData.userDefaults?.set(newUnlockDate.timeIntervalSince1970, forKey: defaultsKey)
     
+    SharedData.userDefaults?.set(false, forKey: "pomodoro.isPaused")
+    SharedData.userDefaults?.removeObject(forKey: "pomodoro.pausedRemaining")
     // Restart ticker with new unlock date
     startTicker(unlockDate: newUnlockDate)
     
     if isBlockingApps {
-      DeviceActivityScheduleService.stopPomodoroSchedule()
+      //      DeviceActivityScheduleService.stopPomodoroSchedule()
+      
       DeviceActivityScheduleService.setPomodoroSchedule(endAt: newUnlockDate)
     }
     
@@ -178,18 +187,18 @@ final class PomodoroBlockService: ObservableObject {
     
     // Останавливаем все таймеры
     ticker?.cancel()
-//    isActive = false
+    //    isActive = false
     isBreakActive = false
     isFocusActive = false
-
+    
     remainingSeconds = 0
-        
+    
     ShieldService.shared.stopAppRestrictions()
     DeviceActivityScheduleService.stopSchedule()
-
+    
     print("🚨 Emergency clear: All blocks removed")
   }
-    
+  
   // MARK: - Helpers
   private func startTicker(unlockDate: Date) {
     ticker?.cancel()
@@ -211,25 +220,50 @@ final class PomodoroBlockService: ObservableObject {
       }
   }
   
+  // PomodoroBlockService
   private func restoreIfNeeded() {
     let unlock = savedUnlockDate()
-    guard let unlock = unlock else { 
+    guard let unlock = unlock else {
       print("🍅 PomodoroBlockService: restoreIfNeeded - no saved unlock date")
-      return 
+      return
+    }
+        
+    let wasPaused = SharedData.userDefaults?.bool(forKey: "pomodoro.isPaused") ?? false
+    let pausedRemaining = SharedData.userDefaults?.integer(forKey: "pomodoro.pausedRemaining") ?? 0
+    
+    if wasPaused && pausedRemaining > 0 {      
+      // Восстанавливаем состояние БЕЗ запуска ticker
+      isPaused = true
+      remainingSeconds = pausedRemaining
+      
+      let isBlockingPhase = SharedData.userDefaults?.bool(forKey: "pomodoro.isBlockingPhase") ?? true
+      let isBreakPhase = SharedData.userDefaults?.bool(forKey: "pomodoro.isBreakPhase") ?? false
+      
+      isBlockingApps = isBlockingPhase
+      
+      if isBreakPhase {
+        isBreakActive = true
+        isFocusActive = false
+      } else if isBlockingPhase {
+        isFocusActive = true
+        isBreakActive = false
+      } else {
+        isBreakActive = false
+        isFocusActive = false
+      }
+      
+      // НЕ запускаем ticker - он запустится при resume()
+      return
     }
     
-    print("🍅 PomodoroBlockService: restoreIfNeeded - unlock = \(unlock), now = \(Date())")
+    // Если не было паузы - обычное восстановление
     if Date() < unlock {
-      // Приложение перезапустили — восстановить тикер. Ограничения поднимет расширение.
       startTicker(unlockDate: unlock)
-      // Restore blocking flag for current phase (focus/break)
+      
       let isBlockingPhase = SharedData.userDefaults?.bool(forKey: "pomodoro.isBlockingPhase") ?? true
       isBlockingApps = isBlockingPhase
       let isBreakPhase = SharedData.userDefaults?.bool(forKey: "pomodoro.isBreakPhase") ?? false
-
       
-
-      // Set phase flags
       if isBreakPhase {
         isBreakActive = true
         isFocusActive = false
@@ -241,7 +275,6 @@ final class PomodoroBlockService: ObservableObject {
         isFocusActive = false
       }
     } else {
-      // Session expired, stop as autoTimer
       stop(reason: .autoTimer, completed: true)
     }
   }
