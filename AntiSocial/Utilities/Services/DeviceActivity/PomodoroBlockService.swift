@@ -19,10 +19,10 @@ final class PomodoroBlockService: ObservableObject {
   private init() { restoreIfNeeded() }
   
   // MARK: - Public state
-  @Published  var isFocusActive: Bool = false
-  @Published  var isBreakActive: Bool = false
-  @Published  var remainingSeconds: Int = 0
-  @Published  var isPaused: Bool = false
+  @Published var isFocusActive: Bool = false
+  @Published var isBreakActive: Bool = false
+  @Published var remainingSeconds: Int = 0
+  @Published var isPaused: Bool = false
   // Whether current session should actually block apps
   private var isBlockingApps: Bool = true
   // Umbrella session state

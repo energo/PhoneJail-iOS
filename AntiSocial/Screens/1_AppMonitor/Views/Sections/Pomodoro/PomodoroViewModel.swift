@@ -276,13 +276,6 @@ class PomodoroViewModel: ObservableObject {
     
     showStartFocusDialog = true
     print("🍅 Pomodoro: showStartFocusDialog = true")
-    // Show confirmation dialog if all categories are blocked
-    //        if blockAllCategories {
-    //            showStartFocusDialog = true
-    //            return
-    //        }
-    // Start the session directly
-    //        startFocusSession(duration: duration)
   }
   
   private func startFocusSession(duration: Int) {
