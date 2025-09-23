@@ -79,12 +79,9 @@ struct ActivityReportView: View {
     }
     .padding()
     .background(bgBlur)
-    .onAppear {
-      // View appeared
-    }
     .onReceive(
       dateChangeSubject
-        .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
+//        .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
     ) { newDate in
       Task { @MainActor in
         guard newDate != selectedDate else { return }

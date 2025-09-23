@@ -244,6 +244,8 @@ struct AppBlockingSectionView: View {
           .onDisappear {
             // Force refresh subscription status after paywall closes
             subscriptionManager.refreshSubscription()
+            
+            updateSubscriptionStatusIfNeeded()
           }
       }
   }
