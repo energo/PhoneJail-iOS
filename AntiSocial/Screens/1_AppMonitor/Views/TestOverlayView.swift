@@ -10,15 +10,16 @@ import SwiftUI
 struct TestOverlayView: View {
     var body: some View {
       VStack {
-        Image(.testWater)
+        Image(.testWater2)
           .resizable()
           .scaledToFill()
-//          .overlay {
-//            Image(.testGradientOpacity)
-//              .resizable()
-//              .scaledToFill()
-//              .edgesIgnoringSafeArea(.all)
-//          }
+          .overlay {
+            Image(.testGradient)
+              .resizable()
+              .scaledToFill()
+              .opacity(0.5)
+              .edgesIgnoringSafeArea(.all)
+          }
       }
       .ignoresSafeArea()
     }
