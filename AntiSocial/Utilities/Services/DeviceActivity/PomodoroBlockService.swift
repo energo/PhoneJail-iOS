@@ -46,7 +46,7 @@ final class PomodoroBlockService: ObservableObject {
   
   func start(minutes: Int, isStrictBlock: Bool = false, selectionActivity: FamilyActivitySelection, blockApps: Bool = true, phase: String = "focus") {
     print("🍅 PomodoroBlockService: start() - minutes = \(minutes), phase = \(phase)")
-    let m = max(5, minutes)
+    let m = max(1, minutes)
     print("🍅 PomodoroBlockService: start() - after max(1, minutes) = \(m)")
     let unlockDate = alignedUnlockDate(minutes: m)
     

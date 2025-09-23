@@ -49,31 +49,37 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     // Pomodoro start: apply restrictions using saved selection
     if activity == .pomodoro {
       // Mark that we're in focus phase
-      SharedData.userDefaults?.set(false, forKey: SharedData.Pomodoro.isBreakPhase)
-      // Load selection saved by app
-      var selection = FamilyActivitySelection()
-      if let data = SharedData.userDefaults?.data(forKey: "pomodoroSelectedApps"),
-         let decoded = try? JSONDecoder().decode(FamilyActivitySelection.self, from: data) {
-        selection = decoded
-      }
-      
-      // Apply shield restrictions to the dedicated Pomodoro store
-      ShieldService.shared.setShieldRestrictions(for: selection, storeName: .pomodoro)
-      
-      // Strict mode: deny app removal if enabled
-      let isStrict = SharedData.userDefaults?.bool(forKey: "pomodoroIsStrictBlock") ?? false
-      if isStrict {
-        let pomodoroStore = ManagedSettingsStore(named: .pomodoro)
-        pomodoroStore.application.denyAppRemoval = true
-      }
-      
-      // Start logging a blocking session for categories with expected duration if available
-      if let ts = SharedData.userDefaults?.double(forKey: SharedData.Pomodoro.unlockDate), ts > 0 {
-        let duration = max(0, ts - Date().timeIntervalSince1970)
-        Task { @MainActor in
-          _ = AppBlockingLogger.shared.startPomodoroSessionForCategories(duration: duration)
+      if SharedData.userDefaults?.bool(forKey: SharedData.Pomodoro.isFocusPhase) ?? true {
+        SharedData.userDefaults?.set(false, forKey: SharedData.Pomodoro.isBreakPhase)
+        // Load selection saved by app
+        var selection = FamilyActivitySelection()
+        if let data = SharedData.userDefaults?.data(forKey: "pomodoroSelectedApps"),
+           let decoded = try? JSONDecoder().decode(FamilyActivitySelection.self, from: data) {
+          selection = decoded
         }
+        
+        // Apply shield restrictions to the dedicated Pomodoro store
+        ShieldService.shared.setShieldRestrictions(for: selection, storeName: .pomodoro)
+        
+        // Strict mode: deny app removal if enabled
+        let isStrict = SharedData.userDefaults?.bool(forKey: "pomodoroIsStrictBlock") ?? false
+        if isStrict {
+          let pomodoroStore = ManagedSettingsStore(named: .pomodoro)
+          pomodoroStore.application.denyAppRemoval = true
+        }
+        
+        // Start logging a blocking session for categories with expected duration if available
+        if let ts = SharedData.userDefaults?.double(forKey: SharedData.Pomodoro.unlockDate), ts > 0 {
+          let duration = max(0, ts - Date().timeIntervalSince1970)
+          Task { @MainActor in
+            _ = AppBlockingLogger.shared.startPomodoroSessionForCategories(duration: duration)
+          }
+        }
+      } else {
+        ShieldService.shared.stopAppRestrictions(storeName: .pomodoro)
+        SharedData.userDefaults?.set(true, forKey: SharedData.Pomodoro.isBreakPhase)
       }
+    
       return
     }
   }
