@@ -99,6 +99,8 @@ class SubscriptionManager: ObservableObject, SubscriptionManagerProtocol {
   
   @MainActor
   func restorePurchases() async throws {
+    AppLogger.alert("Purchase: restoring...")
+    
     isRestoringPurchases = true
     defer { isRestoringPurchases = false }
     
@@ -299,6 +301,8 @@ class SubscriptionManager: ObservableObject, SubscriptionManagerProtocol {
   }
 
   func refreshSubscription() {
+    AppLogger.alert("Purchase: refreshSubscription")
+    
       Purchases.shared.getCustomerInfo { (customerInfo, error) in
           guard error == nil, let customerInfo = customerInfo else {
               AppLogger.alert("Error refreshing subscription: \(String(describing: error))")
@@ -367,6 +371,8 @@ class SubscriptionManager: ObservableObject, SubscriptionManagerProtocol {
   
   // MARK: - Block Tracking
   func canStartNewBlock() -> Bool {
+    AppLogger.alert("Purchase: canStartNewBlock")
+    
     // Check if subscription is active
     if isSubscriptionActive {
       return true
@@ -380,14 +386,17 @@ class SubscriptionManager: ObservableObject, SubscriptionManagerProtocol {
   }
   
   func incrementBlockUsage() {
-    let before = currentUsage(for: .weeklyBlocks)
+    AppLogger.alert("Purchase: incrementBlockUsage")
+//    let before = currentUsage(for: .weeklyBlocks)
     incrementUsage(for: .weeklyBlocks)
-    let after = currentUsage(for: .weeklyBlocks)
+//    let after = currentUsage(for: .weeklyBlocks)
 //    AppLogger.alert("incrementBlockUsage: before=\(before), after=\(after)")
   }
   
   // MARK: - Interruption/Alert Day Tracking
   func canUseInterruptionsToday() -> Bool {
+    AppLogger.alert("Purchase: canUseInterruptionsToday")
+    
     // Check if subscription is active
     if isSubscriptionActive {
       return true
@@ -407,6 +416,8 @@ class SubscriptionManager: ObservableObject, SubscriptionManagerProtocol {
   }
   
   func canUseAlertsToday() -> Bool {
+    AppLogger.alert("Purchase: canUseAlertsToday")
+    
     // Check if subscription is active
     if isSubscriptionActive {
       return true
@@ -473,6 +484,8 @@ class SubscriptionManager: ObservableObject, SubscriptionManagerProtocol {
       subscriptionPrice = nil
       return
     }
+    
+    AppLogger.alert("Purchase: updateSubscriptionDetails")
     
     // Get expiration date
     subscriptionExpirationDate = entitlement.expirationDate

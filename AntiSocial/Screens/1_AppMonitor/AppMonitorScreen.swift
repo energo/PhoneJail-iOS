@@ -22,7 +22,6 @@ struct AppMonitorScreen: View {
   @Environment(\.scenePhase) var scenePhase
   
   // MARK: - View Models
-  @StateObject private var restrictionModel = MyRestrictionModel()
   @StateObject var vmScreenInteraption = AppInterruptionViewModel()
   @StateObject var vmScreenAlert = ScreenTimeAlertViewModel()
   
@@ -31,7 +30,12 @@ struct AppMonitorScreen: View {
   @State var statsView = ActivityReportView()
   // Single refresh key used by pull-to-refresh and restore foregrounding
   @State private var screenTimeRefreshID = UUID()
-
+  
+  // MARK: - Optimized Content Views
+  @State private var appBlockingContent = AppBlockingSectionView()
+  @State private var blockSchedulerContent = BlockSchedulerSectionView()
+  @State private var pomodoroContent = PomodoroSectionView()
+  
 
   // MARK: - UI State
   @State private var isShowingProfile: Bool = false
@@ -240,17 +244,17 @@ private extension AppMonitorScreen {
 
 // MARK: - Content Views
 private extension AppMonitorScreen {
-  var appBlockingContent: some View {
-    AppBlockingSectionView(restrictionModel: restrictionModel)
-  }
-  
-  var blockSchedulerContent: some View {
-    BlockSchedulerSectionView()
-  }
-  
-  var pomodoroContent: some View {
-    PomodoroSectionView()
-  }
+//  var appBlockingContent: some View {
+//    appBlockingContent ?? createAppBlockingContent()
+//  }
+//  
+//  var blockSchedulerContent: some View {
+//    blockSchedulerContent ?? createBlockSchedulerContent()
+//  }
+//  
+//  var pomodoroContent: some View {
+//    pomodoroContent ?? createPomodoroContent()
+//  }
   
   var statsContent: some View {
     statsView
