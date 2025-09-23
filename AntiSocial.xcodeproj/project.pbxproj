@@ -113,6 +113,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				"App/DigitalNumbers-Regular.ttf",
+				App/gradient.png,
 				Models/AppBlocking/BlockSchedule.swift,
 				Models/AppUsage.swift,
 				Models/TimeOptions.swift,
@@ -158,6 +159,7 @@
 			membershipExceptions = (
 				App/Assets.xcassets,
 				"App/DigitalNumbers-Regular.ttf",
+				App/gradient.png,
 				Models/AppUsage.swift,
 				Models/ChartBar.swift,
 				Models/DeviceActivity/StatsData.swift,
@@ -194,6 +196,7 @@
 			membershipExceptions = (
 				App/Assets.xcassets,
 				"App/DigitalNumbers-Regular.ttf",
+				App/gradient.png,
 			);
 			target = 47889F822E12A4B900D86A0E /* Shield */;
 		};

@@ -116,7 +116,7 @@ struct AppMonitorScreen: View {
       }
     }
     .fullScreenCover(isPresented: $isShowingProfile) {
-      ProfileScreen()
+//      ProfileScreen()
     }
     .task {
       await setupInitialData()
