@@ -49,7 +49,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     // Pomodoro start: apply restrictions using saved selection
     if activity == .pomodoro {
       // Mark that we're in focus phase
-      SharedData.userDefaults?.set(false, forKey: "pomodoro.isBreakPhase")
+      SharedData.userDefaults?.set(false, forKey: SharedData.Pomodoro.isBreakPhase)
       // Load selection saved by app
       var selection = FamilyActivitySelection()
       if let data = SharedData.userDefaults?.data(forKey: "pomodoroSelectedApps"),
@@ -68,7 +68,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       }
       
       // Start logging a blocking session for categories with expected duration if available
-      if let ts = SharedData.userDefaults?.double(forKey: "pomodoro.unlockDate"), ts > 0 {
+      if let ts = SharedData.userDefaults?.double(forKey: SharedData.Pomodoro.unlockDate), ts > 0 {
         let duration = max(0, ts - Date().timeIntervalSince1970)
         Task { @MainActor in
           _ = AppBlockingLogger.shared.startPomodoroSessionForCategories(duration: duration)
@@ -78,121 +78,139 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     }
   }
   
+  fileprivate func handleEndSchedule(_ activityName: String) {
+    let scheduleId: String
+    if activityName.contains("scheduledBlock_") {
+      scheduleId = activityName.replacingOccurrences(of: "scheduledBlock_", with: "")
+    } else {
+      scheduleId = activityName.replacingOccurrences(of: "schedule_", with: "")
+    }
+    
+    // Load schedule and remove restrictions
+    handleScheduleEnd(scheduleId: scheduleId)
+  }
+  
+  private func handleEndAppBlocking() {
+    // Clear regular blocking store
+    ShieldService.shared.stopAppRestrictions()
+    
+    // Clear regular blocking state only if unlock date has passed
+    SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
+    SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
+    SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endHour)
+    SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endMinutes)
+    SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.unlockDate)
+  }
+  
+  fileprivate func handleEndAppBlockingInterruption() {
+    // Interruption block ending
+    LocalNotificationManager.scheduleExtensionNotification(
+      title: "✅ Interruption Break Over",
+      details: "You can use your apps again"
+    )
+    
+    // Log interruption session end
+    // Note: Interruption sessions are short (2 min) and handled locally
+    
+    // Clear shield restrictions for interruption store
+    ShieldService.shared.stopAppRestrictions(storeName: .interruption)
+    
+    // Clear interruption state
+    SharedData.userDefaults?.removeObject(forKey: SharedData.ScreenTime.isInterruptionBlock)
+    
+    // Restart interruption monitoring if enabled
+    let isEnabled = SharedData.userDefaults?.bool(forKey: SharedData.ScreenTime.isInterruptionsEnabled) ?? false
+    if isEnabled {
+      // Перезапускаем мониторинг после окончания блокировки
+      restartMonitoring(for: .appMonitoringInterruption)
+    }
+  }
+  
+  fileprivate func handleEndPomodoroPhases() {
+    // End of Pomodoro focus session: clear restrictions and end logging
+    
+    // Handle auto start of break phase even if the app is closed
+    let autoStartBreak = SharedData.userDefaults?.bool(forKey: SharedData.Pomodoro.autoStartBreak) ?? true
+    let isBreakPhase = SharedData.userDefaults?.bool(forKey: SharedData.Pomodoro.isBreakPhase) ?? false
+    let isFocusPhase = SharedData.userDefaults?.bool(forKey: SharedData.Pomodoro.isFocusPhase) ?? false
+
+//    if autoStartBreak && isBreakPhase {
+//      handleEndPomodorBreakSession()
+//    } else {
+//      // No break auto-start
+//      SharedData.userDefaults?.removeObject(forKey: SharedData.Pomodoro.unlockDate)
+//      SharedData.userDefaults?.set(false, forKey: SharedData.Pomodoro.isBreakPhase)
+//    }
+    
+    //HANDLE END BREAK SESSION
+    if autoStartBreak && isBreakPhase {
+      handleEndPomodorBreakSession()
+    }
+    
+    //HANDLE END FOCUS SESSION
+
+    if isFocusPhase {
+      ShieldService.shared.stopAppRestrictions(storeName: .pomodoro)
+      
+      Task { @MainActor in
+        AppBlockingLogger.shared.endSession(type: .pomodoro, completed: true) // TODO: Potential issue with log break session as focus time
+      }
+
+//      SharedData.userDefaults?.removeObject(forKey: SharedData.Pomodoro.unlockDate)
+//      SharedData.userDefaults?.set(false, forKey: SharedData.Pomodoro.isBreakPhase)
+      SharedData.userDefaults?.set(false, forKey: SharedData.Pomodoro.isFocusPhase)
+    }
+  }
+  
+  private func handleEndPomodorBreakSession() {
+    // Determine break duration (short or long every N sessions)
+    var totalSessions = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.totalSessions) ?? 1
+    let currentSession = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.currentSession) ?? 1
+    let longBreakDuration = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.longBreakDuration) ?? 15
+    let breakDuration = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.breakDuration) ?? 5
+    
+    // Keep currentSession as is for break phase (increment happens when next focus starts)
+    if totalSessions < 1  {
+      totalSessions = 1
+      SharedData.userDefaults?.set(1, forKey: SharedData.Pomodoro.totalSessions)
+    }
+    
+    let isLongBreak = currentSession % totalSessions == 0
+    let minutes = isLongBreak ? longBreakDuration : breakDuration
+    let endDate = Date().addingTimeInterval(TimeInterval(max(1, minutes) * 60))
+    
+    // Persist break phase so UI can restore without the app running
+    SharedData.userDefaults?.set(endDate.timeIntervalSince1970, forKey: SharedData.Pomodoro.unlockDate)
+    SharedData.userDefaults?.set("break", forKey: SharedData.Pomodoro.currentSessionType)
+    SharedData.userDefaults?.set(false, forKey: SharedData.Pomodoro.isBreakPhase)
+    SharedData.userDefaults?.set(false, forKey: SharedData.Pomodoro.isFocusPhase) // ensure AppBlocking UI stays off
+  }
+  
   override func intervalDidEnd(for activity: DeviceActivityName) {
     super.intervalDidEnd(for: activity)
     
     let activityName = "\(activity.rawValue)"
     
     // Debug notification
-//        LocalNotificationManager.scheduleExtensionNotification(
-//          title: "🔄 Interval Did End",
-//          details: "\(activityName)"
-//        )
+    //        LocalNotificationManager.scheduleExtensionNotification(
+    //          title: "🔄 Interval Did End",
+    //          details: "\(activityName)"
+    //        )
     
     // Check if this is a schedule activity ending
     if activityName.contains("schedule_") || activityName.contains("scheduledBlock_") {
-      let scheduleId: String
-      if activityName.contains("scheduledBlock_") {
-        scheduleId = activityName.replacingOccurrences(of: "scheduledBlock_", with: "")
-      } else {
-        scheduleId = activityName.replacingOccurrences(of: "schedule_", with: "")
-      }
-      
-      // Load schedule and remove restrictions
-      handleScheduleEnd(scheduleId: scheduleId)
+      handleEndSchedule(activityName)
       return
     }
     
     // Interval ended silently
     // Handle different activities differently
     if activity == .appBlocking {
-      
-      //          LocalNotificationManager.scheduleExtensionNotification(
-      //            title: "✅ Apps Unblocked",
-      //            details: "You can use your apps again"
-      //          )
-      
-      // Clear regular blocking store
-      ShieldService.shared.stopAppRestrictions()
-      
-      // Clear regular blocking state only if unlock date has passed
-      SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked)
-      SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
-      SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endHour)
-      SharedData.userDefaults?.removeObject(forKey: SharedData.Widget.endMinutes)
-      SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.unlockDate)
-      
+      handleEndAppBlocking()
     } else if activity == .appBlockingInterruption {
-      // Interruption block ending
-      LocalNotificationManager.scheduleExtensionNotification(
-        title: "✅ Interruption Break Over",
-        details: "You can use your apps again"
-      )
-      
-      // Log interruption session end
-      // Note: Interruption sessions are short (2 min) and handled locally
-      
-      // Clear shield restrictions for interruption store
-      ShieldService.shared.stopAppRestrictions(storeName: .interruption)
-      
-      // Clear interruption state
-      SharedData.userDefaults?.removeObject(forKey: SharedData.ScreenTime.isInterruptionBlock)
-      
-      // Restart interruption monitoring if enabled
-      let isEnabled = SharedData.userDefaults?.bool(forKey: SharedData.ScreenTime.isInterruptionsEnabled) ?? false
-      if isEnabled {
-        // Перезапускаем мониторинг после окончания блокировки
-        restartMonitoring(for: .appMonitoringInterruption)
-      }
-    }
-    else if activity == .pomodoro {
-      Task { @MainActor in
-//        LocalNotificationManager.scheduleExtensionNotification(
-//          title: "🔄 End Focus",
-//          details: "\(activityName)"
-//        )
-
-        // End of Pomodoro focus session: clear restrictions and end logging
-        ShieldService.shared.stopAppRestrictions(storeName: .pomodoro)
-        AppBlockingLogger.shared.endSession(type: .pomodoro, completed: true)
-        
-        // Handle auto start of break phase even if the app is closed
-        let autoStartBreak = SharedData.userDefaults?.bool(forKey: SharedData.Pomodoro.autoStartBreak) ?? true
-        let isBreakPhase = SharedData.userDefaults?.bool(forKey: "pomodoro.isBreakPhase") ?? false
-        if autoStartBreak && isBreakPhase {
-          // Determine break duration (short or long every N sessions)
-          var totalSessions = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.totalSessions) ?? 1
-          let currentSession = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.currentSession) ?? 1
-          let longBreakDuration = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.longBreakDuration) ?? 15
-          let breakDuration = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.breakDuration) ?? 5
-          let blockDuringBreak = SharedData.userDefaults?.bool(forKey: "pomodoroBlockDuringBreak") ?? false
-          
-          // Keep currentSession as is for break phase (increment happens when next focus starts)
-        if totalSessions < 1  {
-          totalSessions = 1
-          SharedData.userDefaults?.set(1, forKey: SharedData.Pomodoro.totalSessions)
-        }
-          let isLongBreak = currentSession % totalSessions == 0
-          let minutes = isLongBreak ? longBreakDuration : breakDuration
-          let endDate = Date().addingTimeInterval(TimeInterval(max(1, minutes) * 60))
-          
-          // Persist break phase so UI can restore without the app running
-          SharedData.userDefaults?.set(endDate.timeIntervalSince1970, forKey: "pomodoro.unlockDate")
-          SharedData.userDefaults?.set("break", forKey: SharedData.Pomodoro.currentSessionType)
-          SharedData.userDefaults?.set(blockDuringBreak, forKey: "pomodoro.isBlockingPhase")
-          SharedData.userDefaults?.set(true, forKey: "pomodoro.isBreakPhase")
-          SharedData.userDefaults?.set(false, forKey: SharedData.Widget.isBlocked) // ensure AppBlocking UI stays off
-          
-//          LocalNotificationManager.scheduleExtensionNotification(
-//            title: "🔄 End Focus",
-//            details: "\(minutes)"
-//          )
-        } else {
-          // No break auto-start
-          SharedData.userDefaults?.removeObject(forKey: "pomodoro.unlockDate")
-          SharedData.userDefaults?.set(false, forKey: "pomodoro.isBreakPhase")
-        }
-      }
+      handleEndAppBlockingInterruption()
+    } else if activity == .pomodoro {
+      handleEndPomodoroPhases()
     }
   }
   
@@ -736,7 +754,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     
     // Check day first
     if !isTodayInSchedule(scheduleId: scheduleId) {
-//      let weekday = calendar.component(.weekday, from: now)
+      //      let weekday = calendar.component(.weekday, from: now)
       //      LocalNotificationManager.scheduleExtensionNotification(
       //        title: "❌ Wrong Day",
       //        details: "Today (\(weekday)) not in schedule days"

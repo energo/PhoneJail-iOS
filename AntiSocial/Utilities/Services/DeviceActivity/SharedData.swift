@@ -114,6 +114,12 @@ public class SharedData {
     
     /// Current session type (String)
     public static let currentSessionType = "pomodoroCurrentSessionType"
+    
+    public static let isFocusPhase = "pomodoro.isFocusPhase"
+    
+    public static let isBreakPhase = "pomodoro.isBreakPhase"
+    
+    public static let unlockDate = "pomodoro.unlockDate"
   }
   
   /// Screen Time settings keys

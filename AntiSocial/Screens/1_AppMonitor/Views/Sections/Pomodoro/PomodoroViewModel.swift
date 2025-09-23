@@ -284,8 +284,8 @@ class PomodoroViewModel: ObservableObject {
     // Persist state for restore after relaunch
     saveSettings()
     SharedData.userDefaults?.set("focus", forKey: SharedData.Pomodoro.currentSessionType)
-    SharedData.userDefaults?.set(true, forKey: "pomodoro.isBlockingPhase")
-    SharedData.userDefaults?.set(false, forKey: "pomodoro.isBreakPhase")
+    SharedData.userDefaults?.set(true, forKey: SharedData.Pomodoro.isFocusPhase)
+    SharedData.userDefaults?.set(false, forKey: SharedData.Pomodoro.isBreakPhase)
     
     // Schedule ALL notifications for the entire pomodoro cycle
     scheduleAllPomodoroNotifications(focusDuration: duration)
@@ -315,43 +315,29 @@ class PomodoroViewModel: ObservableObject {
     // Persist break state for restore after relaunch
     saveSettings()
     SharedData.userDefaults?.set("break", forKey: SharedData.Pomodoro.currentSessionType)
-    SharedData.userDefaults?.set(blockDuringBreak, forKey: "pomodoro.isBlockingPhase")
-    SharedData.userDefaults?.set(true, forKey: "pomodoro.isBreakPhase")
+    SharedData.userDefaults?.set(false, forKey: SharedData.Pomodoro.isFocusPhase)
+    SharedData.userDefaults?.set(true, forKey: SharedData.Pomodoro.isBreakPhase)
     let duration = (currentSession % 4 == 0) ? longBreakDuration : breakDuration
     print("🍅 Pomodoro: Break duration = \(duration) minutes, blockDuringBreak = \(blockDuringBreak)")
     
-    // All notifications are already scheduled in startFocusSession
-    // No need to schedule them again here
-    
-    if blockDuringBreak {
-      // Continue blocking during break
-      pomodoroService.start(
+    // Don't block during break - stop the service first then restart just for timer
+    // Set flag to prevent handleSessionEnd from being called again
+    isHandlingSessionEnd = true
+    pomodoroService.stop(completed: true)
+    // Small delay to ensure clean stop
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+      guard let self else { return }
+      
+      self.pomodoroService.start(
         minutes: duration,
-        selectionActivity: selectionActivity,
-        blockApps: true,
+        selectionActivity: self.selectionActivity,
+        blockApps: false,
         phase: "break"
       )
-    } else {
-      // Don't block during break - stop the service first then restart just for timer
-      // Set flag to prevent handleSessionEnd from being called again
-      isHandlingSessionEnd = true
-      pomodoroService.stop(completed: true)
-      // Small delay to ensure clean stop
-      DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-        guard let self else { return }
-        
-        self.pomodoroService.start(
-          minutes: duration,
-          selectionActivity: self.selectionActivity,
-          blockApps: false,
-          phase: "break"
-        )
-        // Reset flag after starting break
-        self.isHandlingSessionEnd = false
-      }
+      // Reset flag after starting break
+      self.isHandlingSessionEnd = false
     }
     isPaused = false
-    // updateCurrentState() will be called by the binding when isRunning changes
   }
   
   func stopPomodoro() {
@@ -476,12 +462,13 @@ class PomodoroViewModel: ObservableObject {
       remainingSeconds = TimeInterval(pausedRemaining)
       
       // Определяем тип сессии
-      let isBreakPhase = SharedData.userDefaults?.bool(forKey: "pomodoro.isBreakPhase") ?? false
+      let isBreakPhase = SharedData.userDefaults?.bool(forKey: SharedData.Pomodoro.isBreakPhase) ?? false
       if isBreakPhase {
         currentSessionType = .breakTime
         pomodoroService.isBreakActive = true
         pomodoroService.isFocusActive = false
       } else {
+        
         let typeString = SharedData.userDefaults?.string(forKey: SharedData.Pomodoro.currentSessionType) ?? "focus"
         currentSessionType = (typeString == "break") ? .breakTime : .focus
         pomodoroService.isFocusActive = (currentSessionType == .focus)
@@ -499,10 +486,10 @@ class PomodoroViewModel: ObservableObject {
     }
     
     // Если не было паузы, проверяем активные сессии
-    let ts = SharedData.userDefaults?.double(forKey: "pomodoro.unlockDate") ?? 0
+    let ts = SharedData.userDefaults?.double(forKey: SharedData.Pomodoro.unlockDate) ?? 0
     let isFuture = ts > now
-    let isBreakPhase = SharedData.userDefaults?.bool(forKey: "pomodoro.isBreakPhase") ?? false
-    let isFocusActive = SharedData.userDefaults?.bool(forKey: "pomodoro.isBlockingPhase") ?? false
+    let isBreakPhase = SharedData.userDefaults?.bool(forKey: SharedData.Pomodoro.isBreakPhase) ?? false
+    let isFocusActive = SharedData.userDefaults?.bool(forKey: SharedData.Pomodoro.isFocusPhase) ?? false
     
     // Восстанавливаем break сессию
     if isBreakPhase {
@@ -521,7 +508,7 @@ class PomodoroViewModel: ObservableObject {
         return
       } else {
         // Устаревший флаг break без оставшегося времени
-        SharedData.userDefaults?.set(false, forKey: "pomodoro.isBreakPhase")
+        SharedData.userDefaults?.set(false, forKey: SharedData.Pomodoro.isBreakPhase)
         isRunning = false
         updateCurrentState()
         return
