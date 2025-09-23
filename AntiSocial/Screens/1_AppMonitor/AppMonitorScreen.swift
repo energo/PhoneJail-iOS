@@ -119,7 +119,6 @@ struct AppMonitorScreen: View {
       ProfileScreen()
     }
     .task {
-      screenTimeView.refreshToken = screenTimeRefreshID
       await setupInitialData()
     }
     .onChangeWithOldValue(of: scenePhase) { _, newPhase in
@@ -437,7 +436,6 @@ private extension AppMonitorScreen {
     let timeSinceLastRefresh = Date().timeIntervalSince(lastRefreshDate)
     if timeSinceLastRefresh > 5 {
         refreshScreenTime()
-        lastRefreshDate = Date()
     }
   }
   
@@ -490,6 +488,7 @@ private extension AppMonitorScreen {
   func refreshScreenTime() {
     screenTimeRefreshID = UUID()
     lastRefreshDate = Date()
+    screenTimeView.refreshToken = screenTimeRefreshID
   }
 }
 
