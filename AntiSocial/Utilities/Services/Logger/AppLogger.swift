@@ -49,7 +49,7 @@ class AppLogger {
     
     private static var isLogEnabled: Bool {
         #if DEBUG
-        return false // DISABLED 
+        return true // DISABLED 
         #else
         return false
         #endif
