@@ -3,11 +3,28 @@ import SwiftUI
 public enum SegmentStyle {
   case styleOne
   case styleTwo
+  case styleSlim
+  
+  var lineWidth: CGFloat {
+    switch self {
+      case .styleOne, .styleTwo:
+        segmentWidth
+      case .styleSlim:
+        2
+    }
+  }
+  
+  var segmentWidth: CGFloat {
+    switch self {
+      case .styleOne, .styleTwo:
+        return 32.0
+      case .styleSlim:
+        return 12
+    }
+  }
 }
 
 public struct CustomPickerView: View {
-  var segmentWidth: CGFloat = 32.0
-  
   @Binding var actualValue: Int
   var values: ClosedRange<Int>
   var spacing: Double
@@ -73,7 +90,6 @@ public struct CustomPickerView: View {
                   values: values,
                   steps: steps,
                   valueStep: valueStep,
-                  segmentWidth: segmentWidth,
                   style: style,
                   selectedIndex: count,
                   selectedExtraText: selectedExtraText// <-- Передаём текущий count
@@ -109,7 +125,7 @@ public struct CustomPickerView: View {
             )
           )
           .onChange(of: isScrolling, { oldValue, newValue in
-            if newValue == false && style == .styleTwo {
+            if newValue == false {
               let indexValue: Double = Double(count) / Double(steps)
               let nextItem = indexValue.rounded()
               let newIndex = nextItem * Double(steps)
@@ -134,7 +150,7 @@ public struct CustomPickerView: View {
         })
       }
     }
-    .frame(height: 40)
+    .frame(height: style == .styleSlim ? 56 : 40)
   }
 }
 
@@ -144,9 +160,13 @@ public struct CustomPickerView: View {
     CustomPickerView(actualValue: .constant(10), fromValue: 0, toValue: 20, steps: 1, style: .styleOne)
     
     // Пример с шагом 5
-    CustomPickerView(actualValue: .constant(25), fromValue: 0, toValue: 100, steps: 1, valueStep: 5, style: .styleOne)
+    CustomPickerView(actualValue: .constant(10), fromValue: 0, toValue: 20, steps: 1, valueStep: 1, style: .styleOne)
+
+    CustomPickerView(actualValue: .constant(10), fromValue: 5, toValue: 60, spacing: 0, steps: 1, valueStep: 1, style: .styleSlim)
     
     // Пример с styleTwo и дополнительным текстом
     CustomPickerView(actualValue: .constant(30), fromValue: 0, toValue: 60, steps: 1, valueStep: 5, style: .styleTwo, selectedExtraText: "мин")
   }
+  .padding(16)
+  .background(Color.black.opacity(0.75))
 }
