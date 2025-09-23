@@ -243,6 +243,9 @@ struct CircularTimerView<Content: View>: View {
     let secondTens = seconds / 10
     let secondOnes = seconds % 10
     
+    let pointSize: CGFloat = 34
+    var boxWidth: CGFloat { pointSize * 0.804 }
+    
     // Helper function to check if digit is narrow (odd numbers are typically narrower)
     func isNarrowDigit(_ digit: Int) -> Bool {
       return digit == 1
@@ -253,77 +256,42 @@ struct CircularTimerView<Content: View>: View {
     }
     
     return HStack(alignment: .center, spacing: 2) {
-      // First minute digit with fixed width container
-      HStack(spacing: 0) {
-        Text(String(format: "%d", minuteTens))
-          .font(Font.primary(weight: .regular, size: .extraBig))
-          .foregroundColor(.white)
-        
-        // Add spacer after narrow digits to maintain constant width
-        if isNarrowDigit(minuteTens) {
-          Spacer()
-            .frame(width: 6)
-        } else if isMediumNarrowDigit(minuteTens) {
-          Spacer()
-            .frame(width: 2)
-        }
-      }
-      .frame(width: 30, alignment: .leading)
-      
-      // Second minute digit with fixed width container
-      HStack(spacing: 0) {
-        Text(String(format: "%d", minuteOnes))
-          .font(Font.primary(weight: .regular, size: .extraBig))
-          .foregroundColor(.white)
-        
-        if isNarrowDigit(minuteOnes) {
-          Spacer()
-            .frame(width: 6)
-        } else if isMediumNarrowDigit(minuteOnes) {
-          Spacer()
-            .frame(width: 2)
-        }
-      }
-      .frame(width: 30, alignment: .leading)
-      
-      // Colon separator
-      Text(":")
-        .font(Font.primary(weight: .regular, size: .extraBig))
+      // Минуты
+      Spacer()
+
+      Text("\(minuteTens)")
+        .font(Font.primary(weight: .digital, size: .big))
         .foregroundColor(.white)
-        .frame(width: 15, alignment: .center)
+        .frame(width: boxWidth, alignment: .center)
       
-      // First second digit with fixed width container
-      HStack(spacing: 0) {
-        Text(String(format: "%d", secondTens))
-          .font(Font.primary(weight: .regular, size: .extraBig))
-          .foregroundColor(.white)
-        
-        if isNarrowDigit(secondTens) {
-          Spacer()
-            .frame(width: 6)
-        } else if isMediumNarrowDigit(secondTens) {
-          Spacer()
-            .frame(width: 2)
-        }
-      }
-      .frame(width: 30, alignment: .leading)
+      Text("\(minuteOnes)")
+        .font(Font.primary(weight: .digital, size: .big))
+        .foregroundColor(.white)
+        .frame(width: boxWidth, alignment: .center)
+
       
-      // Second second digit with fixed width container
-      HStack(spacing: 0) {
-        Text(String(format: "%d", secondOnes))
-          .font(Font.primary(weight: .regular, size: .extraBig))
+      // Двоеточие — в этом шрифте тоже моноширинное
+      Text(":")
+        .font(Font.primary(weight: .digital, size: .big))
+        .foregroundColor(.white)
+        .frame(width: 20, alignment: .center)
+        .offset(x: -4)
+      
+      // Секунды
+        Text("\(secondTens)")
+          .font(Font.primary(weight: .digital, size: .big))
           .foregroundColor(.white)
+          .frame(width: boxWidth, alignment: .center)
+          .offset(x: isNarrowDigit(secondTens) ? -15 : 0)
         
-        if isNarrowDigit(secondOnes) {
-          Spacer()
-            .frame(width: 6)
-        } else if isMediumNarrowDigit(secondOnes) {
-          Spacer()
-            .frame(width: 2)
-        }
-      }
-      .frame(width: 30, alignment: .leading)
+        Text("\(secondOnes)")
+          .font(Font.primary(weight: .digital, size: .big))
+          .foregroundColor(.white)
+          .frame(width: boxWidth, alignment: .center)
+          .offset(x: isNarrowDigit(secondTens) ? -10 : isNarrowDigit(secondOnes) ? -0 : 0)
+      Spacer()
     }
+    .padding(.trailing, 6)
     .padding(.top, size * 0.15)
   }
 }
@@ -334,7 +302,7 @@ struct CircularTimerView<Content: View>: View {
     VStack(spacing: 40) {
       CircularTimerView(
         totalTime: 1500,
-        remainingTime: 900,
+        remainingTime: 570,
         isActive: true,
         timerType: .focus,
         size: 300,

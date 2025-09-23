@@ -39,11 +39,18 @@ final class PomodoroBlockService: ObservableObject {
   
   // MARK: - API
   /// Запускает помодоро-сессию на N минут. Если blockApps=false — только таймер без блокировки.
+  
+  func alignedUnlockDate(minutes m: Int) -> Date {
+      let accurateStartTime = ceil(Date().timeIntervalSince1970) // round up to the next whole second
+      return Date(timeIntervalSince1970: accurateStartTime + Double(m * 60))
+  }
+  
   func start(minutes: Int, isStrictBlock: Bool = false, selectionActivity: FamilyActivitySelection, blockApps: Bool = true, phase: String = "focus") {
     print("🍅 PomodoroBlockService: start() - minutes = \(minutes), phase = \(phase)")
     let m = max(5, minutes)
     print("🍅 PomodoroBlockService: start() - after max(1, minutes) = \(m)")
-    let unlockDate = Date().addingTimeInterval(TimeInterval(m * 60))
+    let unlockDate = alignedUnlockDate(minutes: m)
+
     SharedData.userDefaults?.set(unlockDate.timeIntervalSince1970, forKey: defaultsKey)
     
     // Сохраняем выбранные приложения (используется в расширении)

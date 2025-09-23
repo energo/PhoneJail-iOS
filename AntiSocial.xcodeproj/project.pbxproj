@@ -112,6 +112,7 @@
 		471FD1672E0AC22D00DE59AA /* Exceptions for "AntiSocial" folder in "DeviceActivityMonitorExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				"App/DigitalNumbers-Regular.ttf",
 				Models/AppBlocking/BlockSchedule.swift,
 				Models/AppUsage.swift,
 				Models/TimeOptions.swift,
@@ -156,6 +157,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				App/Assets.xcassets,
+				"App/DigitalNumbers-Regular.ttf",
 				Models/AppUsage.swift,
 				Models/ChartBar.swift,
 				Models/DeviceActivity/StatsData.swift,
@@ -191,6 +193,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				App/Assets.xcassets,
+				"App/DigitalNumbers-Regular.ttf",
 			);
 			target = 47889F822E12A4B900D86A0E /* Shield */;
 		};
