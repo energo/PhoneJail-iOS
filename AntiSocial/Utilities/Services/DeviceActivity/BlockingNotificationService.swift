@@ -36,7 +36,8 @@ final class BlockingNotificationService: ObservableObject {
     let compensatedMinutes = Int(compensatedDuration) / 60
     
     // Получаем endHour и endMin с учетом компенсации
-    let (endHour, endMin) = getEndTime(hourDuration: 0, minuteDuration: compensatedMinutes)
+    let (endHour, endMin, endSec) = getEndTime(hourDuration: 0, minuteDuration: compensatedMinutes)
+    // TODO: - Check if MyRestrictionModel is needed, seems like it has no real usage in code
     restrictionModel.endHour = endHour
     restrictionModel.endMins = endMin
     
@@ -55,7 +56,7 @@ final class BlockingNotificationService: ObservableObject {
     
     // Устанавливаем время
     Task { @MainActor in
-      DeviceActivityScheduleService.setSchedule(endHour: endHour, endMins: endMin)
+      DeviceActivityScheduleService.setSchedule(endHour: endHour, endMins: endMin, endSec: endSec)
       ShieldService.shared.setShieldRestrictions(restrictionModel.isStricted)
     }
     
@@ -74,8 +75,7 @@ final class BlockingNotificationService: ObservableObject {
     let month = startComponents.month ?? 1
     let day = startComponents.day ?? 1
     
-    var endDate = calendar.date(from: DateComponents(year: year, month: month, day: day, hour: endHour, minute: endMin))!
-    
+    var endDate = calendar.date(from: DateComponents(year: year, month: month, day: day, hour: endHour, minute: endMin, second: endSec))!
     // If end time is before current time, it means it's for tomorrow
     if endDate < now {
       endDate = calendar.date(byAdding: .day, value: 1, to: endDate)!
@@ -84,7 +84,7 @@ final class BlockingNotificationService: ObservableObject {
     // Schedule notifications
     LocalNotificationManager.shared.scheduleBlockingStartNotification()
     LocalNotificationManager.shared.scheduleBlockingEndNotification(
-      at: DateComponents(year: year, month: month, day: day, hour: endHour, minute: endMin)
+      at: DateComponents(year: year, month: month, day: day, hour: endHour, minute: endMin, second: endSec)
     )
     
     restrictionModel.startHour = calendar.component(.hour, from: now)
@@ -160,13 +160,13 @@ final class BlockingNotificationService: ObservableObject {
     SharedData.userDefaults?.set(endMin, forKey: SharedData.Widget.endMinutes)
   }
   
-  func getEndTime(hourDuration: Int, minuteDuration: Int) -> (Int, Int) {
+  func getEndTime(hourDuration: Int, minuteDuration: Int) -> (Int, Int, Int) {
     let now = Date()
     let calendar = Calendar.current
     if let endDate = calendar.date(byAdding: .minute, value: hourDuration * 60 + minuteDuration, to: now) {
-      let comps = calendar.dateComponents([.hour, .minute], from: endDate)
-      return (comps.hour ?? 0, comps.minute ?? 0)
+      let comps = calendar.dateComponents([.hour, .minute, .second], from: endDate)
+      return (comps.hour ?? 0, comps.minute ?? 0, comps.second ?? 0)
     }
-    return (0, 0)
+    return (0, 0, 0)
   }
 }
