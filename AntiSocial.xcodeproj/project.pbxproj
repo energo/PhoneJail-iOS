@@ -115,6 +115,7 @@
 				"App/DigitalNumbers-Regular.ttf",
 				Models/AppBlocking/BlockSchedule.swift,
 				Models/AppUsage.swift,
+				Models/Pomodoro/PomodoroSession.swift,
 				Models/TimeOptions.swift,
 				Screens/1_AppMonitor/Views/Sections/AppBlocking/MyRestrictionModel.swift,
 				"Utilities/Extensions/Color+Constants.swift",
@@ -124,6 +125,7 @@
 				Utilities/Services/DarwinNotificationManager.swift,
 				Utilities/Services/DeviceActivity/AppBlockingLogger.swift,
 				Utilities/Services/DeviceActivity/DeviceActivityScheduleService.swift,
+				Utilities/Services/DeviceActivity/PomodoroBlockService.swift,
 				Utilities/Services/DeviceActivity/SharedData.swift,
 				Utilities/Services/DeviceActivity/ShieldService.swift,
 			);

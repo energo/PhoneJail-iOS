@@ -85,7 +85,7 @@ final class PomodoroBlockService: ObservableObject {
     // Остановить мониторинг и снять ограничения
     DeviceActivityScheduleService.stopPomodoroSchedule()
     ShieldService.shared.stopAppRestrictions(storeName: .pomodoro)
-    SharedData.userDefaults?.set(false, forKey: "pomodoro.isPaused")
+    SharedData.userDefaults?.set(false, forKey: SharedData.Pomodoro.isPaused)
     SharedData.userDefaults?.removeObject(forKey: SharedData.Pomodoro.unlockDate)
     SharedData.userDefaults?.removeObject(forKey: SharedData.Pomodoro.isBreakPhase)
     SharedData.userDefaults?.removeObject(forKey: SharedData.Pomodoro.isFocusPhase)
@@ -118,12 +118,13 @@ final class PomodoroBlockService: ObservableObject {
     
     // Store the current remaining seconds at pause time
     if isFocusPhase {
+      let currentRemaining = remainingSeconds
+      SharedData.userDefaults?.set(true, forKey: SharedData.Pomodoro.isPaused)
+      SharedData.userDefaults?.set(currentRemaining, forKey: SharedData.Pomodoro.pausedRemaining)
+
       DeviceActivityScheduleService.stopPomodoroSchedule()
     }
     
-    let currentRemaining = remainingSeconds
-    SharedData.userDefaults?.set(true, forKey: "pomodoro.isPaused")
-    SharedData.userDefaults?.set(currentRemaining, forKey: "pomodoro.pausedRemaining")
     
     // Останавливаем тикер
     ticker?.cancel()
@@ -134,20 +135,18 @@ final class PomodoroBlockService: ObservableObject {
     guard (isBreakActive || isFocusActive) && isPaused else { return }
     
     // Get the remaining seconds from when we paused
-    let pausedRemaining = SharedData.userDefaults?.integer(forKey: "pomodoro.pausedRemaining") ?? remainingSeconds
+    let pausedRemaining = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.pausedRemaining) ?? remainingSeconds
     
     // Set new unlock date based on paused remaining time
     let newUnlockDate = Date().addingTimeInterval(TimeInterval(pausedRemaining))
     SharedData.userDefaults?.set(newUnlockDate.timeIntervalSince1970, forKey: SharedData.Pomodoro.unlockDate)
     
-    SharedData.userDefaults?.set(false, forKey: "pomodoro.isPaused")
-    SharedData.userDefaults?.removeObject(forKey: "pomodoro.pausedRemaining")
+    SharedData.userDefaults?.set(false, forKey: SharedData.Pomodoro.isPaused)
+    SharedData.userDefaults?.removeObject(forKey: SharedData.Pomodoro.pausedRemaining)
     // Restart ticker with new unlock date
     startTicker(unlockDate: newUnlockDate)
     
-    if isFocusPhase {
-      //      DeviceActivityScheduleService.stopPomodoroSchedule()
-      
+    if isFocusPhase {      
       DeviceActivityScheduleService.setPomodoroSchedule(endAt: newUnlockDate)
     }
     
@@ -228,8 +227,8 @@ final class PomodoroBlockService: ObservableObject {
       return
     }
         
-    let wasPaused = SharedData.userDefaults?.bool(forKey: "pomodoro.isPaused") ?? false
-    let pausedRemaining = SharedData.userDefaults?.integer(forKey: "pomodoro.pausedRemaining") ?? 0
+    let wasPaused = SharedData.userDefaults?.bool(forKey: SharedData.Pomodoro.isPaused) ?? false
+    let pausedRemaining = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.pausedRemaining) ?? 0
     
     if wasPaused && pausedRemaining > 0 {      
       // Восстанавливаем состояние БЕЗ запуска ticker

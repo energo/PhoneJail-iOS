@@ -317,7 +317,8 @@ class PomodoroViewModel: ObservableObject {
     SharedData.userDefaults?.set("break", forKey: SharedData.Pomodoro.currentSessionType)
     SharedData.userDefaults?.set(false, forKey: SharedData.Pomodoro.isFocusPhase)
     SharedData.userDefaults?.set(true, forKey: SharedData.Pomodoro.isBreakPhase)
-    let duration = (currentSession % 4 == 0) ? longBreakDuration : breakDuration
+
+    let duration = breakDuration
     print("🍅 Pomodoro: Break duration = \(duration) minutes, blockDuringBreak = \(blockDuringBreak)")
     
     // Don't block during break - stop the service first then restart just for timer
@@ -451,8 +452,8 @@ class PomodoroViewModel: ObservableObject {
     let now = Date().timeIntervalSince1970
     
     // Сначала проверяем, была ли пауза
-    let wasPaused = SharedData.userDefaults?.bool(forKey: "pomodoro.isPaused") ?? false
-    let pausedRemaining = SharedData.userDefaults?.integer(forKey: "pomodoro.pausedRemaining") ?? 0
+    let wasPaused = SharedData.userDefaults?.bool(forKey: SharedData.Pomodoro.isPaused) ?? false
+    let pausedRemaining = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.pausedRemaining) ?? 0
     
     // Если был на паузе - восстанавливаем состояние паузы
     if wasPaused && pausedRemaining > 0 {
@@ -468,7 +469,6 @@ class PomodoroViewModel: ObservableObject {
         pomodoroService.isBreakActive = true
         pomodoroService.isFocusActive = false
       } else {
-        
         let typeString = SharedData.userDefaults?.string(forKey: SharedData.Pomodoro.currentSessionType) ?? "focus"
         currentSessionType = (typeString == "break") ? .breakTime : .focus
         pomodoroService.isFocusActive = (currentSessionType == .focus)
@@ -494,7 +494,9 @@ class PomodoroViewModel: ObservableObject {
     // Восстанавливаем break сессию
     if isBreakPhase {
       if isFuture {
-        currentSessionType = .breakTime
+        let typeString = SharedData.userDefaults?.string(forKey: SharedData.Pomodoro.currentSessionType) ?? "break"
+        currentSessionType = (typeString == "break") ? .breakTime : .focus
+
         isRunning = true
         let left = Int(ts - now)
         remainingSeconds = TimeInterval(max(0, left))
@@ -504,31 +506,33 @@ class PomodoroViewModel: ObservableObject {
           remainingSeconds = TimeInterval(pomodoroService.remainingSeconds)
         }
         
-        updateCurrentState()
-        return
       } else {
         // Устаревший флаг break без оставшегося времени
         SharedData.userDefaults?.set(false, forKey: SharedData.Pomodoro.isBreakPhase)
         isRunning = false
-        updateCurrentState()
-        return
       }
+      
+      updateCurrentState()
+      return
     }
     
     // Восстанавливаем focus сессию или активную сессию с unlockDate
-    if isFocusActive || isFuture {
+    if isFocusActive {
       let typeString = SharedData.userDefaults?.string(forKey: SharedData.Pomodoro.currentSessionType) ?? "focus"
       currentSessionType = (typeString == "break") ? .breakTime : .focus
-      isRunning = true
       
       if isFuture {
         let left = Int(ts - now)
         remainingSeconds = TimeInterval(max(0, left))
-        
+        isRunning = true
+
         // Синхронизируемся с сервисом
         if pomodoroService.remainingSeconds > 0 {
           remainingSeconds = TimeInterval(pomodoroService.remainingSeconds)
         }
+      } else {
+        SharedData.userDefaults?.set(false, forKey: SharedData.Pomodoro.isFocusPhase)
+        isRunning = false
       }
       
       updateCurrentState()

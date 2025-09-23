@@ -22,6 +22,39 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   private let minimumTriggerInterval: TimeInterval = 120 // 2 minutes minimum between triggers
   
   //MARK: - Interval Delegates Methods
+  fileprivate func handleStartPomodoroPhases() {
+    let isFocusPhase = SharedData.userDefaults?.bool(forKey: SharedData.Pomodoro.isFocusPhase) ?? true
+    if isFocusPhase {
+//      SharedData.userDefaults?.set(false, forKey: SharedData.Pomodoro.isBreakPhase)
+      // Load selection saved by app
+      var selection = FamilyActivitySelection()
+      if let data = SharedData.userDefaults?.data(forKey: "pomodoroSelectedApps"),
+         let decoded = try? JSONDecoder().decode(FamilyActivitySelection.self, from: data) {
+        selection = decoded
+      }
+      
+      // Apply shield restrictions to the dedicated Pomodoro store
+      ShieldService.shared.setShieldRestrictions(for: selection, storeName: .pomodoro)
+      
+      // Strict mode: deny app removal if enabled
+      let isStrict = SharedData.userDefaults?.bool(forKey: "pomodoroIsStrictBlock") ?? false
+      if isStrict {
+        let pomodoroStore = ManagedSettingsStore(named: .pomodoro)
+        pomodoroStore.application.denyAppRemoval = true
+      }
+      
+      // Start logging a blocking session for categories with expected duration if available
+      if let ts = SharedData.userDefaults?.double(forKey: SharedData.Pomodoro.unlockDate), ts > 0 {
+        let duration = max(0, ts - Date().timeIntervalSince1970)
+        Task { @MainActor in
+          _ = AppBlockingLogger.shared.startPomodoroSessionForCategories(duration: duration)
+        }
+      }
+    } else {
+      ShieldService.shared.stopAppRestrictions(storeName: .pomodoro)
+    }
+  }
+  
   override func intervalDidStart(for activity: DeviceActivityName) {
     super.intervalDidStart(for: activity)
     
@@ -48,38 +81,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     
     // Pomodoro start: apply restrictions using saved selection
     if activity == .pomodoro {
-      // Mark that we're in focus phase
-      if SharedData.userDefaults?.bool(forKey: SharedData.Pomodoro.isFocusPhase) ?? true {
-        SharedData.userDefaults?.set(false, forKey: SharedData.Pomodoro.isBreakPhase)
-        // Load selection saved by app
-        var selection = FamilyActivitySelection()
-        if let data = SharedData.userDefaults?.data(forKey: "pomodoroSelectedApps"),
-           let decoded = try? JSONDecoder().decode(FamilyActivitySelection.self, from: data) {
-          selection = decoded
-        }
-        
-        // Apply shield restrictions to the dedicated Pomodoro store
-        ShieldService.shared.setShieldRestrictions(for: selection, storeName: .pomodoro)
-        
-        // Strict mode: deny app removal if enabled
-        let isStrict = SharedData.userDefaults?.bool(forKey: "pomodoroIsStrictBlock") ?? false
-        if isStrict {
-          let pomodoroStore = ManagedSettingsStore(named: .pomodoro)
-          pomodoroStore.application.denyAppRemoval = true
-        }
-        
-        // Start logging a blocking session for categories with expected duration if available
-        if let ts = SharedData.userDefaults?.double(forKey: SharedData.Pomodoro.unlockDate), ts > 0 {
-          let duration = max(0, ts - Date().timeIntervalSince1970)
-          Task { @MainActor in
-            _ = AppBlockingLogger.shared.startPomodoroSessionForCategories(duration: duration)
-          }
-        }
-      } else {
-        ShieldService.shared.stopAppRestrictions(storeName: .pomodoro)
-        SharedData.userDefaults?.set(true, forKey: SharedData.Pomodoro.isBreakPhase)
-      }
-    
+      handleStartPomodoroPhases()
       return
     }
   }
@@ -139,14 +141,8 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     let autoStartBreak = SharedData.userDefaults?.bool(forKey: SharedData.Pomodoro.autoStartBreak) ?? true
     let isBreakPhase = SharedData.userDefaults?.bool(forKey: SharedData.Pomodoro.isBreakPhase) ?? false
     let isFocusPhase = SharedData.userDefaults?.bool(forKey: SharedData.Pomodoro.isFocusPhase) ?? false
+    let isPaused = SharedData.userDefaults?.bool(forKey: SharedData.Pomodoro.isPaused) ?? false
 
-//    if autoStartBreak && isBreakPhase {
-//      handleEndPomodorBreakSession()
-//    } else {
-//      // No break auto-start
-//      SharedData.userDefaults?.removeObject(forKey: SharedData.Pomodoro.unlockDate)
-//      SharedData.userDefaults?.set(false, forKey: SharedData.Pomodoro.isBreakPhase)
-//    }
     
     //HANDLE END BREAK SESSION
     if autoStartBreak && isBreakPhase {
@@ -154,25 +150,45 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     }
     
     //HANDLE END FOCUS SESSION
-
-    if isFocusPhase {
+    if isFocusPhase && !isPaused {
       ShieldService.shared.stopAppRestrictions(storeName: .pomodoro)
       
       Task { @MainActor in
         AppBlockingLogger.shared.endSession(type: .pomodoro, completed: true) // TODO: Potential issue with log break session as focus time
       }
 
+      
 //      SharedData.userDefaults?.removeObject(forKey: SharedData.Pomodoro.unlockDate)
-//      SharedData.userDefaults?.set(false, forKey: SharedData.Pomodoro.isBreakPhase)
+      SharedData.userDefaults?.set(true, forKey: SharedData.Pomodoro.isBreakPhase)
       SharedData.userDefaults?.set(false, forKey: SharedData.Pomodoro.isFocusPhase)
+      let breakDuration = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.breakDuration) ?? 5
+
+      var selection = FamilyActivitySelection()
+      if let data = SharedData.userDefaults?.data(forKey: "pomodoroSelectedApps"),
+         let decoded = try? JSONDecoder().decode(FamilyActivitySelection.self, from: data) {
+        selection = decoded
+      }
+
+      SharedData.userDefaults?.set("break", forKey: SharedData.Pomodoro.currentSessionType)
+
+      PomodoroBlockService.shared.start(
+        minutes: breakDuration,
+        selectionActivity: selection,
+        blockApps: false,
+        phase: "break"
+      )
+    }
+    
+    if isPaused {
+      ShieldService.shared.stopAppRestrictions(storeName: .pomodoro)
     }
   }
   
   private func handleEndPomodorBreakSession() {
     // Determine break duration (short or long every N sessions)
     var totalSessions = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.totalSessions) ?? 1
-    let currentSession = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.currentSession) ?? 1
-    let longBreakDuration = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.longBreakDuration) ?? 15
+//    let currentSession = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.currentSession) ?? 1
+//    let longBreakDuration = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.longBreakDuration) ?? 15
     let breakDuration = SharedData.userDefaults?.integer(forKey: SharedData.Pomodoro.breakDuration) ?? 5
     
     // Keep currentSession as is for break phase (increment happens when next focus starts)
@@ -181,13 +197,14 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       SharedData.userDefaults?.set(1, forKey: SharedData.Pomodoro.totalSessions)
     }
     
-    let isLongBreak = currentSession % totalSessions == 0
-    let minutes = isLongBreak ? longBreakDuration : breakDuration
+//    let isLongBreak = currentSession % totalSessions == 0
+//    let minutes = isLongBreak ? longBreakDuration : breakDuration
+    let minutes = breakDuration
     let endDate = Date().addingTimeInterval(TimeInterval(max(1, minutes) * 60))
     
     // Persist break phase so UI can restore without the app running
     SharedData.userDefaults?.set(endDate.timeIntervalSince1970, forKey: SharedData.Pomodoro.unlockDate)
-    SharedData.userDefaults?.set("break", forKey: SharedData.Pomodoro.currentSessionType)
+//    SharedData.userDefaults?.set("break", forKey: SharedData.Pomodoro.currentSessionType)
     SharedData.userDefaults?.set(false, forKey: SharedData.Pomodoro.isBreakPhase)
     SharedData.userDefaults?.set(false, forKey: SharedData.Pomodoro.isFocusPhase) // ensure AppBlocking UI stays off
   }

@@ -120,6 +120,10 @@ public class SharedData {
     public static let isBreakPhase = "pomodoro.isBreakPhase"
     
     public static let unlockDate = "pomodoro.unlockDate"
+    
+    public static let isPaused = "pomodoro.isPaused"
+    
+    public static let pausedRemaining = "pomodoro.pausedRemaining"
   }
   
   /// Screen Time settings keys
