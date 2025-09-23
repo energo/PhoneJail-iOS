@@ -38,11 +38,26 @@ struct AppMonitorScreen: View {
   
 
   // MARK: - UI State
+  @AppStorage("lastRefreshDate")
+  private var lastRefreshTimestamp: TimeInterval = 0
+  
+  private var lastRefreshDate: Date {
+    get {
+      if lastRefreshTimestamp > 0 {
+        return Date(timeIntervalSince1970: lastRefreshTimestamp)
+      } else {
+        return .distantPast
+      }
+    }
+    set {
+      lastRefreshTimestamp = newValue.timeIntervalSince1970
+    }
+  }
+
   @State private var isShowingProfile: Bool = false
   @State private var offsetY: CGFloat = .zero
   @State private var headerHeight: CGFloat = UIScreen.main.bounds.height * 0.30
-  @State private var lastRefreshDate = Date()
-  
+
   // MARK: - Navigation State
   @State private var currentSection = 0
   @State private var scrollOffset: CGFloat = 0
@@ -128,6 +143,9 @@ struct AppMonitorScreen: View {
     .onChangeWithOldValue(of: scenePhase) { _, newPhase in
       handleScenePhaseChange(newPhase)
     }
+//    .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+//      reloadScreenTimeIfNeeded()
+//    }
     .presentPaywallIfNeeded(
       requiredEntitlementIdentifier: SubscriptionManager.Constants.entitlementID,
       purchaseCompleted: { _ in },
@@ -414,13 +432,10 @@ private extension AppMonitorScreen {
   
   func setupInitialData() async {
     await AppBlockingLogger.shared.refreshAllData()
-    await MainActor.run {
-      familyControlsManager.requestAuthorization()
-      // Инициализируем массив позиций секций
-      sectionPositions = Array(repeating: 0, count: sections.count)
-      // Check and apply active schedules on app launch
-      BlockSchedulerService.shared.checkAndApplyActiveSchedules()
-    }
+    
+    sectionPositions = Array(repeating: 0, count: sections.count)
+    // Check and apply active schedules on app launch
+    BlockSchedulerService.shared.checkAndApplyActiveSchedules()
   }
   
   func handleScenePhaseChange(_ newPhase: ScenePhase) {
@@ -489,9 +504,15 @@ private extension AppMonitorScreen {
     sectionPositions[section] = position
   }
   
+  @MainActor
   func refreshScreenTime() {
+    // Generate a new token to trigger refresh in dependent views
     screenTimeRefreshID = UUID()
-    lastRefreshDate = Date()
+    
+    // Store the timestamp directly to avoid mutating computed property on a struct View
+    lastRefreshTimestamp = Date().timeIntervalSince1970
+    
+    // Propagate the token to the screenTimeView
     screenTimeView.refreshToken = screenTimeRefreshID
   }
 }
@@ -502,3 +523,4 @@ private extension AppMonitorScreen {
     .environmentObject(SubscriptionManager())
     .environmentObject(FamilyControlsManager.shared)
 }
+
