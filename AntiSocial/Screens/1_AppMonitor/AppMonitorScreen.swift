@@ -67,7 +67,7 @@ struct AppMonitorScreen: View {
   
   // MARK: - Constants
   private enum Constants {
-    static let swipeThreshold: CGFloat = 50
+    static let swipeThreshold: CGFloat = 20
     static let animationDuration: Double = 0.5
     static let scrollAnimationDuration: Double = 0.45
     static let headerPadding: CGFloat = 10
@@ -143,6 +143,15 @@ struct AppMonitorScreen: View {
     .onChangeWithOldValue(of: scenePhase) { _, newPhase in
       handleScenePhaseChange(newPhase)
     }
+    .onChangeWithOldValue(of: currentSection, perform: { oldValue, newValue in
+      AppLogger.alert("currentSection \(currentSection)")
+    })
+    .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
+        // Пользователь, вероятно, начал системный жест/ушёл в другой апп/вызов и т.п.
+        // Сохраните состояние, остановите анимации, зафиксируйте таймеры и т.д.
+        AppLogger.trace("willResignActive — вероятно системный свайп снизу/уход")
+    }
+
 //    .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
 //      reloadScreenTimeIfNeeded()
 //    }
@@ -390,7 +399,27 @@ private extension AppMonitorScreen {
   }
   
   var swipeGesture: some Gesture {
-    DragGesture()
+    DragGesture(minimumDistance: 10)
+      .onChanged { value in
+        // Фильтруем свайпы, начатые слишком близко к нижней кромке экрана
+        let startY = value.startLocation.y
+        let updatedStartY = startY - value.translation.height
+
+        if let window = UIApplication.shared.connectedScenes
+            .compactMap({ ($0 as? UIWindowScene)?.keyWindow }).first {
+          let safeBottom = window.safeAreaInsets.bottom
+          let screenH = window.bounds.height
+          let bottomGuardZone: CGFloat = max(20, safeBottom + 10)
+          
+          if updatedStartY > screenH - bottomGuardZone {
+            AppLogger.trace("Swipe gesture ignored - started too close to bottom edge (startY: \(updatedStartY), guardZone: \(screenH - bottomGuardZone))")
+            return // игнорировать, очень близко к Home Indicator
+          }
+        }
+        
+        // Log gesture changes for debugging
+        AppLogger.trace("Swipe gesture changed - translation: \(value.translation.height), startY: \(updatedStartY), scenePhase: \(scenePhase)")
+      }
       .onEnded { value in
         handleSwipeGesture(value)
       }
@@ -443,8 +472,10 @@ private extension AppMonitorScreen {
       case .active:
         reloadScreenTimeIfNeeded()
         BlockSchedulerService.shared.checkAndApplyActiveSchedules()
+        AppLogger.trace("Scene phase: active - gestures enabled")
 
       case .inactive, .background:
+        AppLogger.trace("Scene phase: \(newPhase) - gestures disabled")
         break
       @unknown default:
         break
@@ -461,15 +492,23 @@ private extension AppMonitorScreen {
   func handleSwipeGesture(_ value: DragGesture.Value) {
     guard !isScrolling else { return }
     
+    // Prevent swipe gesture from triggering when app is not active
+    guard scenePhase == .active else { 
+      AppLogger.trace("Swipe gesture ignored - app not active (scenePhase: \(scenePhase))")
+      return 
+    }
+    
     let threshold = Constants.swipeThreshold
     let maxSection = sections.count - 1
     
     if value.translation.height < -threshold && currentSection < maxSection {
       HapticManager.shared.impact(style: .light)
       currentSection += 1
+      AppLogger.trace("Swipe gesture: currentSection increased to \(currentSection)")
     } else if value.translation.height > threshold && currentSection > 0 {
       HapticManager.shared.impact(style: .light)
       currentSection -= 1
+      AppLogger.trace("Swipe gesture: currentSection decreased to \(currentSection)")
     }
   }
   
