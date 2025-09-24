@@ -547,6 +547,8 @@ class PomodoroViewModel: ObservableObject {
   }
   
   func saveSettings() {
+    _ = focusDuration // fix for section update after save
+
     // Save settings to SharedData (App Group UserDefaults)
     SharedData.userDefaults?.set(focusDuration, forKey: SharedData.Pomodoro.focusDuration)
     SharedData.userDefaults?.set(breakDuration, forKey: SharedData.Pomodoro.breakDuration)

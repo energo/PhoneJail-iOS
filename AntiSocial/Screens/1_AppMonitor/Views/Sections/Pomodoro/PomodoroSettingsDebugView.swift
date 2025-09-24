@@ -237,7 +237,7 @@ struct PomodoroSettingsDebugView: View {
             }
             .tint(.blue)
             .onChange(of: viewModel.autoStartBreak) { newValue in
-                print("🍅 Pomodoro: autoStartBreak changed to \(newValue)")
+              AppLogger.notice("🍅 Pomodoro: autoStartBreak changed to \(newValue)")
                 viewModel.saveSettings()
             }
             
@@ -251,7 +251,7 @@ struct PomodoroSettingsDebugView: View {
             }
             .tint(.blue)
             .onChange(of: viewModel.autoStartNextSession) { newValue in
-                print("🍅 Pomodoro: autoStartNextSession changed to \(newValue)")
+              AppLogger.notice("🍅 Pomodoro: autoStartNextSession changed to \(newValue)")
                 viewModel.saveSettings()
             }
         }

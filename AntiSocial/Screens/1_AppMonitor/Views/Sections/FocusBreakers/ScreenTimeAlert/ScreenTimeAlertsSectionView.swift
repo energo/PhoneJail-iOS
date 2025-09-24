@@ -124,7 +124,7 @@ struct ScreenTimeAlertsSectionView: View {
   
   private var startMonitorButton: some View {
     return Group {
-      let canUse = subscriptionManager.canUseAlertsToday()
+      let canUse = subscriptionManager.canUseAlertsToday() // TODO: Looks like overhead, simplify
       
       if !canUse && !viewModel.isAlertEnabled {
         Button(action: {

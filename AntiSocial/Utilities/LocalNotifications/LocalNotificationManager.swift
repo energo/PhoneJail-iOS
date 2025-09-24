@@ -211,9 +211,6 @@ final class LocalNotificationManager {
       
       if !pomodoroIds.isEmpty {
         self.notificationCenter.removePendingNotificationRequests(withIdentifiers: pomodoroIds)
-        print("🍅 LocalNotificationManager: Cancelled \(pomodoroIds.count) scheduled pomodoro notifications: \(pomodoroIds)")
-      } else {
-        print("🍅 LocalNotificationManager: No pomodoro notifications to cancel")
       }
     }
   }

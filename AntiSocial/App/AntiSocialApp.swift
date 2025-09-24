@@ -69,6 +69,7 @@ struct AntiSocialApp: App {
         }
         .onAppear(perform: UIApplication.shared.addTapGestureRecognizer)
         .task {
+          familyControlsManager.requestAuthorization()
           setupATTracking()
           
           // Обновляем статистику блокировок при запуске приложения
@@ -83,7 +84,6 @@ struct AntiSocialApp: App {
             await AppBlockingLogger.shared.refreshAllData()
           }
         }
-      
     }
   }
   
