@@ -105,7 +105,7 @@ private extension SlideToTurnOnView {
           .frame(width: 18, height: 20)
         Text("Purchase to unlock")
           .foregroundStyle(.white)
-          .font(.system(size: 13, weight: .light))
+          .font(.system(size: 16, weight: .light))
         Spacer()
       } else {
         Spacer().frame(maxWidth: 100)
