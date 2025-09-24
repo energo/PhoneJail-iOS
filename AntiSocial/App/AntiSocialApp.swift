@@ -42,6 +42,12 @@ struct AntiSocialApp: App {
   @State private var midnightTimer: Timer?
   @AppStorage("isFirstRun") private var isFirstRun: Bool = true
   
+  // TODO: - Remove in future builds when user get updated settings
+  init() {
+    guard let ud = SharedData.userDefaults else { return }
+    PomodoroDefaults.oneTimeMigration(ud)
+  }
+  
   var body: some Scene {
     WindowGroup {
       //          ContentView(model: SelectAppsModel())
