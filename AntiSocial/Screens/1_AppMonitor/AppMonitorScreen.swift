@@ -188,6 +188,20 @@ private extension AppMonitorScreen {
         scrollToSection(newSection, scrollProxy: scrollProxy, screenGeometry: screenGeometry)
       }
       .simultaneousGesture(swipeGesture)
+      .background(
+        // Блокируем жесты в зоне нижней кромки экрана
+        GeometryReader { geometry in
+          let safeBottom = geometry.safeAreaInsets.bottom
+          let screenH = geometry.size.height
+          let bottomGuardZone: CGFloat = max(20, safeBottom + 80)
+          
+          Rectangle()
+            .fill(Color.clear)
+            .frame(height: bottomGuardZone)
+            .position(x: geometry.size.width / 2, y: screenH - bottomGuardZone / 2)
+            .allowsHitTesting(false) // Блокируем все жесты в этой области
+        }
+      )
     }
   }
   
@@ -400,26 +414,6 @@ private extension AppMonitorScreen {
   
   var swipeGesture: some Gesture {
     DragGesture(minimumDistance: 10)
-      .onChanged { value in
-        // Фильтруем свайпы, начатые слишком близко к нижней кромке экрана
-        let startY = value.startLocation.y
-        let updatedStartY = startY - value.translation.height
-
-        if let window = UIApplication.shared.connectedScenes
-            .compactMap({ ($0 as? UIWindowScene)?.keyWindow }).first {
-          let safeBottom = window.safeAreaInsets.bottom
-          let screenH = window.bounds.height
-          let bottomGuardZone: CGFloat = max(20, safeBottom + 10)
-          
-          if updatedStartY > screenH - bottomGuardZone {
-            AppLogger.trace("Swipe gesture ignored - started too close to bottom edge (startY: \(updatedStartY), guardZone: \(screenH - bottomGuardZone))")
-            return // игнорировать, очень близко к Home Indicator
-          }
-        }
-        
-        // Log gesture changes for debugging
-        AppLogger.trace("Swipe gesture changed - translation: \(value.translation.height), startY: \(updatedStartY), scenePhase: \(scenePhase)")
-      }
       .onEnded { value in
         handleSwipeGesture(value)
       }
