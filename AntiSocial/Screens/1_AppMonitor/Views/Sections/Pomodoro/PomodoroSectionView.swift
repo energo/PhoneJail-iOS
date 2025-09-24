@@ -91,6 +91,9 @@ struct PomodoroSectionView: View {
           startFocusButton
         }
       }
+      .onTimeSelected { time in
+        viewModel.focusDuration = time
+      }
     }
   }
   

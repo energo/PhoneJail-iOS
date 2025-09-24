@@ -20,6 +20,9 @@ struct CircularTimerView<Content: View>: View {
   let showConfirmationDialog: Bool
   let confirmationDialog: PomodoroConfirmationDialog?
   
+  var onTimeSelected: ((Int) -> Void)?
+  @State private var showTimePicker: Bool = false
+  @State private var timePickerValue: Int
   
   init(totalTime: TimeInterval,
        remainingTime: TimeInterval,
@@ -32,6 +35,7 @@ struct CircularTimerView<Content: View>: View {
        confirmationDialog: PomodoroConfirmationDialog? = nil,
        @ViewBuilder content: () -> Content? = { nil }) {
     self.totalTime = totalTime
+    self._timePickerValue = .init(initialValue: (Int(totalTime) / 60))
     self.remainingTime = remainingTime
     self.isActive = isActive
     self.isPaused = isPaused
@@ -221,23 +225,66 @@ struct CircularTimerView<Content: View>: View {
     VStack(spacing: 0) {
       if shouldShowTimerText {
           timerTextView
+          .onTapGesture {
+            if onTimeSelected != nil {
+              timePickerValue = Int(totalTime / 60)
+              withAnimation(.easeInOut(duration: 0.3)) {
+                showTimePicker = true
+              }
+            }
+          }
       }
       
       // Custom content below timer if provided
-      if let content = content {
+      if showTimePicker {
+        Spacer()
+        timePickerView
+      } else if let content = content {
         Spacer()
         content
         Spacer()
       }
+      
     }
     .frame(width: size - strokeWidth * 4,
            height: size - strokeWidth * 4)
   }
   
+  private var timePickerView: some View {
+    VStack(spacing: 16) {
+      CustomPickerView(
+        actualValue: .init(
+          get: { timePickerValue },
+          set: { timePickerValue = $0 }
+        ),
+        fromValue: 2, toValue: 60,
+        spacing: 0,
+        steps: 1, valueStep: 1,
+        style: .styleSlim
+      )
+      
+      Button {
+        onTimeSelected?(timePickerValue)
+        withAnimation(.easeInOut(duration: 0.3)) {
+          showTimePicker = false
+        }
+      } label: {
+        Text("Save")
+          .font(.system(size: 16, weight: .regular))
+          .foregroundColor(.white)
+          .padding(.horizontal, 24)
+          .padding(.vertical, 12)
+          .frame(height: 42)
+          .background(Color.as_gradient_pomodoro_focus_progress)
+          .clipShape(RoundedRectangle(cornerRadius: 21))
+      }
+    }
+  }
+  
   private var timerTextView: some View {
     // Timer text at top
-    let minutes = Int(remainingTime) / 60
-    let seconds = Int(remainingTime) % 60
+    let minutes = showTimePicker ? timePickerValue : Int(remainingTime) / 60
+    let seconds = showTimePicker ? 0 : Int(remainingTime) % 60
     let minuteTens = minutes / 10
     let minuteOnes = minutes % 10
     let secondTens = seconds / 10
@@ -292,7 +339,8 @@ struct CircularTimerView<Content: View>: View {
       Spacer()
     }
     .padding(.trailing, 6)
-    .padding(.top, size * 0.15)
+    .padding(.top, size * (showTimePicker ? 0.0 : 0.15))
+    // TODO: - CircularTimerView paddings need to be refactored
   }
 }
 
