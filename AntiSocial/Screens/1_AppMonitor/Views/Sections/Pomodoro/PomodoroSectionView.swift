@@ -23,10 +23,6 @@ struct PomodoroSectionView: View {
   var body: some View {
     contentView
       .animation(.easeInOut(duration: 0.3), value: viewModel.currentState)
-      .onAppear {
-        // Restore UI if a focus/break session is active while app was closed
-        viewModel.restoreFromPersistentState()
-      }
       .onChange(of: scenePhase) { newPhase in
         if newPhase == .active {
           viewModel.restoreFromPersistentState()
