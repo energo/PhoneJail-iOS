@@ -117,7 +117,7 @@ struct OnboardingScreen: View {
   @MainActor
   private func requestScreenTimePermission() {
     familyControlsManager.requestAuthorization()
-    withAnimation(.easeIn(duration: 0.3)) {
+    withAnimation(.easeIn(duration: 0.5)) {
       hasRequestedScreenTime = true
     }
   }

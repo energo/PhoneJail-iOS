@@ -77,7 +77,7 @@ struct CircularTimerView<Content: View>: View {
   private var progress: Double {
     guard totalTime > 0 else { return 0 }
     let progressValue = remainingTime / totalTime
-    print("🍅 CircularTimerView: totalTime = \(totalTime), remainingTime = \(remainingTime), progress = \(progressValue)")
+    AppLogger.notice("🍅 CircularTimerView: totalTime = \(totalTime), remainingTime = \(remainingTime), progress = \(progressValue)")
     return progressValue
   }
   
