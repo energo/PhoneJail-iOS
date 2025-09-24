@@ -102,11 +102,16 @@ struct ScreenTimeSectionView: View {
       }
       
       VStack(spacing: adaptive.spacing.xxSmall) {
-        HStack(spacing: -adaptive.spacing.xSmall) {
-          ForEach(report.topApps.prefix(AdaptiveValues.isCompactDevice ? 2 : 3)) { app in
-            AppIconView(token: app.token)
-              .adaptiveFrame(width: \.appIconSize, height: \.appIconSize)
+        if report.topApps.count > 0 {
+          HStack(spacing: -adaptive.spacing.xSmall) {
+            ForEach(report.topApps.prefix(AdaptiveValues.isCompactDevice ? 2 : 3)) { app in
+              AppIconView(token: app.token)
+                .adaptiveFrame(width: \.appIconSize, height: \.appIconSize)
+            }
           }
+        } else {
+          Spacer()
+            .adaptiveFrame(width: \.appIconSize, height: \.appIconSize)
         }
         
         Text("MOST USED")

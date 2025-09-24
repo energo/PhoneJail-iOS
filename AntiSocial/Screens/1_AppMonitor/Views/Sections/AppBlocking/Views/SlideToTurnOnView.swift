@@ -76,7 +76,7 @@ private extension SlideToTurnOnView {
         slideProgress >= 0.55
         ? AnyShapeStyle(Color.as_red)
         : AnyShapeStyle(Color.as_gradietn_main_button),
-        lineWidth: 2
+        lineWidth: 4
       )
       .animation(.easeInOut(duration: 0.25), value: slideProgress)
   }
@@ -105,7 +105,7 @@ private extension SlideToTurnOnView {
           .frame(width: 18, height: 20)
         Text("Purchase to unlock")
           .foregroundStyle(.white)
-          .font(.system(size: 13, weight: .light))
+          .font(.system(size: 16, weight: .light))
         Spacer()
       } else {
         Spacer().frame(maxWidth: 100)
@@ -113,7 +113,7 @@ private extension SlideToTurnOnView {
         Text("Slide to Block")
           .opacity(userDragging ? 0.5 : 1.0)
           .foregroundStyle(.white)
-          .font(.system(size: 13, weight: .light))
+          .font(.system(size: 16, weight: .light))
         
         Spacer().frame(maxWidth: 60)
         

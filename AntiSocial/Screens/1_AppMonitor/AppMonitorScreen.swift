@@ -22,7 +22,6 @@ struct AppMonitorScreen: View {
   @Environment(\.scenePhase) var scenePhase
   
   // MARK: - View Models
-  @StateObject private var restrictionModel = MyRestrictionModel()
   @StateObject var vmScreenInteraption = AppInterruptionViewModel()
   @StateObject var vmScreenAlert = ScreenTimeAlertViewModel()
   
@@ -31,14 +30,34 @@ struct AppMonitorScreen: View {
   @State var statsView = ActivityReportView()
   // Single refresh key used by pull-to-refresh and restore foregrounding
   @State private var screenTimeRefreshID = UUID()
-
+  
+  // MARK: - Optimized Content Views
+  @State private var appBlockingContent = AppBlockingSectionView()
+  @State private var blockSchedulerContent = BlockSchedulerSectionView()
+  @State private var pomodoroContent = PomodoroSectionView()
+  
 
   // MARK: - UI State
+  @AppStorage("lastRefreshDate")
+  private var lastRefreshTimestamp: TimeInterval = 0
+  
+  private var lastRefreshDate: Date {
+    get {
+      if lastRefreshTimestamp > 0 {
+        return Date(timeIntervalSince1970: lastRefreshTimestamp)
+      } else {
+        return .distantPast
+      }
+    }
+    set {
+      lastRefreshTimestamp = newValue.timeIntervalSince1970
+    }
+  }
+
   @State private var isShowingProfile: Bool = false
   @State private var offsetY: CGFloat = .zero
   @State private var headerHeight: CGFloat = UIScreen.main.bounds.height * 0.30
-  @State private var lastRefreshDate = Date()
-  
+
   // MARK: - Navigation State
   @State private var currentSection = 0
   @State private var scrollOffset: CGFloat = 0
@@ -48,7 +67,7 @@ struct AppMonitorScreen: View {
   
   // MARK: - Constants
   private enum Constants {
-    static let swipeThreshold: CGFloat = 50
+    static let swipeThreshold: CGFloat = 20
     static let animationDuration: Double = 0.5
     static let scrollAnimationDuration: Double = 0.45
     static let headerPadding: CGFloat = 10
@@ -119,12 +138,23 @@ struct AppMonitorScreen: View {
       ProfileScreen()
     }
     .task {
-      screenTimeView.refreshToken = screenTimeRefreshID
       await setupInitialData()
     }
     .onChangeWithOldValue(of: scenePhase) { _, newPhase in
       handleScenePhaseChange(newPhase)
     }
+    .onChangeWithOldValue(of: currentSection, perform: { oldValue, newValue in
+      AppLogger.alert("currentSection \(currentSection)")
+    })
+    .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
+        // Пользователь, вероятно, начал системный жест/ушёл в другой апп/вызов и т.п.
+        // Сохраните состояние, остановите анимации, зафиксируйте таймеры и т.д.
+        AppLogger.trace("willResignActive — вероятно системный свайп снизу/уход")
+    }
+
+//    .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+//      reloadScreenTimeIfNeeded()
+//    }
     .presentPaywallIfNeeded(
       requiredEntitlementIdentifier: SubscriptionManager.Constants.entitlementID,
       purchaseCompleted: { _ in },
@@ -158,6 +188,20 @@ private extension AppMonitorScreen {
         scrollToSection(newSection, scrollProxy: scrollProxy, screenGeometry: screenGeometry)
       }
       .simultaneousGesture(swipeGesture)
+      .background(
+        // Блокируем жесты в зоне нижней кромки экрана
+        GeometryReader { geometry in
+          let safeBottom = geometry.safeAreaInsets.bottom
+          let screenH = geometry.size.height
+          let bottomGuardZone: CGFloat = max(20, safeBottom + 80)
+          
+          Rectangle()
+            .fill(Color.clear)
+            .frame(height: bottomGuardZone)
+            .position(x: geometry.size.width / 2, y: screenH - bottomGuardZone / 2)
+            .allowsHitTesting(false) // Блокируем все жесты в этой области
+        }
+      )
     }
   }
   
@@ -241,17 +285,17 @@ private extension AppMonitorScreen {
 
 // MARK: - Content Views
 private extension AppMonitorScreen {
-  var appBlockingContent: some View {
-    AppBlockingSectionView(restrictionModel: restrictionModel)
-  }
-  
-  var blockSchedulerContent: some View {
-    BlockSchedulerSectionView()
-  }
-  
-  var pomodoroContent: some View {
-    PomodoroSectionView()
-  }
+//  var appBlockingContent: some View {
+//    appBlockingContent ?? createAppBlockingContent()
+//  }
+//  
+//  var blockSchedulerContent: some View {
+//    blockSchedulerContent ?? createBlockSchedulerContent()
+//  }
+//  
+//  var pomodoroContent: some View {
+//    pomodoroContent ?? createPomodoroContent()
+//  }
   
   var statsContent: some View {
     statsView
@@ -369,7 +413,7 @@ private extension AppMonitorScreen {
   }
   
   var swipeGesture: some Gesture {
-    DragGesture()
+    DragGesture(minimumDistance: 10)
       .onEnded { value in
         handleSwipeGesture(value)
       }
@@ -411,13 +455,10 @@ private extension AppMonitorScreen {
   
   func setupInitialData() async {
     await AppBlockingLogger.shared.refreshAllData()
-    await MainActor.run {
-      familyControlsManager.requestAuthorization()
-      // Инициализируем массив позиций секций
-      sectionPositions = Array(repeating: 0, count: sections.count)
-      // Check and apply active schedules on app launch
-      BlockSchedulerService.shared.checkAndApplyActiveSchedules()
-    }
+    
+    sectionPositions = Array(repeating: 0, count: sections.count)
+    // Check and apply active schedules on app launch
+    BlockSchedulerService.shared.checkAndApplyActiveSchedules()
   }
   
   func handleScenePhaseChange(_ newPhase: ScenePhase) {
@@ -425,8 +466,10 @@ private extension AppMonitorScreen {
       case .active:
         reloadScreenTimeIfNeeded()
         BlockSchedulerService.shared.checkAndApplyActiveSchedules()
+        AppLogger.trace("Scene phase: active - gestures enabled")
 
       case .inactive, .background:
+        AppLogger.trace("Scene phase: \(newPhase) - gestures disabled")
         break
       @unknown default:
         break
@@ -437,12 +480,17 @@ private extension AppMonitorScreen {
     let timeSinceLastRefresh = Date().timeIntervalSince(lastRefreshDate)
     if timeSinceLastRefresh > 5 {
         refreshScreenTime()
-        lastRefreshDate = Date()
     }
   }
   
   func handleSwipeGesture(_ value: DragGesture.Value) {
     guard !isScrolling else { return }
+    
+    // Prevent swipe gesture from triggering when app is not active
+    guard scenePhase == .active else { 
+      AppLogger.trace("Swipe gesture ignored - app not active (scenePhase: \(scenePhase))")
+      return 
+    }
     
     let threshold = Constants.swipeThreshold
     let maxSection = sections.count - 1
@@ -450,9 +498,11 @@ private extension AppMonitorScreen {
     if value.translation.height < -threshold && currentSection < maxSection {
       HapticManager.shared.impact(style: .light)
       currentSection += 1
+      AppLogger.trace("Swipe gesture: currentSection increased to \(currentSection)")
     } else if value.translation.height > threshold && currentSection > 0 {
       HapticManager.shared.impact(style: .light)
       currentSection -= 1
+      AppLogger.trace("Swipe gesture: currentSection decreased to \(currentSection)")
     }
   }
   
@@ -487,9 +537,16 @@ private extension AppMonitorScreen {
     sectionPositions[section] = position
   }
   
+  @MainActor
   func refreshScreenTime() {
+    // Generate a new token to trigger refresh in dependent views
     screenTimeRefreshID = UUID()
-    lastRefreshDate = Date()
+    
+    // Store the timestamp directly to avoid mutating computed property on a struct View
+    lastRefreshTimestamp = Date().timeIntervalSince1970
+    
+    // Propagate the token to the screenTimeView
+    screenTimeView.refreshToken = screenTimeRefreshID
   }
 }
 
@@ -499,3 +556,4 @@ private extension AppMonitorScreen {
     .environmentObject(SubscriptionManager())
     .environmentObject(FamilyControlsManager.shared)
 }
+

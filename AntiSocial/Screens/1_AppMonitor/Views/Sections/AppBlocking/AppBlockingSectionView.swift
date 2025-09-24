@@ -16,7 +16,7 @@ import RevenueCatUI
 struct AppBlockingSectionView: View {
   @EnvironmentObject var deviceActivityService: ShieldService
   @EnvironmentObject var subscriptionManager: SubscriptionManager
-  @ObservedObject var restrictionModel: MyRestrictionModel
+  @ObservedObject var restrictionModel = MyRestrictionModel()
   
   @State var hours: Int = 0
   @State var minutes: Int = 0
@@ -41,6 +41,30 @@ struct AppBlockingSectionView: View {
   @State private var totalSavedTime: TimeInterval = 0 // Общее время за сегодня
   @State private var currentSessionSavedTime: String = "0h 00m" // Текущая сессия
   @State private var showPaywall = false
+  
+  // MARK: - Optimized Subscription Check
+  @State private var isLimitReached: Bool = false
+  @State private var lastSubscriptionCheck: Date?
+  private let subscriptionCheckInterval: TimeInterval = 5.0 // Check every 5 seconds max
+  
+  // MARK: - Methods
+  private func updateSubscriptionStatusIfNeeded() {
+    let now = Date()
+    
+    // Check if we need to update subscription status
+    if let lastCheck = lastSubscriptionCheck,
+       now.timeIntervalSince(lastCheck) < subscriptionCheckInterval {
+      return // Too soon to check again
+    }
+    
+    // Update subscription status
+    let newLimitReached = !subscriptionManager.canStartNewBlock()
+    if isLimitReached != newLimitReached {
+      isLimitReached = newLimitReached
+    }
+    
+    lastSubscriptionCheck = now
+  }
   
   // MARK: - Constants
   private enum Constants {
@@ -80,8 +104,11 @@ struct AppBlockingSectionView: View {
           SharedData.userDefaults?.removeObject(forKey: SharedData.AppBlocking.currentBlockingStartTimestamp)
           AppLogger.trace("Cleared blocking timestamp on disable")
         }
+        
+        // Update subscription status when blocking state changes
+        updateSubscriptionStatusIfNeeded()
       }
-      .onAppear {
+      .task {
         // isBlocked и isStrictBlock уже инициализированы правильными значениями из SharedData
         
         // Reload saved app selection
@@ -171,6 +198,9 @@ struct AppBlockingSectionView: View {
             AppLogger.notice("Timer not started - blocking invalid")
           }
         }
+        
+        // Initialize subscription status
+        updateSubscriptionStatusIfNeeded()
       }
       .onReceive(currentTimer ?? Timer.publish(every: 999, on: .main, in: .common)) { _ in
         // Обработка тиков таймера - только если таймер активен и блокировка включена
@@ -214,6 +244,8 @@ struct AppBlockingSectionView: View {
           .onDisappear {
             // Force refresh subscription status after paywall closes
             subscriptionManager.refreshSubscription()
+            
+            updateSubscriptionStatusIfNeeded()
           }
       }
   }
@@ -511,7 +543,7 @@ struct AppBlockingSectionView: View {
   private var swipeBlockView: some View {
     SlideToTurnOnView(isBlocked: $isBlocked,
                       isStrictBlock: $isStrictBlock,
-                      isLimitReached: !subscriptionManager.canStartNewBlock(),
+                      isLimitReached: isLimitReached,
                       onBlockingStateChanged: { newState in
       if newState {
         DispatchQueue.main.asyncAfter(deadline: .now() + Constants.Timer.animationDelay) {
@@ -561,6 +593,10 @@ struct AppBlockingSectionView: View {
       showPaywall = true
     })
     .disabled(isBlockButtonDisabled)
+    .onAppear {
+      // Update subscription status when view appears
+      updateSubscriptionStatusIfNeeded()
+    }
   }
   
   private var isBlockButtonDisabled: Bool {
