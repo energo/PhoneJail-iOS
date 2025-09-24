@@ -35,7 +35,7 @@ struct CircularTimerView<Content: View>: View {
        confirmationDialog: PomodoroConfirmationDialog? = nil,
        @ViewBuilder content: () -> Content? = { nil }) {
     self.totalTime = totalTime
-    self.timePickerValue = Int(totalTime) / 60
+    self._timePickerValue = .init(initialValue: (Int(totalTime) / 60))
     self.remainingTime = remainingTime
     self.isActive = isActive
     self.isPaused = isPaused
@@ -227,6 +227,7 @@ struct CircularTimerView<Content: View>: View {
           timerTextView
           .onTapGesture {
             if onTimeSelected != nil {
+              timePickerValue = Int(totalTime / 60)
               withAnimation(.easeInOut(duration: 0.3)) {
                 showTimePicker = true
               }
@@ -282,8 +283,8 @@ struct CircularTimerView<Content: View>: View {
   
   private var timerTextView: some View {
     // Timer text at top
-    let minutes = onTimeSelected != nil ? timePickerValue : Int(remainingTime) / 60
-    let seconds = onTimeSelected != nil ? 0 : Int(remainingTime) % 60
+    let minutes = showTimePicker ? timePickerValue : Int(remainingTime) / 60
+    let seconds = showTimePicker ? 0 : Int(remainingTime) % 60
     let minuteTens = minutes / 10
     let minuteOnes = minutes % 10
     let secondTens = seconds / 10
