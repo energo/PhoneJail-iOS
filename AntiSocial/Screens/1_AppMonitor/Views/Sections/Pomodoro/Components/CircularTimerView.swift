@@ -35,7 +35,7 @@ struct CircularTimerView<Content: View>: View {
        confirmationDialog: PomodoroConfirmationDialog? = nil,
        @ViewBuilder content: () -> Content? = { nil }) {
     self.totalTime = totalTime
-    self.timePickerValue = Int(totalTime) / 60
+    self._timePickerValue = .init(initialValue: (Int(totalTime) / 60))
     self.remainingTime = remainingTime
     self.isActive = isActive
     self.isPaused = isPaused
