@@ -123,7 +123,7 @@ struct AppInterruptionsSectionView: View {
   
   private var startMonitorButton: some View {
     Group {
-      let canUse = subscriptionManager.canUseInterruptionsToday()
+      let canUse = subscriptionManager.canUseInterruptionsToday() // TODO: Looks like overhead, simplify
       
       if !canUse && !viewModel.isInterruptionsEnabled {
         Button(action: {
