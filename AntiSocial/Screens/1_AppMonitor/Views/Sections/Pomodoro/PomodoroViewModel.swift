@@ -193,7 +193,6 @@ class PomodoroViewModel: ObservableObject {
     }
     
     isHandlingSessionEnd = true
-    defer { isHandlingSessionEnd = false }
     
     // Update internal pomodoro stats when focus finishes (AppBlockingLogger handled elsewhere)
     if currentSessionType == .focus {
@@ -205,7 +204,7 @@ class PomodoroViewModel: ObservableObject {
     if soundEnabled {
       HapticManager.shared.notification(type: .success)
     }
-    
+        
     // Phase transitions
     if currentSessionType == .focus {
       // Show completion for focus, then move to break
@@ -214,7 +213,9 @@ class PomodoroViewModel: ObservableObject {
       DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
         guard let self else { return }
         self.showFocusCompletion = false
+        self.isHandlingSessionEnd = false
         if self.autoStartBreak {
+          scheduleBreakNotifications()
           self.startBreakFlow()
         } else {
           self.currentSessionType = .breakTime
@@ -224,6 +225,7 @@ class PomodoroViewModel: ObservableObject {
       }
     } else {
       // Break finished → next focus or complete
+      defer { isHandlingSessionEnd = false }
       currentSessionType = .focus
       currentSession += 1
       if currentSession > totalSessions {
@@ -345,8 +347,6 @@ class PomodoroViewModel: ObservableObject {
   
   func stopPomodoro() {
     pomodoroService.stop(reason: PomodoroSession.EndReason.manualStop, completed: false)
-    timer?.invalidate()
-    timer = nil
     isPaused = false
     isRunning = false
     isHandlingSessionEnd = false // Reset flag when manually stopping
@@ -403,6 +403,7 @@ class PomodoroViewModel: ObservableObject {
     
     // Stop current break session only (don't reset everything)
     pomodoroService.stop(reason: PomodoroSession.EndReason.manualStop, completed: false)
+    cancelScheduledNotifications()
     isRunning = false
     isPaused = false
     isHandlingSessionEnd = false
@@ -428,24 +429,19 @@ class PomodoroViewModel: ObservableObject {
   }
   
   func pause() {
+    guard !isPaused, isRunning else { return }
     isPaused = true
-    timer?.invalidate()
     // Pause the PomodoroBlockService timer
+    cancelScheduledNotifications()
     pomodoroService.pause()
   }
   
   func resume() {
+    guard isPaused, isRunning else { return }
     isPaused = false
     // Resume the PomodoroBlockService timer
+    rescheduleNotificationForRemainingTime()
     pomodoroService.resume()
-  }
-  
-  private func startTimer() {
-    timer?.invalidate()
-    timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-      guard let self = self, !self.isPaused else { return }
-      // Timer logic handled by PomodoroBlockService
-    }
   }
   
   // MARK: - Restore
@@ -786,24 +782,24 @@ class PomodoroViewModel: ObservableObject {
     // 2. Focus session end notification (scheduled for when focus ends)
     let focusEndTime = TimeInterval(focusDuration * 60) // Convert minutes to seconds
     LocalNotificationManager.shared.scheduleFocusSessionEnded(timeInterval: focusEndTime)
-    
-    // 3. Break session start notification (scheduled for when break starts)
-    let breakStartTime = focusEndTime + 0.1 // Start break right after focus ends
-    LocalNotificationManager.shared.schedulePomodoroSessionStarted(
-      sessionType: "break",
-      nextSession: "focus",
-      timeInterval: breakStartTime
-    )
-    
-    // 4. Break session end notification (scheduled for when break ends)
-    let breakDurationMinutes = (currentSession % 4 == 0) ? longBreakDuration : breakDuration
-    let breakEndTime = breakStartTime + TimeInterval(breakDurationMinutes * 60)
-    LocalNotificationManager.shared.scheduleBreakSessionEnded(timeInterval: breakEndTime)
-    
+        
     print("🍅 Pomodoro: All notifications scheduled successfully")
   }
   
   // MARK: - Notification Management
+  
+  private func rescheduleNotificationForRemainingTime() {
+    guard notificationsEnabled, remainingSeconds > 0 else { return }
+    
+    cancelScheduledNotifications()
+    
+    if currentSessionType == .focus {
+      LocalNotificationManager.shared.scheduleFocusSessionEnded(
+        timeInterval: remainingSeconds
+      )
+      print("🍅 Pomodoro: Rescheduled focus end notification for \(remainingSeconds) seconds")
+    }
+  }
   
   private func cancelScheduledNotifications() {
     LocalNotificationManager.shared.cancelScheduledPomodoroNotifications()
