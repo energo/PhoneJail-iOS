@@ -67,8 +67,12 @@ struct AntiSocialApp: App {
           setupATTracking()
           
           // Обновляем статистику блокировок при запуске приложения
+          FocusTimeSavingService.shared.setupSubscriptions()
           await AppBlockingLogger.shared.refreshAllData()
           
+          let firestoreFocusTimeStats = try? await FirestoreStorage.shared.loadGlobalFocusTimeStats()
+          AppBlockingLogger.shared.syncPendingChanges(fromDate: firestoreFocusTimeStats?.lastFocusDate)
+
           // Setup midnight timer for resetting usage counters
           setupMidnightTimer()
         }

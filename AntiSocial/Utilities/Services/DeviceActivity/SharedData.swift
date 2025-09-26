@@ -67,6 +67,9 @@ public class SharedData {
     
     /// Hourly blocking data for chart (Data - JSON encoded [Double])
     public static let hourlyBlockingData = "hourlyBlockingData"
+    
+    /// Firebase update pending data
+    public static let firebasePendingUpdateData = "firebasePendingUpdateData"
   }
   
   /// Widget data keys
