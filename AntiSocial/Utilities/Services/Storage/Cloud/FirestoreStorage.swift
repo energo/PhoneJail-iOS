@@ -116,7 +116,7 @@ extension FirestoreStorage {
     return snapshot.documents.compactMap { try? $0.data(as: DailyStats.self) }
   }
   
-  func loadHourlyFocusTimeStats() async throws -> [DailyStats] {
+  func loadHourlyFocusTimeStats() async throws -> [HourlyStats] {
     let userId = try ensureUserId()
     
     let query = db
@@ -125,7 +125,7 @@ extension FirestoreStorage {
       .collection("hourlyStats")
 
     let snapshot = try await query.getDocuments()
-    return snapshot.documents.compactMap { try? $0.data(as: DailyStats.self) }
+    return snapshot.documents.compactMap { try? $0.data(as: HourlyStats.self) }
   }
 
   func deleteFocusTimeStats() async throws {
