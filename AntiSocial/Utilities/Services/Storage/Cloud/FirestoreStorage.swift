@@ -56,19 +56,80 @@ final class FirestoreStorage {
     )
   }
 
-//  func saveUser(_ user: ASUser) async throws {
-//    let ref = db.collection("users").document(user.id)
-//    try await ref.setData(from: user, merge: true)
-//  }
-
-//  func loadUser() async throws -> ASUser? {
-//    let id = try ensureUserId()
-//    let doc = try await db.collection("users").document(id).getDocument()
-//    return try doc.data(as: ASUser.self)
-//  }
-
   func deleteUser() async throws {
     let id = try ensureUserId()
     try await db.collection("users").document(id).delete()
+  }
+}
+
+// MARK: - FocusTime
+extension FirestoreStorage {
+  func focusTimeDateFormatter() -> DateFormatter {
+      let formatter = DateFormatter()
+      formatter.dateFormat = "yyyy-MM-dd"
+      return formatter
+  }
+  
+  func saveFocusTimeStats(
+    _ item: GlobalFocusTimeStats,
+    dailyStats: [String : DailyStats] = [:],
+    hourlyStats: [String : HourlyStats] = [:]
+  ) async throws {
+    let userId = try ensureUserId()
+    try await db.collection("focusTime").document(userId).setData(from: item, merge: true)
+    
+    for daily in dailyStats {
+      try await db
+        .collection("focusTime")
+        .document(userId)
+        .collection("dailyStats")
+        .document(daily.key)
+        .setData(from: daily.value, merge: true)
+    }
+    
+    for hourly in hourlyStats {
+      try await db
+        .collection("focusTime")
+        .document(userId)
+        .collection("hourlyStats")
+        .document(hourly.key)
+        .setData(from: hourly.value, merge: true)
+    }
+  }
+
+  func loadGlobalFocusTimeStats() async throws -> GlobalFocusTimeStats {
+    let userId = try ensureUserId()
+    let document = try await db.collection("focusTime").document(userId).getDocument()
+    
+    return try document.data(as: GlobalFocusTimeStats.self)
+  }
+  
+  func loadDailyFocusTimeStats() async throws -> [DailyStats] {
+    let userId = try ensureUserId()
+    
+    let query = db
+      .collection("focusTime")
+      .document(userId)
+      .collection("dailyStats")
+
+    let snapshot = try await query.getDocuments()
+    return snapshot.documents.compactMap { try? $0.data(as: DailyStats.self) }
+  }
+  
+  func loadHourlyFocusTimeStats() async throws -> [HourlyStats] {
+    let userId = try ensureUserId()
+    
+    let query = db
+      .collection("focusTime")
+      .document(userId)
+      .collection("hourlyStats")
+
+    let snapshot = try await query.getDocuments()
+    return snapshot.documents.compactMap { try? $0.data(as: HourlyStats.self) }
+  }
+
+  func deleteFocusTimeStats() async throws {
+    let userId = try ensureUserId()
+    try await db.collection("focusTime").document(userId).delete()
   }
 }

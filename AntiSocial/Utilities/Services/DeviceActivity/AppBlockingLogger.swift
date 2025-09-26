@@ -71,6 +71,39 @@ struct DailyStats: Codable {
     }
 }
 
+struct GlobalFocusTimeStats: Codable {
+  var lastFocusDate: Date
+  var lifetimeFocusTime: Double
+  var todayFocusTime: Double
+  
+  init(lastFocusDate: Date = Date(), lifetimeFocusTime: Double = 0, todayFocusTime: Double = 0) {
+    self.lastFocusDate = lastFocusDate
+    self.lifetimeFocusTime = lifetimeFocusTime
+    self.todayFocusTime = todayFocusTime
+  }
+}
+
+struct HourlyStats: Codable {
+  let values: [Int]
+  
+  init(_ values: [Int]) {
+    self.values = values
+  }
+}
+
+struct PendingFocusTimeUpdates: Codable {
+  var global: GlobalFocusTimeStats
+  var daily: [String : DailyStats]
+  var hourly: [String : HourlyStats]
+  
+  init(global: GlobalFocusTimeStats = .init(), daily: [String : DailyStats] = [:], hourly: [String : HourlyStats] = [:]) {
+    self.global = global
+    self.daily = daily
+    self.hourly = hourly
+  }
+  
+}
+
 // MARK: - AppBlockingLogger
 
 /// Унифицированный сервис для логирования всех типов блокировок приложений
@@ -88,7 +121,8 @@ final class AppBlockingLogger: ObservableObject {
     @Published private(set) var activeScheduleSessions: [String: BlockingSession] = [:] // Key is session ID
     @Published private(set) var activePomodoroSession: BlockingSession?
     @Published private(set) var todayStats: DailyStats
-    
+    @Published private(set) var globalFocusTimeStats: GlobalFocusTimeStats
+      
     private let calendar = Calendar.current
     private let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -98,13 +132,27 @@ final class AppBlockingLogger: ObservableObject {
     
     private init() {
         self.todayStats = DailyStats(date: Date())
+        self.globalFocusTimeStats = .init()
+      
         loadActiveSessions()
         loadTodayStats()
         
         // Простая проверка: если сегодня еще не было focus time, обнуляем
         checkAndResetIfNoFocusTimeToday()
+        loadGlobalFocusTimeStats()
     }
     
+  private func loadGlobalFocusTimeStats() {
+    let lastFocusDate = SharedData.userDefaults?.object(forKey: "last_focus_date") as? Date
+    let lifetimeFocusTime = SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.lifetimeTotalBlockingTime)
+    let todayFocusTime = SharedData.userDefaults?.double(forKey: SharedData.AppBlocking.todayTotalBlockingTime)
+    self.globalFocusTimeStats = .init(
+      lastFocusDate: lastFocusDate ?? Date(),
+      lifetimeFocusTime: lifetimeFocusTime ?? 0,
+      todayFocusTime: todayFocusTime ?? 0
+    )
+  }
+  
     /// Простая проверка: если сегодня еще не было focus time, обнуляем данные
     private func checkAndResetIfNoFocusTimeToday() {
         let calendar = Calendar.current
@@ -114,7 +162,7 @@ final class AppBlockingLogger: ObservableObject {
         // Если сегодня еще не было focus time, обнуляем данные
         if lastFocusDate == nil || !calendar.isDate(lastFocusDate!, inSameDayAs: today) {
             resetTodayData()
-            SharedData.userDefaults?.set(today, forKey: "last_focus_date")
+            updateLastFocusDate(today)
             print("📊 AppBlockingLogger: Reset data - no focus time today yet")
         }
     }
@@ -125,7 +173,7 @@ final class AppBlockingLogger: ObservableObject {
         todayStats = DailyStats(date: Date())
         
         // Обнуляем legacy ключи
-        SharedData.userDefaults?.set(0, forKey: SharedData.AppBlocking.todayTotalBlockingTime)
+        updateTodayTotalBlockingTime(0)
         SharedData.userDefaults?.set(0, forKey: SharedData.AppBlocking.todayCompletedSessions)
         SharedData.userDefaults?.set(0, forKey: SharedData.AppBlocking.todayTotalSessions)
         
@@ -165,8 +213,7 @@ final class AppBlockingLogger: ObservableObject {
         updateHourlyData()
         
         // Обновляем дату последнего focus time
-        SharedData.userDefaults?.set(Date(), forKey: "last_focus_date")
-        
+        updateLastFocusDate(Date())
         print("AppBlockingLogger: Started \(type.rawValue) session with ID: \(session.id), apps: \(appTokenStrings.count)")
         if !appTokenStrings.isEmpty {
             print("AppBlockingLogger: App tokens: \(appTokenStrings.prefix(3))...") // Показываем первые 3 для отладки
@@ -200,7 +247,7 @@ final class AppBlockingLogger: ObservableObject {
         updateHourlyData()
         
         // Обновляем дату последнего focus time
-        SharedData.userDefaults?.set(Date(), forKey: "last_focus_date")
+        updateLastFocusDate(Date())
         
         // Сохраняем запланированное время окончания
         let unlockDate = Date().addingTimeInterval(duration)
@@ -500,7 +547,7 @@ final class AppBlockingLogger: ObservableObject {
     }
     
     private func saveCompletedSession(_ session: BlockingSession) {
-        let dateKey = dateFormatter.string(from: session.startTime)
+      let dateKey = dateFormatter.string(from: session.startTime)
         let key = "blocking_sessions_\(dateKey)"
         
         // Загружаем существующие сессии
@@ -516,7 +563,7 @@ final class AppBlockingLogger: ObservableObject {
     }
     
     private func updateDailyStats(with session: BlockingSession) {
-        let dateKey = dateFormatter.string(from: session.startTime)
+      let dateKey = dateFormatter.string(from: session.startTime)
         let key = "daily_stats_\(dateKey)"
         
         var stats = getDailyStats(for: session.startTime)
@@ -544,16 +591,14 @@ final class AppBlockingLogger: ObservableObject {
         }
         
         // Сохраняем обновленную статистику
-        if let data = try? JSONEncoder().encode(stats) {
-            SharedData.userDefaults?.set(data, forKey: key)
-        }
+        updateDailyFocusStats(key: key, value: stats)
         
         // Обновляем статистику для сегодня
         if calendar.isDateInToday(session.startTime) {
             self.todayStats = stats
             
             // Обновляем legacy ключи для обратной совместимости
-            SharedData.userDefaults?.set(stats.totalBlockingTime, forKey: SharedData.AppBlocking.todayTotalBlockingTime)
+            updateTodayTotalBlockingTime(stats.totalBlockingTime)
             SharedData.userDefaults?.set(stats.completedSessions, forKey: SharedData.AppBlocking.todayCompletedSessions)
             SharedData.userDefaults?.set(stats.totalSessions, forKey: SharedData.AppBlocking.todayTotalSessions)
         }
@@ -568,14 +613,14 @@ final class AppBlockingLogger: ObservableObject {
         let newLifetime = currentLifetime + addingDuration
         
         // Сохраняем обновленное значение
-        SharedData.userDefaults?.set(newLifetime, forKey: SharedData.AppBlocking.lifetimeTotalBlockingTime)
+        updateLifetimeTotalBlockingTime(newLifetime)
         
         print("AppBlockingLogger: Updated lifetime stats from \(currentLifetime)s to \(newLifetime)s (added \(addingDuration)s)")
     }
     
     private func updateHourlyData() {
         let today = Date()
-        let dateKey = dateFormatter.string(from: today)
+      let dateKey = dateFormatter.string(from: today)
         let key = "hourly_stats_\(dateKey)"
         
         // Создаем массив для 24 часов (в минутах)
@@ -649,7 +694,7 @@ final class AppBlockingLogger: ObservableObject {
         
         // Сохраняем почасовую статистику
         if let data = try? JSONEncoder().encode(hourlyStats) {
-            SharedData.userDefaults?.set(data, forKey: key)
+            updateHourlyFocusStats(key: key, date: today, value: hourlyStats)
             
             // Также сохраняем в legacy формате для обратной совместимости
             SharedData.userDefaults?.set(data, forKey: "hourlyBlockingData_\(dateKey)")
@@ -749,4 +794,111 @@ extension AppBlockingLogger {
             updateHourlyData()
         }
     }
+}
+
+// MARK: - Update methods
+extension AppBlockingLogger {
+  func updateLastFocusDate(_ value: Date) {
+    SharedData.userDefaults?.set(value, forKey: "last_focus_date")
+    globalFocusTimeStats.lastFocusDate = value
+    updatePendingChanges()
+  }
+  
+  func updateTodayTotalBlockingTime(_ value: Double) {
+    SharedData.userDefaults?.set(value, forKey: SharedData.AppBlocking.todayTotalBlockingTime)
+    globalFocusTimeStats.todayFocusTime = value
+    updatePendingChanges()
+  }
+  
+  func updateLifetimeTotalBlockingTime(_ value: Double) {
+    SharedData.userDefaults?.set(value, forKey: SharedData.AppBlocking.lifetimeTotalBlockingTime)
+    globalFocusTimeStats.lifetimeFocusTime = value
+    updatePendingChanges()
+  }
+  
+  func updateDailyFocusStats(key: String, value: DailyStats) {
+    do {
+      let data = try JSONEncoder().encode(value)
+      SharedData.userDefaults?.set(data, forKey: key)
+      updatePendingChanges(daily: [dateFormatter.string(from: value.date) : value])
+    } catch {
+      // TODO: - add catch logic, app logger is not supported by extensions
+//      AppLogger.critical(error, details: "Failed to update dailyFocusTime locally with key: \(key), value: \(value)")
+    }
+  }
+  
+  func updateHourlyFocusStats(key: String, date: Date, value: [Int]) {
+    do {
+      let data = try JSONEncoder().encode(value)
+      SharedData.userDefaults?.set(data, forKey: key)
+      updatePendingChanges(hourly: [dateFormatter.string(from: date) : value])
+    } catch {
+      // TODO: - add catch logic, app logger is not supported by extensions
+//      AppLogger.critical(error, details: "Failed to update hourlyFocusTime locally with key: \(key), value: \(value)")
+    }
+  }
+  
+  func getPendingUpdateData() -> PendingFocusTimeUpdates? {
+    let existingData = SharedData.userDefaults?.data(forKey: SharedData.AppBlocking.firebasePendingUpdateData) ?? Data()
+    return try? JSONDecoder().decode(PendingFocusTimeUpdates.self, from: existingData)
+  }
+  
+  func updatePendingChanges(daily: [String : DailyStats] = [:], hourly: [String : [Int]] = [:]) {
+    var existing = getPendingUpdateData() ?? PendingFocusTimeUpdates()
+    
+    existing.global = globalFocusTimeStats
+    daily.forEach { existing.daily[$0.key] = $0.value }
+    hourly.forEach { existing.hourly[$0.key] = .init($0.value) }
+    
+    if let updated = try? JSONEncoder().encode(existing) {
+      print("### WILL UPDATE PENDING CHANGES")
+      SharedData.userDefaults?.set(updated, forKey: SharedData.AppBlocking.firebasePendingUpdateData)
+    }
+  }
+  
+  func getFormattedDatesInBetween(_ from: Date, _ to: Date) -> [String] {
+    let start = Calendar.current.startOfDay(for: from)
+    let end = Calendar.current.startOfDay(for: to)
+
+    var result: [String] = []
+    
+    var current = start
+    while current <= end {
+      result.append(dateFormatter.string(from: current))
+      guard let next = Calendar.current.date(byAdding: .day, value: 1, to: current) else { break }
+      current = next
+    }
+    
+    return result
+  }
+  
+  func syncPendingChanges(fromDate: Date?) {
+    guard
+      var fromDate,
+      let existingLastFocusDate = getPendingUpdateData()?.global.lastFocusDate,
+      let monthAgo = Calendar.current.date(byAdding: .month, value: -1, to: existingLastFocusDate),
+      fromDate < existingLastFocusDate
+    else {
+      return
+    }
+    
+    fromDate = max(fromDate, monthAgo)
+    let datesToSync = getFormattedDatesInBetween(fromDate, existingLastFocusDate)
+    
+    var dailyToSync: [String : DailyStats] = [:]
+    var hourlyToSync: [String : [Int]] = [:]
+    
+    for dateKey in datesToSync {
+      if let dailyData = SharedData.userDefaults?.data(forKey: "daily_stats_\(dateKey)"),
+         let daily = try? JSONDecoder().decode(DailyStats.self, from: dailyData) {
+        dailyToSync[dateKey] = daily
+      }
+      if let hourlyData = SharedData.userDefaults?.data(forKey: "hourly_stats_\(dateKey)"),
+         let hourly = try? JSONDecoder().decode([Int].self, from: hourlyData) {
+        hourlyToSync[dateKey] = hourly
+      }
+    }
+    
+    updatePendingChanges(daily: dailyToSync, hourly: hourlyToSync)
+  }
 }
