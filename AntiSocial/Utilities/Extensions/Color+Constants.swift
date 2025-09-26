@@ -140,6 +140,17 @@ extension Color {
     endPoint: .bottomLeading
   )
   
+  static let borderGradient = LinearGradient(
+    gradient: Gradient(stops: [
+      .init(color: Color(hex: "FF8F89"), location: 0.00),
+      .init(color: Color(hex: "FFB3A6"), location: 0.18),
+      .init(color: Color(hex: "9A88FF"), location: 0.72),
+      .init(color: Color(hex: "7C86FF"), location: 1.00)
+    ]),
+    startPoint: .leading,
+    endPoint: .trailing
+  )
+  
   static let as_gradietn_main_red_button = LinearGradient(
     colors: [Color(hex: "FF3D3D"),
              Color(hex: "880808")],

@@ -27,7 +27,7 @@ struct AppMonitorScreen: View {
   
   // Keep ScreenTimeTodayView instance to avoid unnecessary recreation
   @State var screenTimeView = ScreenTimeTodayView()
-  @State var statsView = ActivityReportView()
+  @State var statsView = ContainerStatsView()
   // Single refresh key used by pull-to-refresh and restore foregrounding
   @State private var screenTimeRefreshID = UUID()
   

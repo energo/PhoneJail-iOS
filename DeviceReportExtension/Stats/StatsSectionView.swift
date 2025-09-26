@@ -4,46 +4,27 @@ import ManagedSettings
 import Foundation
 
 struct StatsSectionView: View {
+  
   let stats: StatsData
-  
-  // Новый блок: загрузка Focused Time
-  @State private var focusedTime: TimeInterval = 0
-  
   private let adaptive = AdaptiveValues.current
   
   var body: some View {
     VStack(alignment: .center, spacing: adaptive.spacing.medium) {
-      //      Text("Stats")
-      //        .font(.title2).bold()
-      //        .foregroundStyle(.white)
       Text(stats.totalDuration.formattedAsHoursMinutes())
         .adaptiveFont(\.title1)
         .fontWeight(.bold)
         .foregroundStyle(.white)
       
+      ChartView(chartData: stats.chartData)
       
-        
-        ChartView(chartData: stats.chartData)
-        
-        HStack {
-          PercentageView(label: "FOCUSED", value: stats.focusedPercent, color: .green)
-          Spacer()
-          PercentageView(label: "DISTRACTED", value: stats.distractedPercent, color: .blue)
-          Spacer()
-          PercentageView(label: "OFFLINE", value: stats.offlinePercent, color: .blue)
-        }
-        
-        // Новый блок: отображение Focused Time
-//        //TODO: FOR TESTING
-//        HStack {
-//          Text("Focused Time (all apps):")
-//            .foregroundStyle(.white)
-//          Spacer()
-//          Text(focusedTime.formattedAsHoursMinutes())
-//            .foregroundStyle(.green)
-//        }
-//        .padding(.vertical, 8)
-        
+      HStack {
+        PercentageView(label: "FOCUSED", value: stats.focusedPercent, color: .green)
+        Spacer()
+        PercentageView(label: "DISTRACTED", value: stats.distractedPercent, color: .blue)
+        Spacer()
+        PercentageView(label: "OFFLINE", value: stats.offlinePercent, color: .blue)
+      }
+      
       ScrollView() {
         ForEach(stats.appUsages) { app in
           HStack {
@@ -53,6 +34,7 @@ struct StatsSectionView: View {
             
             Text(app.name)
               .adaptiveFont(\.body)
+              .fontWeight(.medium)
               .foregroundStyle(.white)
             
             Spacer()
@@ -64,9 +46,6 @@ struct StatsSectionView: View {
         }
       }
     }
-//    .onAppear {
-//      focusedTime = AppBlockingLogger.shared.getTodayTotalBlockingTime()
-//    }
   }
 }
 
