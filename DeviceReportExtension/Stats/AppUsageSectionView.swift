@@ -9,7 +9,7 @@ struct AppUsageSectionView: View {
   let appsData: AppsReportData
   
   var body: some View {
-    ScrollView() {
+    ScrollView(showsIndicators: false) {
       VStack(spacing: 6) {
         ForEach(appsData.apps) { app in
           HStack(spacing: 6) {

@@ -18,18 +18,13 @@ private actor AppsCache {
   private struct CachedAppsData {
     let data: AppsReportData
     let timestamp: Date
-    let segmentCount: Int
-    
-    var isValid: Bool {
-      Date().timeIntervalSince(timestamp) <= AppsCache.shared.cacheLifetime
-    }
   }
   
   func get(for date: Date) -> AppsReportData? {
     let key = cacheKey(for: date)
     guard let cached = cache[key] else { return nil }
     
-    if !cached.isValid {
+    if Date().timeIntervalSince(cached.timestamp) > cacheLifetime  {
       cache.removeValue(forKey: key)
       return nil
     }
@@ -45,7 +40,6 @@ private actor AppsCache {
     cache[key] = CachedAppsData(
       data: data,
       timestamp: Date(),
-      segmentCount: segmentCount
     )
   }
   
@@ -76,7 +70,7 @@ private actor AppsCache {
   
   func clearExpired() {
     cache = cache.filter { _, value in
-      value.isValid
+      Date().timeIntervalSince(value.timestamp) <= cacheLifetime
     }
   }
   
@@ -145,7 +139,7 @@ struct AppsActivityReport: DeviceActivityReportScene {
     // Преобразуем в массив и сортируем ВСЕ приложения по убыванию времени
     // Возвращаем ВСЕ приложения, отсортированные от большего времени к меньшему
     let allAppsSorted = appUsageMap
-      .map { token, data in
+      .map { (token, data) in
         AppUsageInfo(
           token: token,
           name: data.name,
