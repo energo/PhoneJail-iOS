@@ -32,7 +32,6 @@ final class PomodoroBlockService: ObservableObject {
   private let store = ManagedSettingsStore(named: .pomodoro)
   private var ticker: AnyCancellable?
   
-  
   // Pause state
   private var pausedAt: Date?
   private var originalUnlockDate: Date?
