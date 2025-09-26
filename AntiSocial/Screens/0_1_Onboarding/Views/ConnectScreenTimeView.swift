@@ -11,7 +11,7 @@ import SwiftUI
 struct ConnectScreenTimeView: View {
   //  @EnvironmentObject var familyControlsManager: FamilyControlsManager
   @Binding var showScreenTimeImage: Bool
-  @Binding var hasDeniedPermissionRequest: Bool
+  @Binding var isAuthorized: Bool?
   
   // MARK: - Views
   var body: some View {
@@ -27,7 +27,7 @@ struct ConnectScreenTimeView: View {
         Spacer()
         bgScreenTimeView
         Spacer()
-      } else if hasDeniedPermissionRequest {
+      } else if let isAuthorized, isAuthorized == false {
         Spacer()
         noAccessAlertView
         Spacer()

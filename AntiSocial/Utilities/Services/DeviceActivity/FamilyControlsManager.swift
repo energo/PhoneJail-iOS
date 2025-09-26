@@ -17,7 +17,7 @@ class FamilyControlsManager: ObservableObject {
   
   // MARK: - Member variable to utilize ScreenTime permission state
   @Published var hasScreenTimePermission: Bool = false
-  @Published var hasDeniedPermissionRequest: Bool = false
+  @Published var isAuthorized: Bool?
   
   // MARK: - Request permission to use ScreenTime API
   /// To use the ScreenTime API, permission must be requested first.
@@ -27,20 +27,20 @@ class FamilyControlsManager: ObservableObject {
     if authorizationCenter.authorizationStatus == .approved {
       AppLogger.notice("ScreenTime Permission approved")
       hasScreenTimePermission = true
-      hasDeniedPermissionRequest = false
+      isAuthorized = true
       
     } else {
       Task {
         do {
           try await authorizationCenter.requestAuthorization(for: .individual)
           hasScreenTimePermission = true
-          hasDeniedPermissionRequest = false
+          isAuthorized = true
           AppLogger.notice("ScreenTime Permission approved")
         } catch {
           // Consent not given
           AppLogger.critical(error, details: "Failed to enroll")
           hasScreenTimePermission = false
-          hasDeniedPermissionRequest = true
+          isAuthorized = false
           // The user did not allow.
           // Error Domain=FamilyControls.FamilyControlsError Code=5 "(null)"
         }
@@ -73,13 +73,13 @@ class FamilyControlsManager: ObservableObject {
     switch authStatus {
       case .notDetermined:
         hasScreenTimePermission = false
-        hasDeniedPermissionRequest = false
+        isAuthorized = nil
       case .denied:
         hasScreenTimePermission = false
-        hasDeniedPermissionRequest = true
+        isAuthorized = false
       case .approved:
         hasScreenTimePermission = true
-        hasDeniedPermissionRequest = false
+        isAuthorized = true
       @unknown default:
         fatalError("No handling exists for the requested permission type")
     }
