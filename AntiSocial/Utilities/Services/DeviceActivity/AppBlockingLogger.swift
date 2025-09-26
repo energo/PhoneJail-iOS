@@ -694,7 +694,7 @@ final class AppBlockingLogger: ObservableObject {
         
         // Сохраняем почасовую статистику
         if let data = try? JSONEncoder().encode(hourlyStats) {
-            updateHourlyFocusStats(key: key, value: hourlyStats)
+            updateHourlyFocusStats(key: key, date: today, value: hourlyStats)
             
             // Также сохраняем в legacy формате для обратной совместимости
             SharedData.userDefaults?.set(data, forKey: "hourlyBlockingData_\(dateKey)")
@@ -820,18 +820,18 @@ extension AppBlockingLogger {
     do {
       let data = try JSONEncoder().encode(value)
       SharedData.userDefaults?.set(data, forKey: key)
-      updatePendingChanges(daily: [key : value])
+      updatePendingChanges(daily: [dateFormatter.string(from: value.date) : value])
     } catch {
       // TODO: - add catch logic, app logger is not supported by extensions
 //      AppLogger.critical(error, details: "Failed to update dailyFocusTime locally with key: \(key), value: \(value)")
     }
   }
   
-  func updateHourlyFocusStats(key: String, value: [Int]) {
+  func updateHourlyFocusStats(key: String, date: Date, value: [Int]) {
     do {
       let data = try JSONEncoder().encode(value)
       SharedData.userDefaults?.set(data, forKey: key)
-      updatePendingChanges(hourly: [key : value])
+      updatePendingChanges(hourly: [dateFormatter.string(from: date) : value])
     } catch {
       // TODO: - add catch logic, app logger is not supported by extensions
 //      AppLogger.critical(error, details: "Failed to update hourlyFocusTime locally with key: \(key), value: \(value)")

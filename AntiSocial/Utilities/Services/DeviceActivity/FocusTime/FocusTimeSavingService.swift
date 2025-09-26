@@ -17,9 +17,10 @@ class FocusTimeSavingService: NSObject {
     cancellables.removeAll()
     NotificationCenter.default
           .publisher(for: UserDefaults.didChangeNotification,
-                     object: SharedData.userDefaults)   // <- your App Group defaults
+                     object: SharedData.userDefaults)
           .map { _ in SharedData.userDefaults?.data(forKey: SharedData.AppBlocking.firebasePendingUpdateData) }
           .removeDuplicates()
+          .receive(on: DispatchQueue.main)
           .sink { newValue in
             guard
               let newValue,
@@ -27,6 +28,8 @@ class FocusTimeSavingService: NSObject {
             else {
               return
             }
+            
+            SharedData.userDefaults?.set(nil, forKey: SharedData.AppBlocking.firebasePendingUpdateData)
             
             Task {
               try await FirestoreStorage.shared.saveFocusTimeStats(
