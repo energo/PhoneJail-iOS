@@ -20,5 +20,9 @@ struct DeviceReportExtension: DeviceActivityReportExtension {
     StatsActivityReport { statsActivity in
       StatsSectionView(stats: statsActivity)
     }
+    
+    AppsActivityReport { appActivityReport in
+      AppUsageSectionView(appsData: appActivityReport)
+    }
   }
 }

@@ -47,5 +47,43 @@ struct AppUsage: Identifiable {
   }
 }
 
+// MARK: - For AppsActivityReport
+struct AppsReportData {
+  let apps: [AppUsageInfo]
+  let totalDuration: TimeInterval
+  let reportDate: Date
+  
+  var totalDurationString: String {
+    let hours = Int(totalDuration) / 3600
+    let minutes = (Int(totalDuration) % 3600) / 60
+    
+    if hours > 0 {
+      return "\(hours)h \(minutes)m"
+    } else {
+      return "\(minutes)m"
+    }
+  }
+}
+
+struct AppUsageInfo: Identifiable {
+  let id = UUID()
+  let token: ApplicationToken
+  let name: String
+  let duration: TimeInterval
+  
+  var durationString: String {
+    let hours = Int(duration) / 3600
+    let minutes = (Int(duration) % 3600) / 60
+    
+    if hours > 0 {
+      return "\(hours)h \(minutes)m"
+    } else if minutes > 0 {
+      return "\(minutes)m"
+    } else {
+      return "< 1m"
+    }
+  }
+}
+
 
 

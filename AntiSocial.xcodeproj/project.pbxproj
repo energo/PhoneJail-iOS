@@ -144,6 +144,8 @@
 				Models/ActivityReport.swift,
 				ScreenTime/ScreenTimeTodayView.swift,
 				Stats/ActivityReportView.swift,
+				Stats/AppsActivityView.swift,
+				Stats/ContainerStatsView.swift,
 			);
 			target = 478055122D5BD68B003988E7 /* AntiSocialApp */;
 		};
@@ -172,7 +174,9 @@
 				Utilities/Services/DeviceActivity/AppBlockingLogger.swift,
 				Utilities/Services/DeviceActivity/ScreenTimeCache.swift,
 				Utilities/Services/DeviceActivity/SharedData.swift,
+				Views/BGView.swift,
 				Views/Blur/BackdropBlurView.swift,
+				Views/Blur/BlurBackgroundModifier.swift,
 				Views/SeparatorView.swift,
 			);
 			target = 47412DF42E143FFE0099F20A /* DeviceReportExtension */;

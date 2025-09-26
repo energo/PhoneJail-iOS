@@ -14,58 +14,18 @@ extension DeviceActivityReport.Context {
 }
 
 struct ActivityReportView: View {
-  // Храним выбранную дату
+  @Binding var currentFilter: DeviceActivityFilter
+  @Binding var isShowingAll: Bool 
+
   @State private var selectedDate: Date = Date()
-  @State private var lifetimeFocusedTime: TimeInterval = 0
   @State private var lastRefreshDate: Date? = nil
-  @State private var isChangingDate = false
-  @State private var pendingDate: Date? = nil
-  private let dateChangeSubject = PassthroughSubject<Date, Never>()
-  
-  // Храним фильтр как @State чтобы контролировать его обновление
-  @State private var currentFilter: DeviceActivityFilter
-  
-  @Environment(\.scenePhase) var scenePhase
-  
-  // Контекст отчёта (может быть .totalActivity или ваш собственный)
+    
+  private let adaptive = AdaptiveValues.current
+
   let context: DeviceActivityReport.Context = .statsActivity
-  
-  init() {
-    let initialDate = Date()
-    _selectedDate = State(initialValue: initialDate)
-    _currentFilter = State(initialValue: DeviceActivityFilter(
-      segment: .hourly(
-        during: Calendar.current.dateInterval(of: .day, for: initialDate)!
-      ),
-      users: .all,
-      devices: .init([.iPhone])
-    ))
-  }
-  
+    
   var body: some View {
     VStack(alignment: .center, spacing: 0) {
-      
-      HStack {
-        Image(.icNavAppBlock)
-          .resizable()
-          .frame(width: 24, height: 24)
-          .foregroundColor(.white)
-
-        Text("Stats")
-          .foregroundColor(.white)
-          .font(.system(size: 24, weight: .semibold))
-        Spacer()
-        Text(formatLifetimeTime())
-          .foregroundColor(.as_light_green)
-          .font(.system(size: 11))
-          .lineLimit(1)
-      }
-
-      separatorView
-        .padding(.vertical, 16)
-
-      datePicker
-      
       // Сам отчёт с защитой от сбоев
       ZStack {
         // Всегда показываем placeholder чтобы view не исчезала
@@ -76,148 +36,31 @@ struct ActivityReportView: View {
         DeviceActivityReport(context, filter: currentFilter)
       }
       .frame(minHeight: 200)
+      showAllButton
     }
-    .padding()
-    .background(bgBlur)
-    .onReceive(
-      dateChangeSubject
-//        .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
-    ) { newDate in
-      Task { @MainActor in
-        guard newDate != selectedDate else { return }
-        
-        isChangingDate = true
-        selectedDate = newDate
-        
-        // Создаём новый фильтр для новой даты
-        let newFilter = DeviceActivityFilter(
-          segment: .hourly(
-            during: Calendar.current.dateInterval(of: .day, for: newDate)!
-          ),
-          users: .all,
-          devices: .init([.iPhone])
-        )
-        
-        // Обновляем только фильтр - DeviceActivityReport сам обновит данные
-        currentFilter = newFilter
-        
-        await loadLifetimeStats()
-        
-        isChangingDate = false
+  }
+  
+  private var showAllButton: some View {
+    Button(action: {
+      isShowingAll = true
+      print("Show All button tapped")
+    }) {
+      HStack {
+        Spacer()
+        Text("Show All")
+          .adaptiveFont(\.body)
+          .fontWeight(.semibold)
+          .foregroundStyle(Color.white)
+        Spacer()
       }
+      .padding(.vertical, adaptive.spacing.small)
+      .background(
+        RoundedRectangle(cornerRadius: 9999)
+          .stroke(Color.borderGradient, lineWidth: 1)
+      )
+      .frame(height: adaptive.componentSizes.buttonHeight)
     }
-    .onChange(of: scenePhase) { newPhase in
-      if newPhase == .active {
-        // Обновляем только если прошло больше 10 секунд с последнего обновления
-        let now = Date()
-        if lastRefreshDate == nil || now.timeIntervalSince(lastRefreshDate!) > 10 {
-          lastRefreshDate = now
-          Task {
-            await loadLifetimeStats()
-          }
-        }
-      }
-    }
-    .task {
-      await loadLifetimeStats()
-      lastRefreshDate = Date()
-    }
-    // Убрали onChange для selectedDate - теперь используем debounce через Combine
-  }
-  
-  private func loadLifetimeStats() async {
-    // Получаем данные из SharedData через UserDefaults
-    let totalTime = SharedData.getLifetimeTotalBlockingTime()
-    await MainActor.run {
-      lifetimeFocusedTime = totalTime
-    }
-  }
-  
-  private func formatLifetimeTime() -> String {
-    let hours = Int(lifetimeFocusedTime) / 3600
-    let minutes = (Int(lifetimeFocusedTime) % 3600) / 60
-    return "\(hours)H \(minutes)M FOCUSED LIFETIME"
-  }
-  
-  private var separatorView: some View {
-    SeparatorView()
-  }
-
-  private var datePicker: some View {
-    HStack {
-      Button(action: {
-        changeDate(by: -1)
-      }) {
-        Image(systemName: "chevron.left.circle.fill")
-          .font(.system(size: 32))
-          .symbolRenderingMode(.hierarchical)
-          .foregroundStyle(.white, .white.opacity(0.07))
-      }
-      .disabled(isChangingDate)
-      .scaleEffect(isChangingDate ? 0.9 : 1.0)
-      .animation(.easeInOut(duration: 0.2), value: isChangingDate)
-      
-      Spacer()
-      
-//      if isChangingDate {
-//        ProgressView()
-//          .progressViewStyle(CircularProgressViewStyle(tint: .gray))
-//          .scaleEffect(0.7)
-//      } else {
-        Text(dateText)
-          .font(.caption)
-          .foregroundStyle(.gray)
-//      }
-      
-      Spacer()
-      
-      Button(action: {
-        changeDate(by: 1)
-      }) {
-        Image(systemName: "chevron.right.circle.fill")
-          .font(.system(size: 32))
-          .symbolRenderingMode(.hierarchical)
-          .foregroundStyle(.white, .white.opacity(0.07))
-      }
-      .disabled(isToday || isChangingDate)
-      .opacity(isToday || isChangingDate ? 0.3 : 1.0)
-      .scaleEffect(isChangingDate ? 0.9 : 1.0)
-      .animation(.easeInOut(duration: 0.2), value: isChangingDate)
-    }
-    .foregroundStyle(Color.white)
-  }
-  
-  private func changeDate(by days: Int) {
-    guard !isChangingDate else { return }
-    
-    let newDate = Calendar.current.date(byAdding: .day, value: days, to: selectedDate)!
-    
-    // НЕ меняем selectedDate здесь!
-    // Отправляем в Combine subject для debounce
-    dateChangeSubject.send(newDate)
-  }
-  
-  private var isToday: Bool {
-    Calendar.current.isDateInToday(selectedDate)
-  }
-  
-  private var dateText: String {
-    if isToday {
-      return "TODAY, " + selectedDate.formatted(.dateTime.month(.wide).day())
-    } else {
-      // Показываем день недели и дату
-      return selectedDate.formatted(.dateTime.weekday(.wide)) + ", " + selectedDate.formatted(.dateTime.month(.wide).day())
-    }
-  }
-  
-  private var bgBlur: some View {
-    ZStack {
-      BackdropBlurView(isBlack: false, radius: 10)
-      RoundedRectangle(cornerRadius: 32)
-        .fill(
-          Color.white.opacity(0.07)
-        )
-    }
+    .padding(.top, adaptive.spacing.xSmall)
   }
 }
 
