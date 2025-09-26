@@ -125,7 +125,7 @@ public struct CustomPickerView: View {
             )
           )
           .onChange(of: isScrolling, { oldValue, newValue in
-            if newValue == false {
+            if newValue == false && style != .styleOne {
               let indexValue: Double = Double(count) / Double(steps)
               let nextItem = indexValue.rounded()
               let newIndex = nextItem * Double(steps)
