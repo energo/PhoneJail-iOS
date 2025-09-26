@@ -374,7 +374,9 @@ private extension AppMonitorScreen {
   }
   
   var screenTimeSection: some View {
-    screenTimeView
+//    screenTimeView
+    ScreenTimeTodayView()
+      .id(screenTimeRefreshID)
       .opacity(currentSection == SectionType.pomodoro.rawValue ? 0 : 1)
       .animation(.easeInOut(duration: 0.3), value: currentSection)
   }

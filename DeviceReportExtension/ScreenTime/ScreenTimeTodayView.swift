@@ -21,6 +21,9 @@ struct ScreenTimeTodayView: View {
 
   var body: some View {
     DeviceActivityReport(context, filter: filter)
+      .onAppear {
+        refreshToday()
+      }
       .onChange(of: refreshToken, { _, newValue in
         refreshToday()
       })
