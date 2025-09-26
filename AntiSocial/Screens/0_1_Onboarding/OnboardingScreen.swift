@@ -57,7 +57,7 @@ struct OnboardingScreen: View {
         OnboardingPage(
           title: "Connect Phone Jail to Screen Time"
         ) {
-          ConnectScreenTimeView(showScreenTimeImage: $hasRequestedScreenTime)
+          ConnectScreenTimeView(showScreenTimeImage: $hasRequestedScreenTime, hasDeniedPermissionRequest: $familyControlsManager.hasDeniedPermissionRequest)
         }
         .tag(2)
         
@@ -88,7 +88,15 @@ struct OnboardingScreen: View {
   private var buttonTitle: String {
     switch currentPage {
       case 2:
-        return hasRequestedScreenTime ? "Next" : "Connect Phone Jail"
+        if !hasRequestedScreenTime {
+          return "Connect Phone Jail"
+        } else {
+          if familyControlsManager.hasScreenTimePermission {
+            return "Next:"
+          } else {
+            return "Give an access"
+          }
+        }
       default:
         return "Next"
     }
@@ -101,7 +109,7 @@ struct OnboardingScreen: View {
   private func handleButtonAction() {
     switch currentPage {
       case 2:
-        if !hasRequestedScreenTime {
+        if !hasRequestedScreenTime || !familyControlsManager.hasScreenTimePermission {
           requestScreenTimePermission()
         } else {
           currentPage += 1
