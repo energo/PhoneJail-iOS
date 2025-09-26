@@ -18,7 +18,7 @@ struct ButtonMain: View {
   var title: String
   var isEnabled: Bool = true
   var size: Size = .compact
-  var bgColor: Color = .white.opacity(0.85)
+  var bgStyle: AnyShapeStyle = AnyShapeStyle(Color.white.opacity(0.85))
   var txtColor: Color = .black
   var action: () -> Void
   
@@ -32,7 +32,7 @@ struct ButtonMain: View {
     }
     .frame(maxWidth: .infinity)
     .frame(height: frameHeight)
-    .background(bgColor)
+    .background(bgStyle)
     .cornerRadius(cornerRadius)
   }
   

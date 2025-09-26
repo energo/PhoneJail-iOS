@@ -14,6 +14,10 @@ struct MainView: View {
 
   @State private var showPaywall = false
   
+  // MARK: - Navigation guide
+  @AppStorage("showNavigationGuide") private var showNavigationGuide: Bool = true
+  @State private var navigationGuideViewsPosition = NavigationGuideViewsPosition()
+  
   //MARK: - Init Methods
   
   //MARK: - Views
@@ -26,7 +30,13 @@ struct MainView: View {
         if isFirstRun {
           OnboardingScreen(isShow: $isFirstRun)
         } else {
-          AppMonitorScreen()
+          AppMonitorScreen(navigationGuideViewsPosition: $navigationGuideViewsPosition)
+            .fullScreenCover(isPresented: $showNavigationGuide) {
+              NavigationGuideView(
+                viewsPosition: $navigationGuideViewsPosition,
+                isShown: $showNavigationGuide
+              )
+            }
         }
     }
   }

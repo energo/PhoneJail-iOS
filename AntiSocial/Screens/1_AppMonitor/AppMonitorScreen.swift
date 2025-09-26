@@ -36,6 +36,8 @@ struct AppMonitorScreen: View {
   @State private var blockSchedulerContent = BlockSchedulerSectionView()
   @State private var pomodoroContent = PomodoroSectionView()
   
+  // MARK: - Navigation guide
+  @Binding var navigationGuideViewsPosition: NavigationGuideViewsPosition
 
   // MARK: - UI State
   @AppStorage("lastRefreshDate")
@@ -132,6 +134,16 @@ struct AppMonitorScreen: View {
           sideNavigationPanel
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+      }
+    }
+    .overlayPreferenceValue(NavigationGuideViewFrameKey.self) { anchor in
+      GeometryReader { proxy in
+        let rect = anchor.map { proxy[$0] } ?? .zero
+        Color.clear
+          .onAppear { navigationGuideViewsPosition.sideNavigationPanel = (Constants.horizontalPadding, 10, rect) }
+          .onChangeWithOldValue(of: rect) { oldValue, newValue in
+            navigationGuideViewsPosition.sideNavigationPanel = (Constants.horizontalPadding, 10, newValue)
+          }
       }
     }
     .fullScreenCover(isPresented: $isShowingProfile) {
@@ -389,6 +401,7 @@ private extension AppMonitorScreen {
       }
     }
     .padding(.horizontal, 2)
+    .anchorPreference(key: NavigationGuideViewFrameKey.self, value: .bounds) { $0 }
   }
   
   private func navigationButton(for section: SectionInfo) -> some View {
@@ -552,7 +565,7 @@ private extension AppMonitorScreen {
 
 // MARK: - Preview
 #Preview {
-  AppMonitorScreen()
+  AppMonitorScreen(navigationGuideViewsPosition: .constant(.init()))
     .environmentObject(SubscriptionManager())
     .environmentObject(FamilyControlsManager.shared)
 }
