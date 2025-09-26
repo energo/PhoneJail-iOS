@@ -150,11 +150,13 @@ struct AppMonitorScreen: View {
         // Пользователь, вероятно, начал системный жест/ушёл в другой апп/вызов и т.п.
         // Сохраните состояние, остановите анимации, зафиксируйте таймеры и т.д.
         AppLogger.trace("willResignActive — вероятно системный свайп снизу/уход")
+      reloadScreenTimeIfNeeded()
     }
+    .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+      reloadScreenTimeIfNeeded()
+      AppLogger.trace("willEnterForegroundNotification — вероятно равзорачивает приложение")
 
-//    .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
-//      reloadScreenTimeIfNeeded()
-//    }
+    }
     .presentPaywallIfNeeded(
       requiredEntitlementIdentifier: SubscriptionManager.Constants.entitlementID,
       purchaseCompleted: { _ in },
@@ -464,9 +466,11 @@ private extension AppMonitorScreen {
   }
   
   func handleScenePhaseChange(_ newPhase: ScenePhase) {
+//    reloadScreenTimeIfNeeded()
+
     switch newPhase {
       case .active:
-        reloadScreenTimeIfNeeded()
+//        reloadScreenTimeIfNeeded()
         BlockSchedulerService.shared.checkAndApplyActiveSchedules()
         AppLogger.trace("Scene phase: active - gestures enabled")
 
