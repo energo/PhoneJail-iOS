@@ -16,7 +16,11 @@ struct OnboardingScreen: View {
   @State private var agreedToStorage = false
   @State private var agreedToProcessing = false
   @State private var selectedGoal: String? = nil
+  
   @State private var hasRequestedScreenTime = false
+  
+  @State private var notificationRequested: Bool = false
+  @State private var notificationAuthorized: Bool?
   
   //MARK: - Views
   var body: some View {
@@ -57,15 +61,15 @@ struct OnboardingScreen: View {
         OnboardingPage(
           title: "Connect Phone Jail to Screen Time"
         ) {
-          ConnectScreenTimeView(showScreenTimeImage: $hasRequestedScreenTime)
+          ConnectScreenTimeView(showScreenTimeImage: $hasRequestedScreenTime, isAuthorized: $familyControlsManager.isAuthorized)
         }
         .tag(2)
         
         OnboardingPage(
           title: "Turn on notifications to experience Phone Jail's core features",
-          bottomTxt: "Turn on notifications to get reminders, summaries and reports of your activity and enable push notifications."
+          bottomTxt: notificationAuthorized == false ? "" : "Turn on notifications to get reminders, summaries and reports of your activity and enable push notifications."
         ) {
-          TurnOnNotificationsView()
+          TurnOnNotificationsView(hasRequestedPermission: $notificationRequested, isAuthorized: $notificationAuthorized)
         }
         .tag(3)
       }
@@ -79,7 +83,11 @@ struct OnboardingScreen: View {
   }
   
   private var nextButton: some View {
-    ButtonMain(title: buttonTitle) {
+    ButtonMain(
+      title: buttonTitle,
+      bgStyle: AnyShapeStyle(Color.as_gradient_pomodoro_focus_progress),
+      txtColor: .white
+    ) {
       handleButtonAction()
     }
 //    .disabled(isButtonDisabled)
@@ -88,7 +96,21 @@ struct OnboardingScreen: View {
   private var buttonTitle: String {
     switch currentPage {
       case 2:
-        return hasRequestedScreenTime ? "Next" : "Connect Phone Jail"
+        if !hasRequestedScreenTime {
+          return "Connect Phone Jail"
+        } else {
+          if familyControlsManager.hasScreenTimePermission {
+            return "Next:"
+          } else {
+            return "Give an access"
+          }
+        }
+      case 3:
+        if notificationAuthorized == true {
+          return "Next:"
+        } else {
+          return "Give an access"
+        }
       default:
         return "Next"
     }
@@ -101,14 +123,20 @@ struct OnboardingScreen: View {
   private func handleButtonAction() {
     switch currentPage {
       case 2:
-        if !hasRequestedScreenTime {
+        if !hasRequestedScreenTime || !familyControlsManager.hasScreenTimePermission {
           requestScreenTimePermission()
         } else {
           currentPage += 1
+          requestNotificationPermission()
         }
       case 3:
-        saveConsentAndGoal()
-        isShow = false
+        if notificationAuthorized == true {
+          saveConsentAndGoal()
+          isShow = false
+        } else {
+          requestNotificationPermission()
+        }
+        
       default:
         currentPage += 1
     }
@@ -121,6 +149,17 @@ struct OnboardingScreen: View {
       hasRequestedScreenTime = true
     }
   }
+  
+  private func requestNotificationPermission() {
+    notificationAuthorized = nil
+    notificationRequested = true
+    LocalNotificationManager.shared.requestAuthorization { isAuthorized in
+      notificationAuthorized = isAuthorized
+      AppLogger.trace("Notifications authorized: \(isAuthorized)")
+      UNUserNotificationCenter.current().delegate = DTNNotificationHandler.shared
+    }
+  }
+  
   
   private var isLastPage: Bool {
     currentPage == 3
